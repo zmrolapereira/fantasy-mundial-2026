@@ -7,6 +7,7 @@ import Link from "next/link";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = listenToAuth(setUser);
@@ -40,78 +41,120 @@ export default function HomePage() {
     },
   ];
 
+  const navLinks = [
+    { href: "/", label: "Home" },
+    { href: "/login", label: "Login" },
+    { href: "/team", label: "As Minhas Escolhas" },
+    { href: "/stats", label: "Estatísticas" },
+    { href: "/games", label: "Jogos" },
+    { href: "/table", label: "Tabela" },
+    { href: "/rules", label: "Info" },
+    { href: "/ranking", label: "Ranking" },
+  ];
+
   return (
     <main className="min-h-screen bg-gray-100 text-gray-900">
       <header className="w-full border-b bg-white">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-4">
-          <div>
-            <h1 className="text-xl font-extrabold tracking-tight">
-              Fantasy Mundial 2026
-            </h1>
-            <p className="text-sm text-gray-500">
-              Previsões oficiais do torneio
-            </p>
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+                Fantasy Mundial 2026
+              </h1>
+              <p className="mt-1 text-sm text-gray-500 sm:text-base">
+                Previsões oficiais do torneio
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setMenuOpen((prev) => !prev)}
+              className="inline-flex items-center justify-center rounded-xl border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 md:hidden"
+              aria-label="Abrir menu"
+              aria-expanded={menuOpen}
+            >
+              Menu
+            </button>
+
+            <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
+              <Link href="/" className="font-semibold text-blue-600">
+                Home
+              </Link>
+
+              <Link href="/login" className="hover:text-blue-600">
+                Login
+              </Link>
+
+              <Link href="/team" className="hover:text-blue-600">
+                As Minhas Escolhas
+              </Link>
+
+              <Link href="/stats" className="hover:text-blue-600">
+                Estatísticas
+              </Link>
+
+              <Link href="/games" className="hover:text-blue-600">
+                Jogos
+              </Link>
+
+              <Link href="/table" className="hover:text-blue-600">
+                Tabela
+              </Link>
+
+              <Link href="/rules" className="hover:text-blue-600">
+                Info
+              </Link>
+
+              <Link href="/ranking" className="hover:text-blue-600">
+                Ranking
+              </Link>
+            </nav>
           </div>
 
-          <nav className="hidden gap-6 text-sm font-medium md:flex">
-            <Link href="/" className="font-semibold text-blue-600">
-              Home
-            </Link>
-
-            <Link href="/login" className="hover:text-blue-600">
-              Login
-            </Link>
-
-            <Link href="/team" className="hover:text-blue-600">
-              As Minhas Escolhas
-            </Link>
-
-            <Link href="/stats" className="hover:text-blue-600">
-              Estatísticas
-            </Link>
-
-            <Link href="/games" className="hover:text-blue-600">
-              Jogos
-            </Link>
-
-            <Link href="/table" className="hover:text-blue-600">
-              Tabela
-            </Link>
-
-            <Link href="/rules" className="hover:text-blue-600">
-              Info
-            </Link>
-
-            <Link href="/ranking" className="hover:text-blue-600">
-              Ranking
-            </Link>
-          </nav>
+          {menuOpen && (
+            <nav className="mt-4 grid grid-cols-2 gap-2 md:hidden">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`rounded-xl px-4 py-3 text-sm font-medium ${
+                    link.href === "/"
+                      ? "bg-blue-50 text-blue-600"
+                      : "bg-gray-50 text-gray-700"
+                  }`}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          )}
         </div>
       </header>
 
-      <section className="mx-auto max-w-7xl px-6 py-8">
+      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
         <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 shadow-xl">
-          <div className="grid items-center gap-8 px-8 py-12 md:grid-cols-2 md:px-12">
+          <div className="grid items-center gap-8 px-5 py-8 sm:px-8 sm:py-10 md:grid-cols-2 md:px-12 md:py-12">
             <div className="text-white">
-              <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-white/80">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-white/80 sm:text-sm">
                 Fantasy Oficial
               </p>
 
-              <h2 className="mb-4 text-4xl font-extrabold leading-tight md:text-5xl">
+              <h2 className="mb-4 text-4xl font-extrabold leading-tight sm:text-5xl md:text-5xl">
                 Faz as tuas previsões para o Mundial 2026
               </h2>
 
-              <p className="mb-6 max-w-xl text-base text-white/90 md:text-lg">
+              <p className="mb-6 max-w-xl text-base text-white/90 sm:text-lg">
                 Escolhe o melhor marcador, o melhor assistente, a seleção
                 vencedora e prevê os resultados dos jogos para acumulares a maior
                 pontuação possível ao longo do torneio.
               </p>
 
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 {user ? (
                   <Link
                     href="/team"
-                    className="rounded-full bg-white px-6 py-3 font-semibold text-gray-900 shadow transition hover:scale-[1.02]"
+                    className="rounded-full bg-white px-6 py-3 text-center font-semibold text-gray-900 shadow transition hover:scale-[1.02]"
                   >
                     Ver as minhas escolhas
                   </Link>
@@ -119,14 +162,14 @@ export default function HomePage() {
                   <>
                     <Link
                       href="/login"
-                      className="rounded-full bg-white px-6 py-3 font-semibold text-gray-900 shadow transition hover:scale-[1.02]"
+                      className="rounded-full bg-white px-6 py-3 text-center font-semibold text-gray-900 shadow transition hover:scale-[1.02]"
                     >
                       Criar conta
                     </Link>
 
                     <Link
                       href="/login"
-                      className="rounded-full border border-white/70 px-6 py-3 font-semibold text-white transition hover:bg-white/10"
+                      className="rounded-full border border-white/70 px-6 py-3 text-center font-semibold text-white transition hover:bg-white/10"
                     >
                       Entrar
                     </Link>
@@ -136,7 +179,7 @@ export default function HomePage() {
 
               <div className="mt-6">
                 {user ? (
-                  <p className="inline-block rounded-full bg-white/20 px-4 py-2 text-sm font-medium">
+                  <p className="inline-block max-w-full rounded-full bg-white/20 px-4 py-2 text-sm font-medium break-words">
                     Sessão iniciada: {user.email}
                   </p>
                 ) : (
@@ -148,25 +191,33 @@ export default function HomePage() {
             </div>
 
             <div className="flex justify-center">
-              <div className="grid w-full max-w-md grid-cols-2 gap-4">
-                <div className="rounded-2xl bg-white/15 p-5 backdrop-blur">
+              <div className="grid w-full max-w-md grid-cols-2 gap-3 sm:gap-4">
+                <div className="rounded-2xl bg-white/15 p-4 backdrop-blur sm:p-5">
                   <p className="text-sm text-white/80">Melhor marcador</p>
-                  <p className="mt-2 text-3xl font-bold text-white">1</p>
+                  <p className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+                    1
+                  </p>
                 </div>
 
-                <div className="rounded-2xl bg-white/15 p-5 backdrop-blur">
+                <div className="rounded-2xl bg-white/15 p-4 backdrop-blur sm:p-5">
                   <p className="text-sm text-white/80">Melhor assistente</p>
-                  <p className="mt-2 text-3xl font-bold text-white">1</p>
+                  <p className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+                    1
+                  </p>
                 </div>
 
-                <div className="rounded-2xl bg-white/15 p-5 backdrop-blur">
+                <div className="rounded-2xl bg-white/15 p-4 backdrop-blur sm:p-5">
                   <p className="text-sm text-white/80">Seleção vencedora</p>
-                  <p className="mt-2 text-3xl font-bold text-white">1</p>
+                  <p className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+                    1
+                  </p>
                 </div>
 
-                <div className="rounded-2xl bg-white/15 p-5 backdrop-blur">
+                <div className="rounded-2xl bg-white/15 p-4 backdrop-blur sm:p-5">
                   <p className="text-sm text-white/80">Jogos para prever</p>
-                  <p className="mt-2 text-3xl font-bold text-white">104</p>
+                  <p className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+                    104
+                  </p>
                 </div>
               </div>
             </div>
@@ -174,27 +225,33 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-4">
-        <div className="grid gap-6 md:grid-cols-3">
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
-            <h3 className="mb-2 text-xl font-bold">Escolhas do torneio</h3>
-            <p className="text-gray-600">
+      <section className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
+        <div className="grid gap-4 md:grid-cols-3 md:gap-6">
+          <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
+            <h3 className="mb-2 text-lg font-bold sm:text-xl">
+              Escolhas do torneio
+            </h3>
+            <p className="text-sm text-gray-600 sm:text-base">
               Define as tuas três escolhas principais antes da competição:
               melhor marcador, melhor assistente e seleção vencedora.
             </p>
           </div>
 
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
-            <h3 className="mb-2 text-xl font-bold">Predictions jogo a jogo</h3>
-            <p className="text-gray-600">
+          <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
+            <h3 className="mb-2 text-lg font-bold sm:text-xl">
+              Predictions jogo a jogo
+            </h3>
+            <p className="text-sm text-gray-600 sm:text-base">
               Prevê os resultados de cada partida e soma pontos sempre que
               acertas no sentido do jogo ou no resultado exato.
             </p>
           </div>
 
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
-            <h3 className="mb-2 text-xl font-bold">Ranking global</h3>
-            <p className="text-gray-600">
+          <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
+            <h3 className="mb-2 text-lg font-bold sm:text-xl">
+              Ranking global
+            </h3>
+            <p className="text-sm text-gray-600 sm:text-base">
               Acompanha a tua prestação ao longo do torneio e compara a tua
               pontuação com a dos restantes participantes.
             </p>
@@ -202,51 +259,60 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-10">
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
         <div className="mb-6 flex items-end justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">
               Formato
             </p>
-            <h2 className="text-3xl font-extrabold">
+            <h2 className="text-2xl font-extrabold sm:text-3xl">
               O que conta para a tua pontuação
             </h2>
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-4">
           {featuredPicks.map((item) => (
-            <div key={item.title} className="rounded-3xl bg-white p-6 shadow-sm">
+            <div
+              key={item.title}
+              className="rounded-3xl bg-white p-5 shadow-sm sm:p-6"
+            >
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 text-xl font-bold text-white">
                 {item.title.charAt(0)}
               </div>
 
-              <h3 className="text-xl font-bold">{item.title}</h3>
-              <p className="mt-1 text-gray-600">{item.subtitle}</p>
+              <h3 className="text-lg font-bold sm:text-xl">{item.title}</h3>
+              <p className="mt-1 text-sm text-gray-600 sm:text-base">
+                {item.subtitle}
+              </p>
 
-              <div className="mt-4 flex items-center justify-between text-sm">
+              <div className="mt-4 flex items-center justify-between gap-3 text-sm">
                 <span className="rounded-full bg-gray-100 px-3 py-1 font-medium">
                   Fantasy
                 </span>
-                <span className="font-bold text-blue-600">{item.value}</span>
+                <span className="shrink-0 font-bold text-blue-600">
+                  {item.value}
+                </span>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 pb-12">
-        <div className="rounded-3xl bg-white p-8 shadow-sm">
+      <section className="mx-auto max-w-7xl px-4 pb-10 sm:px-6 sm:pb-12">
+        <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-8">
           <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-purple-600">
             Como participar
           </p>
-          <h2 className="mb-6 text-3xl font-extrabold">Participa em 3 passos</h2>
+          <h2 className="mb-6 text-2xl font-extrabold sm:text-3xl">
+            Participa em 3 passos
+          </h2>
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-3 md:gap-6">
             <div className="rounded-2xl bg-gray-50 p-5">
               <div className="mb-3 text-2xl font-extrabold text-blue-600">1</div>
               <h3 className="mb-2 text-lg font-bold">Criar conta</h3>
-              <p className="text-gray-600">
+              <p className="text-sm text-gray-600 sm:text-base">
                 Faz o teu registo na plataforma para criares a tua entrada na
                 fantasy e ficares com acesso à área das tuas escolhas.
               </p>
@@ -255,7 +321,7 @@ export default function HomePage() {
             <div className="rounded-2xl bg-gray-50 p-5">
               <div className="mb-3 text-2xl font-extrabold text-blue-600">2</div>
               <h3 className="mb-2 text-lg font-bold">Pagamento e ativação</h3>
-              <p className="text-gray-600">
+              <p className="text-sm text-gray-600 sm:text-base">
                 Após o registo, deves submeter o pagamento de 10€ para ativar a
                 tua participação. Só depois da confirmação do pagamento é que a
                 entrada fica validada.
@@ -265,7 +331,7 @@ export default function HomePage() {
             <div className="rounded-2xl bg-gray-50 p-5">
               <div className="mb-3 text-2xl font-extrabold text-blue-600">3</div>
               <h3 className="mb-2 text-lg font-bold">Submeter previsões</h3>
-              <p className="text-gray-600">
+              <p className="text-sm text-gray-600 sm:text-base">
                 Depois de ativares a tua entrada, escolhe o melhor marcador, o
                 melhor assistente, a seleção vencedora e preenche os resultados
                 previstos para os jogos.
@@ -276,7 +342,7 @@ export default function HomePage() {
       </section>
 
       <footer className="border-t bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-6 text-sm text-gray-500 md:flex-row md:items-center md:justify-between">
+        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-6 text-sm text-gray-500 sm:px-6 md:flex-row md:items-center md:justify-between">
           <p>Fantasy Mundial 2026</p>
           <p>Escolhas, predictions e ranking oficial do torneio</p>
         </div>
