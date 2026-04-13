@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { games, type Game, type GamePhase } from "@/data/games";
 import { teams } from "@/data/teams";
+import SiteHeader from "@/components/HeaderTemp";
 
 type PhaseFilter =
   | "ALL"
@@ -34,9 +34,7 @@ function formatDate(dateString: string) {
 }
 
 function renderScore(homeScore: number | null, awayScore: number | null) {
-  if (homeScore === null || awayScore === null) {
-    return "vs";
-  }
+  if (homeScore === null || awayScore === null) return "vs";
   return `${homeScore} - ${awayScore}`;
 }
 
@@ -93,8 +91,7 @@ export default function GamesPage() {
         game.homeTeam === selectedTeam ||
         game.awayTeam === selectedTeam;
 
-      const matchesPhase =
-        selectedPhase === "ALL" || game.phase === selectedPhase;
+      const matchesPhase = selectedPhase === "ALL" || game.phase === selectedPhase;
 
       return matchesTeam && matchesPhase;
     });
@@ -104,9 +101,7 @@ export default function GamesPage() {
     const groups: Record<string, Game[]> = {};
 
     filteredGames.forEach((game) => {
-      if (!groups[game.phase]) {
-        groups[game.phase] = [];
-      }
+      if (!groups[game.phase]) groups[game.phase] = [];
       groups[game.phase].push(game);
     });
 
@@ -125,61 +120,18 @@ export default function GamesPage() {
 
   return (
     <main className="min-h-screen bg-[#f4f5f7] text-gray-900">
-      <header className="mb-6 w-full border-b bg-white">
-  <div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-4">
-    <div>
-      <h1 className="text-xl font-extrabold tracking-tight">
-        Fantasy Mundial 2026
-      </h1>
-      <p className="text-sm text-gray-500">Liga oficial do Mundial</p>
-    </div>
+      <SiteHeader />
 
-    <nav className="flex gap-6 text-sm font-medium">
-      <Link href="/" className="hover:text-blue-600">
-        Home
-      </Link>
-
-      <Link href="/login" className="hover:text-blue-600">
-        Login
-      </Link>
-
-      <Link href="/team" className="hover:text-blue-600">
-        A Minha Equipa
-      </Link>
-
-      <Link href="/stats" className="hover:text-blue-600">
-        Estatísticas
-      </Link>
-
-      <Link href="/games" className="font-semibold text-blue-600">
-        Jogos
-      </Link>
-
-      <Link href="/table" className="hover:text-blue-600">
-        Tabela
-      </Link>
-
-      <Link href="/rules" className="hover:text-blue-600">
-        Info
-      </Link>
-
-      <Link href="/ranking" className="hover:text-blue-600">
-        Ranking
-      </Link>
-    </nav>
-  </div>
-</header>
-
-      <div className="mx-auto max-w-[1600px] px-4 pb-10">
+      <div className="mx-auto max-w-7xl px-4 pb-10 pt-6 sm:px-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-extrabold">Jogos</h1>
-          <p className="text-gray-500">
+          <h1 className="text-2xl font-extrabold sm:text-3xl">Jogos</h1>
+          <p className="text-sm text-gray-500 sm:text-base">
             Calendário completo do Mundial 2026 com filtros por fase e seleção.
           </p>
         </div>
 
-        <div className="mb-6 rounded-3xl bg-white p-5 shadow-sm">
-          <div className="flex flex-wrap gap-3">
+        <div className="mb-6 rounded-3xl bg-white p-4 shadow-sm sm:p-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:flex xl:flex-wrap">
             <select
               value={selectedPhase}
               onChange={(e) => setSelectedPhase(e.target.value as PhaseFilter)}
@@ -218,13 +170,13 @@ export default function GamesPage() {
 
         <div className="space-y-8">
           {groupedByPhase.map(({ phase, games: phaseGames }) => (
-            <section key={phase} className="rounded-3xl bg-white p-6 shadow-sm">
-              <div className="mb-5 flex items-center justify-between">
+            <section key={phase} className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-purple-600">
                     Mundial 2026
                   </p>
-                  <h2 className="mt-1 text-2xl font-extrabold text-[#3a0d57]">
+                  <h2 className="mt-1 text-xl font-extrabold text-[#3a0d57] sm:text-2xl">
                     {getPhaseLabel(phase as GamePhase)}
                   </h2>
                 </div>
@@ -238,8 +190,7 @@ export default function GamesPage() {
                 {phaseGames.map((game) => {
                   const homeTeam = getTeamByName(game.homeTeam);
                   const awayTeam = getTeamByName(game.awayTeam);
-                  const hasResult =
-                    game.homeScore !== null && game.awayScore !== null;
+                  const hasResult = game.homeScore !== null && game.awayScore !== null;
 
                   return (
                     <article
@@ -251,6 +202,7 @@ export default function GamesPage() {
                           <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
                             {formatDate(game.date)}
                           </p>
+
                           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
                             <span className="rounded-full bg-gray-100 px-2.5 py-1 font-medium">
                               {game.time}
@@ -281,7 +233,7 @@ export default function GamesPage() {
 
                       <div className="space-y-3">
                         <div className="grid grid-cols-[1fr_auto] items-center gap-3">
-                          <div className="flex items-center gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
                             {homeTeam?.flag ? (
                               <img
                                 src={homeTeam.flag}
@@ -292,7 +244,7 @@ export default function GamesPage() {
                               <div className="h-6 w-9 rounded bg-gray-200" />
                             )}
 
-                            <span className="text-sm font-bold text-[#2f2140]">
+                            <span className="truncate text-sm font-bold text-[#2f2140]">
                               {game.homeTeam}
                             </span>
                           </div>
@@ -303,7 +255,7 @@ export default function GamesPage() {
                         </div>
 
                         <div className="grid grid-cols-[1fr_auto] items-center gap-3">
-                          <div className="flex items-center gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
                             {awayTeam?.flag ? (
                               <img
                                 src={awayTeam.flag}
@@ -314,7 +266,7 @@ export default function GamesPage() {
                               <div className="h-6 w-9 rounded bg-gray-200" />
                             )}
 
-                            <span className="text-sm font-bold text-[#2f2140]">
+                            <span className="truncate text-sm font-bold text-[#2f2140]">
                               {game.awayTeam}
                             </span>
                           </div>
@@ -328,9 +280,7 @@ export default function GamesPage() {
                       <div className="mt-4 border-t border-gray-100 pt-3">
                         <div className="flex items-center justify-center">
                           <span className="rounded-xl bg-[#f1ebf6] px-4 py-2 text-sm font-extrabold text-[#4a145f]">
-                            {hasResult
-                              ? renderScore(game.homeScore, game.awayScore)
-                              : "Por jogar"}
+                            {hasResult ? renderScore(game.homeScore, game.awayScore) : "Por jogar"}
                           </span>
                         </div>
                       </div>

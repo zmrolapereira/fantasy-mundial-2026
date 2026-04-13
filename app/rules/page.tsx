@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import SiteHeader from "@/components/HeaderTemp";
 
 const overviewCards = [
   {
@@ -112,22 +112,12 @@ function SectionTitle({
 }) {
   return (
     <div className="mb-6 border-b border-gray-200 pb-4">
-      <p
-        className="text-xs font-semibold uppercase tracking-[0.18em]"
-        style={{ color: "#6d28d9" }}
-      >
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-700">
         {eyebrow}
       </p>
-      <h2
-        className="mt-2 text-2xl font-extrabold"
-        style={{ color: "#111827" }}
-      >
-        {title}
-      </h2>
+      <h2 className="mt-2 text-2xl font-extrabold text-gray-900">{title}</h2>
       {subtitle ? (
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-600">
-          {subtitle}
-        </p>
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-600">{subtitle}</p>
       ) : null}
     </div>
   );
@@ -135,96 +125,24 @@ function SectionTitle({
 
 export default function InfoPage() {
   return (
-    <main
-      className="min-h-screen"
-      style={{ backgroundColor: "#f4f7fb", color: "#111827" }}
-    >
-      <header className="border-b bg-white">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-4">
-          <div>
-            <h1 className="text-xl font-extrabold tracking-tight">
-              Fantasy Mundial 2026
-            </h1>
-            <p className="text-sm text-gray-500">
-              Informação oficial da competição
-            </p>
-          </div>
+    <main className="min-h-screen bg-[#f4f7fb] text-gray-900">
+      <SiteHeader />
 
-          <nav className="flex gap-6 text-sm font-medium">
-            <Link href="/" className="hover:text-blue-600">
-              Home
-            </Link>
-            <Link href="/login" className="hover:text-blue-600">
-              Login
-            </Link>
-            <Link href="/team" className="hover:text-blue-600">
-              As Minhas Escolhas
-            </Link>
-            <Link href="/stats" className="hover:text-blue-600">
-              Estatísticas
-            </Link>
-            <Link href="/games" className="hover:text-blue-600">
-              Jogos
-            </Link>
-            <Link href="/table" className="hover:text-blue-600">
-              Tabela
-            </Link>
-            <Link href="/info" className="font-semibold text-blue-600">
-              Info
-            </Link>
-            <Link href="/ranking" className="hover:text-blue-600">
-              Ranking
-            </Link>
-          </nav>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        <section
-          className="relative overflow-hidden rounded-[32px] shadow-lg"
-          style={{
-            background:
-              "linear-gradient(90deg, #8ec5ff 0%, #4f83ff 52%, #8b2cf5 100%)",
-          }}
-        >
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.12) 100%)",
-            }}
-          />
-          <div className="relative px-8 py-10 md:px-10 md:py-12">
-            <p
-              className="text-xs font-semibold uppercase tracking-[0.25em]"
-              style={{
-                color: "#f8fafc",
-                opacity: 0.95,
-                textShadow: "0 1px 2px rgba(0,0,0,0.18)",
-              }}
-            >
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+        <section className="relative overflow-hidden rounded-[32px] shadow-lg bg-gradient-to-r from-sky-300 via-blue-500 to-violet-600">
+          <div className="absolute inset-0 bg-black/15" />
+          <div className="relative px-5 py-8 sm:px-8 sm:py-10 md:px-10 md:py-12">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/95">
               Fantasy Mundial 2026
             </p>
 
-            <h1
-              className="mt-4 max-w-5xl text-3xl font-extrabold leading-tight md:text-5xl"
-              style={{
-                color: "#ffffff",
-                textShadow: "0 2px 10px rgba(0,0,0,0.18)",
-              }}
-            >
+            <h1 className="mt-4 max-w-5xl text-3xl font-extrabold leading-tight text-white md:text-5xl">
               Regras, pontuação e prize pool
             </h1>
 
-            <p
-              className="mt-5 max-w-3xl text-sm leading-7 md:text-base"
-              style={{
-                color: "#f8fafc",
-                textShadow: "0 1px 6px rgba(0,0,0,0.14)",
-              }}
-            >
-              Tudo o que precisas de saber para participar, pontuar e competir
-              ao longo de todo o Mundial 2026.
+            <p className="mt-5 max-w-3xl text-sm leading-7 text-white/95 md:text-base">
+              Tudo o que precisas de saber para participar, pontuar e competir ao
+              longo de todo o Mundial 2026.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -235,15 +153,7 @@ export default function InfoPage() {
               ].map((item) => (
                 <div
                   key={item}
-                  className="rounded-full px-4 py-2 text-sm font-semibold"
-                  style={{
-                    backgroundColor: "rgba(255,255,255,0.22)",
-                    border: "1px solid rgba(255,255,255,0.32)",
-                    color: "#ffffff",
-                    backdropFilter: "blur(6px)",
-                    WebkitBackdropFilter: "blur(6px)",
-                    textShadow: "0 1px 4px rgba(0,0,0,0.12)",
-                  }}
+                  className="rounded-full border border-white/30 bg-white/20 px-4 py-2 text-sm font-semibold text-white backdrop-blur"
                 >
                   {item}
                 </div>
@@ -252,42 +162,28 @@ export default function InfoPage() {
           </div>
         </section>
 
-        <section className="mt-8 rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-          <SectionTitle
-            eyebrow="Visão geral"
-            title="Resumo rápido da competição"
-          />
+        <section className="mt-8 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8">
+          <SectionTitle eyebrow="Visão geral" title="Resumo rápido da competição" />
 
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {overviewCards.map((item) => (
               <div
                 key={item.label}
                 className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
-                style={{ minHeight: 148 }}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <p
-                    className="text-sm font-semibold"
-                    style={{ color: "#334155" }}
-                  >
-                    {item.label}
-                  </p>
-                  <span
-                    className="rounded-full px-3 py-1 text-xs font-bold text-white"
-                    style={{ backgroundColor: "#2563eb" }}
-                  >
+                  <p className="text-sm font-semibold text-slate-700">{item.label}</p>
+                  <span className="rounded-full bg-blue-600 px-3 py-1 text-xs font-bold text-white">
                     {item.value}
                   </span>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-gray-600">
-                  {item.text}
-                </p>
+                <p className="mt-3 text-sm leading-6 text-gray-600">{item.text}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="mt-8 rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
+        <section className="mt-8 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8">
           <SectionTitle
             eyebrow="Como participar"
             title="Três passos para entrar na fantasy"
@@ -299,27 +195,17 @@ export default function InfoPage() {
                 key={step.number}
                 className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm"
               >
-                <div
-                  className="flex h-11 w-11 items-center justify-center rounded-2xl text-sm font-extrabold text-white"
-                  style={{ backgroundColor: "#0f172a" }}
-                >
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-sm font-extrabold text-white">
                   {step.number}
                 </div>
-                <h3
-                  className="mt-4 text-lg font-bold"
-                  style={{ color: "#111827" }}
-                >
-                  {step.title}
-                </h3>
-                <p className="mt-3 text-sm leading-7 text-gray-600">
-                  {step.text}
-                </p>
+                <h3 className="mt-4 text-lg font-bold text-gray-900">{step.title}</h3>
+                <p className="mt-3 text-sm leading-7 text-gray-600">{step.text}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="mt-8 rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
+        <section className="mt-8 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8">
           <SectionTitle
             eyebrow="Pontuação"
             title="Como os pontos são distribuídos"
@@ -332,81 +218,54 @@ export default function InfoPage() {
                 key={block.title}
                 className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm"
               >
-                <p
-                  className="text-xs font-semibold uppercase tracking-[0.16em]"
-                  style={{ color: "#6d28d9" }}
-                >
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-700">
                   {block.title}
                 </p>
-                <h3
-                  className="mt-2 text-xl font-extrabold"
-                  style={{ color: "#111827" }}
-                >
-                  {block.value}
-                </h3>
-                <p className="mt-3 text-sm leading-7 text-gray-600">
-                  {block.text}
-                </p>
+                <h3 className="mt-2 text-xl font-extrabold text-gray-900">{block.value}</h3>
+                <p className="mt-3 text-sm leading-7 text-gray-600">{block.text}</p>
               </div>
             ))}
           </div>
         </section>
 
         <section className="mt-8 grid gap-6 xl:grid-cols-[1fr_1fr]">
-          <article className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
+          <article className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8">
             <SectionTitle eyebrow="Predictions" title="Regras dos jogos" />
 
             <div className="grid gap-4">
               <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <h3
-                  className="text-base font-bold"
-                  style={{ color: "#111827" }}
-                >
+                <h3 className="text-base font-bold text-gray-900">
                   Acertar no sentido do jogo
                 </h3>
                 <p className="mt-2 text-sm leading-7 text-gray-600">
-                  Vale <span className="font-bold text-gray-900">1 ponto</span>{" "}
-                  quando prevês corretamente vitória da equipa da casa, empate
-                  ou vitória da equipa visitante.
+                  Vale <span className="font-bold text-gray-900">1 ponto</span> quando
+                  prevês corretamente vitória da equipa da casa, empate ou vitória da
+                  equipa visitante.
                 </p>
               </div>
 
               <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <h3
-                  className="text-base font-bold"
-                  style={{ color: "#111827" }}
-                >
+                <h3 className="text-base font-bold text-gray-900">
                   Acertar no resultado exato
                 </h3>
                 <p className="mt-2 text-sm leading-7 text-gray-600">
-                  Vale{" "}
-                  <span className="font-bold text-gray-900">
-                    2 pontos no total
-                  </span>
-                  . O resultado exato não acumula 1+2.
+                  Vale <span className="font-bold text-gray-900">2 pontos no total</span>.
+                  O resultado exato não acumula 1+2.
                 </p>
               </div>
 
               <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <h3
-                  className="text-base font-bold"
-                  style={{ color: "#111827" }}
-                >
-                  Quando contam os pontos
-                </h3>
+                <h3 className="text-base font-bold text-gray-900">Quando contam os pontos</h3>
                 <p className="mt-2 text-sm leading-7 text-gray-600">
-                  Só contam jogos oficialmente concluídos. Se a prediction
-                  estiver errada, esse jogo vale 0 pontos.
+                  Só contam jogos oficialmente concluídos. Se a prediction estiver errada,
+                  esse jogo vale 0 pontos.
                 </p>
               </div>
             </div>
           </article>
 
-          <article className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-            <SectionTitle
-              eyebrow="Seleção escolhida"
-              title="Resultados e progressão"
-            />
+          <article className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8">
+            <SectionTitle eyebrow="Seleção escolhida" title="Resultados e progressão" />
 
             <div className="grid gap-3 sm:grid-cols-2">
               {selectedTeamRules.map((rule) => (
@@ -415,16 +274,8 @@ export default function InfoPage() {
                   className="rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <p
-                      className="text-sm font-semibold"
-                      style={{ color: "#111827" }}
-                    >
-                      {rule.title}
-                    </p>
-                    <span
-                      className="rounded-full px-3 py-1 text-xs font-bold text-white"
-                      style={{ backgroundColor: "#7c3aed" }}
-                    >
+                    <p className="text-sm font-semibold text-gray-900">{rule.title}</p>
+                    <span className="rounded-full bg-violet-600 px-3 py-1 text-xs font-bold text-white">
                       {rule.points}
                     </span>
                   </div>
@@ -435,11 +286,8 @@ export default function InfoPage() {
         </section>
 
         <section className="mt-8 grid gap-6 xl:grid-cols-[1fr_1fr]">
-          <article className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-            <SectionTitle
-              eyebrow="Prize Pool"
-              title="Distribuição dos prémios"
-            />
+          <article className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8">
+            <SectionTitle eyebrow="Prize Pool" title="Distribuição dos prémios" />
 
             <div className="grid gap-4 sm:grid-cols-3">
               {prizePool.map((item) => (
@@ -447,44 +295,22 @@ export default function InfoPage() {
                   key={item.title}
                   className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
                 >
-                  <p
-                    className="text-xs font-semibold uppercase tracking-[0.16em]"
-                    style={{ color: "#6d28d9" }}
-                  >
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-700">
                     {item.title}
                   </p>
-                  <h3
-                    className="mt-2 text-xl font-extrabold"
-                    style={{ color: "#111827" }}
-                  >
-                    {item.value}
-                  </h3>
-                  <p className="mt-3 text-sm leading-7 text-gray-600">
-                    {item.text}
-                  </p>
+                  <h3 className="mt-2 text-xl font-extrabold text-gray-900">{item.value}</h3>
+                  <p className="mt-3 text-sm leading-7 text-gray-600">{item.text}</p>
                 </div>
               ))}
             </div>
           </article>
 
-          <article
-            className="rounded-3xl border p-8 shadow-sm"
-            style={{
-              backgroundColor: "#eff6ff",
-              borderColor: "#bfdbfe",
-            }}
-          >
-            <div className="mb-6 border-b pb-4" style={{ borderColor: "#bfdbfe" }}>
-              <p
-                className="text-xs font-semibold uppercase tracking-[0.18em]"
-                style={{ color: "#1d4ed8" }}
-              >
+          <article className="rounded-3xl border border-blue-200 bg-blue-50 p-5 shadow-sm sm:p-8">
+            <div className="mb-6 border-b border-blue-200 pb-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
                 Regras gerais
               </p>
-              <h2
-                className="mt-2 text-2xl font-extrabold"
-                style={{ color: "#111827" }}
-              >
+              <h2 className="mt-2 text-2xl font-extrabold text-gray-900">
                 Informação oficial
               </h2>
             </div>
@@ -493,13 +319,9 @@ export default function InfoPage() {
               {rules.map((rule, index) => (
                 <div
                   key={index}
-                  className="flex items-start gap-3 rounded-2xl border bg-white px-4 py-4"
-                  style={{ borderColor: "#bfdbfe" }}
+                  className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-white px-4 py-4"
                 >
-                  <div
-                    className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                    style={{ backgroundColor: "#2563eb" }}
-                  >
+                  <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
                     {index + 1}
                   </div>
                   <p className="text-sm leading-6 text-gray-700">{rule}</p>

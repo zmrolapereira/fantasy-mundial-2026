@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { type Player } from "@/data/players";
+import type { Player } from "@/data/players";
 import { subscribeToLivePlayers } from "@/lib/player-stats";
+import SiteHeader from "@/components/HeaderTemp";
 
 type StatType = "goals" | "assists" | "points";
 type PositionType = "ALL" | "GR" | "DEF" | "MED" | "ATA";
@@ -29,9 +29,7 @@ export default function StatsPage() {
   const filteredAndSortedPlayers = useMemo(() => {
     return [...livePlayers]
       .filter((player) => {
-        const matchesTeam =
-          selectedTeam === "ALL" || player.team === selectedTeam;
-
+        const matchesTeam = selectedTeam === "ALL" || player.team === selectedTeam;
         const matchesPosition =
           selectedPosition === "ALL" || player.position === selectedPosition;
 
@@ -46,91 +44,42 @@ export default function StatsPage() {
 
   return (
     <main className="min-h-screen bg-[#f4f5f7] text-gray-900">
-      <header className="w-full border-b bg-white mb-6">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-4">
-          <div>
-            <h1 className="text-xl font-extrabold tracking-tight">
-              Fantasy Mundial 2026
-            </h1>
-            <p className="text-sm text-gray-500">Liga oficial do Mundial</p>
-          </div>
+      <SiteHeader />
 
-          <nav className="flex gap-6 text-sm font-medium">
-            <Link href="/" className="hover:text-blue-600">
-              Home
-            </Link>
-
-            <Link href="/login" className="hover:text-blue-600">
-              Login
-            </Link>
-
-            <Link href="/team" className="hover:text-blue-600">
-              A Minha Equipa
-            </Link>
-
-            <Link href="/stats" className="text-blue-600 font-semibold">
-              Estatísticas
-            </Link>
-
-            <Link href="/games" className="hover:text-blue-600">
-              Jogos
-            </Link>
-
-            <Link href="/table" className="hover:text-blue-600">
-              Tabela
-            </Link>
-
-            <Link href="/rules" className="hover:text-blue-600">
-              Info
-            </Link>
-
-            <Link href="/ranking" className="hover:text-blue-600">
-              Ranking
-            </Link>
-          </nav>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-[1600px] px-4 pb-10">
+      <div className="mx-auto max-w-7xl px-4 pb-10 pt-6 sm:px-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-extrabold">Estatísticas</h1>
-          <p className="text-gray-500">
+          <h1 className="text-2xl font-extrabold sm:text-3xl">Estatísticas</h1>
+          <p className="text-sm text-gray-500 sm:text-base">
             Consulta os jogadores com mais golos, assistências e pontos.
           </p>
         </div>
 
         <div className="mb-6 grid gap-4 md:grid-cols-3">
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
+          <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
             <p className="text-sm text-gray-500">Total de golos</p>
-            <p className="mt-2 text-3xl font-extrabold text-blue-600">
-              {totalGoals}
-            </p>
+            <p className="mt-2 text-3xl font-extrabold text-blue-600">{totalGoals}</p>
           </div>
 
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
+          <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
             <p className="text-sm text-gray-500">Total de assistências</p>
-            <p className="mt-2 text-3xl font-extrabold text-purple-600">
-              {totalAssists}
-            </p>
+            <p className="mt-2 text-3xl font-extrabold text-purple-600">{totalAssists}</p>
           </div>
 
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
+          <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
             <p className="text-sm text-gray-500">Total de pontos</p>
-            <p className="mt-2 text-3xl font-extrabold text-emerald-600">
-              {totalPoints}
-            </p>
+            <p className="mt-2 text-3xl font-extrabold text-emerald-600">{totalPoints}</p>
           </div>
         </div>
 
-        <div className="rounded-3xl bg-white p-6 shadow-sm">
+        <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <h2 className="text-2xl font-bold">Tabela de jogadores</h2>
+            <h2 className="text-xl font-bold sm:text-2xl">Tabela de jogadores</h2>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:flex xl:flex-wrap">
               <select
                 value={selectedStat}
                 onChange={(e) => setSelectedStat(e.target.value as StatType)}
-                className="rounded-xl border border-gray-200 bg-white px-4 py-2 font-medium outline-none focus:border-blue-500"
+                className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium outline-none focus:border-blue-500"
               >
                 <option value="goals">Golos</option>
                 <option value="assists">Assistências</option>
@@ -140,7 +89,7 @@ export default function StatsPage() {
               <select
                 value={selectedTeam}
                 onChange={(e) => setSelectedTeam(e.target.value)}
-                className="rounded-xl border border-gray-200 bg-white px-4 py-2 font-medium outline-none focus:border-blue-500"
+                className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium outline-none focus:border-blue-500"
               >
                 {uniqueTeams.map((team) => (
                   <option key={team} value={team}>
@@ -151,10 +100,8 @@ export default function StatsPage() {
 
               <select
                 value={selectedPosition}
-                onChange={(e) =>
-                  setSelectedPosition(e.target.value as PositionType)
-                }
-                className="rounded-xl border border-gray-200 bg-white px-4 py-2 font-medium outline-none focus:border-blue-500"
+                onChange={(e) => setSelectedPosition(e.target.value as PositionType)}
+                className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium outline-none focus:border-blue-500"
               >
                 <option value="ALL">Todas as posições</option>
                 <option value="GR">GR</option>
@@ -166,7 +113,7 @@ export default function StatsPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] border-separate border-spacing-y-3">
+            <table className="min-w-[700px] w-full border-separate border-spacing-y-3">
               <thead>
                 <tr className="text-left text-sm text-gray-500">
                   <th className="px-4">#</th>
@@ -182,18 +129,12 @@ export default function StatsPage() {
               <tbody>
                 {filteredAndSortedPlayers.map((player, index) => (
                   <tr key={player.id} className="bg-gray-50">
-                    <td className="rounded-l-2xl px-4 py-4 font-bold">
-                      {index + 1}
-                    </td>
+                    <td className="rounded-l-2xl px-4 py-4 font-bold">{index + 1}</td>
                     <td className="px-4 py-4 font-bold">{player.name}</td>
                     <td className="px-4 py-4 text-gray-600">{player.team}</td>
                     <td className="px-4 py-4 text-gray-600">{player.position}</td>
-                    <td className="px-4 py-4 font-semibold text-blue-600">
-                      {player.goals}
-                    </td>
-                    <td className="px-4 py-4 font-semibold text-purple-600">
-                      {player.assists}
-                    </td>
+                    <td className="px-4 py-4 font-semibold text-blue-600">{player.goals}</td>
+                    <td className="px-4 py-4 font-semibold text-purple-600">{player.assists}</td>
                     <td className="rounded-r-2xl px-4 py-4 font-semibold text-emerald-600">
                       {player.points}
                     </td>
