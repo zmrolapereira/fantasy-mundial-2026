@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { User } from "firebase/auth";
 import { useRouter } from "next/navigation";
@@ -24,6 +23,7 @@ import {
   getRoundGroups,
 } from "@/lib/fantasy-deadlines";
 import { getUserProfile, submitPaymentRequest } from "@/lib/users";
+import SiteHeader from "@/components/HeaderTemp";
 
 type PredictionMap = Record<number, { home: string; away: string }>;
 
@@ -53,14 +53,10 @@ export default function TeamPage() {
   const [predictions, setPredictions] = useState<PredictionMap>({});
 
   const [hasPaidAccess, setHasPaidAccess] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<
-    "pending" | "approved" | "rejected"
-  >("pending");
+  const [paymentStatus, setPaymentStatus] = useState<"pending" | "approved" | "rejected">("pending");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [submittingPayment, setSubmittingPayment] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<
-    "mbway" | "revolut" | ""
-  >("");
+  const [paymentMethod, setPaymentMethod] = useState<"mbway" | "revolut" | "">("");
 
   useEffect(() => {
     const unsubscribe = listenToAuth((authUser) => {
@@ -107,18 +103,13 @@ export default function TeamPage() {
 
         setHasPaidAccess(profile?.hasPaidAccess ?? false);
         setPaymentStatus(
-          (profile?.paymentStatus as "pending" | "approved" | "rejected") ??
-            "pending"
+          (profile?.paymentStatus as "pending" | "approved" | "rejected") ?? "pending"
         );
 
         if (entry) {
           setTeamName(entry.teamName ?? "");
-          setTopScorerId(
-            entry.topScorerPick ? String(entry.topScorerPick.playerId) : ""
-          );
-          setTopAssistId(
-            entry.topAssistPick ? String(entry.topAssistPick.playerId) : ""
-          );
+          setTopScorerId(entry.topScorerPick ? String(entry.topScorerPick.playerId) : "");
+          setTopAssistId(entry.topAssistPick ? String(entry.topAssistPick.playerId) : "");
           setChampionTeam(entry.championPick?.teamName ?? "");
         }
 
@@ -195,12 +186,8 @@ export default function TeamPage() {
     });
   }, []);
 
-  const topScorerPlayer = livePlayers.find(
-    (player) => String(player.id) === topScorerId
-  );
-  const topAssistPlayer = livePlayers.find(
-    (player) => String(player.id) === topAssistId
-  );
+  const topScorerPlayer = livePlayers.find((player) => String(player.id) === topScorerId);
+  const topAssistPlayer = livePlayers.find((player) => String(player.id) === topAssistId);
   const champion = teams.find((team) => team.name === championTeam);
 
   const totalPredictionsFilled = useMemo(() => {
@@ -400,139 +387,40 @@ export default function TeamPage() {
 
   if (loadingInitial) {
     return (
-      <main
-        style={{
-          minHeight: "100vh",
-          background: "#f4f5f7",
-          padding: "40px 16px",
-          color: "#111827",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1100,
-            margin: "0 auto",
-            background: "#ffffff",
-            borderRadius: 24,
-            padding: 32,
-            boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-          }}
-        >
-          <p style={{ fontSize: 18, color: "#4b5563" }}>A carregar...</p>
+      <main className="min-h-screen bg-[#f4f5f7] text-gray-900">
+        <SiteHeader />
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+          <div className="rounded-3xl bg-white p-8 shadow-sm">
+            <p className="text-lg text-gray-600">A carregar...</p>
+          </div>
         </div>
       </main>
     );
   }
 
   return (
-    <main style={{ minHeight: "100vh", background: "#f4f5f7", color: "#111827" }}>
-      <header className="mb-6 w-full border-b bg-white">
-  <div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-4">
-    <div>
-      <h1 className="text-xl font-extrabold tracking-tight">
-        Fantasy Mundial 2026
-      </h1>
-      <p className="text-sm text-gray-500">Liga oficial do Mundial</p>
-    </div>
+    <main className="min-h-screen bg-[#f4f5f7] text-gray-900">
+      <SiteHeader />
 
-    <nav className="flex gap-6 text-sm font-medium">
-      <Link href="/" className="hover:text-blue-600">
-        Home
-      </Link>
-
-      <Link href="/login" className="hover:text-blue-600">
-        Login
-      </Link>
-
-      <Link href="/team" className="font-semibold text-blue-600">
-        A Minha Equipa
-      </Link>
-
-      <Link href="/stats" className="hover:text-blue-600">
-        Estatísticas
-      </Link>
-
-      <Link href="/games" className="hover:text-blue-600">
-        Jogos
-      </Link>
-
-      <Link href="/table" className="hover:text-blue-600">
-        Tabela
-      </Link>
-
-      <Link href="/rules" className="hover:text-blue-600">
-        Info
-      </Link>
-
-      <Link href="/ranking" className="hover:text-blue-600">
-        Ranking
-      </Link>
-    </nav>
-  </div>
-</header>
-
-      <div style={{ maxWidth: 1600, margin: "0 auto", padding: "0 16px 40px", color: "#111827" }}>
+      <div className="mx-auto max-w-7xl px-4 pb-10 pt-6 sm:px-6">
         {!hasPaidAccess && (
-          <section
-            style={{
-              position: "relative",
-              zIndex: 1,
-              marginBottom: 24,
-              borderRadius: 24,
-              border: "1px solid #fcd34d",
-              background: "#fffbeb",
-              padding: 24,
-              boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
-              color: "#111827",
-            }}
-          >
-            <p
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-                color: "#b45309",
-              }}
-            >
+          <section className="mb-6 rounded-3xl border border-amber-300 bg-amber-50 p-5 shadow-sm sm:p-6">
+            <p className="text-xs font-bold uppercase tracking-wide text-amber-700">
               Acesso premium
             </p>
 
-            <h2
-              style={{
-                marginTop: 8,
-                fontSize: 34,
-                fontWeight: 800,
-                color: "#111827",
-              }}
-            >
+            <h2 className="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">
               Esta fantasy é paga
             </h2>
 
-            <p
-              style={{
-                marginTop: 12,
-                fontSize: 15,
-                color: "#374151",
-                maxWidth: 1000,
-                lineHeight: 1.6,
-              }}
-            >
+            <p className="mt-3 max-w-4xl text-sm leading-7 text-gray-700 sm:text-base">
               Para participar, tens de pagar{" "}
-              <strong>10€ por MB Way ou Revolut para o número 918 888 416</strong>{" "}
-              e mandar mensagem para esse número para confirmar. Depois da confirmação
+              <strong>10€ por MB Way ou Revolut para o número 918 888 416</strong> e
+              mandar mensagem para esse número para confirmar. Depois da confirmação
               manual do pagamento, o acesso é desbloqueado.
             </p>
 
-            <div
-              style={{
-                marginTop: 20,
-                display: "flex",
-                gap: 12,
-                alignItems: "center",
-                flexWrap: "wrap",
-              }}
-            >
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <button
                 type="button"
                 onClick={(e) => {
@@ -540,35 +428,12 @@ export default function TeamPage() {
                   e.stopPropagation();
                   openPaymentModal();
                 }}
-                style={{
-                  appearance: "none",
-                  WebkitAppearance: "none",
-                  background: "#4c1d95",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: 16,
-                  padding: "12px 20px",
-                  fontWeight: 700,
-                  fontSize: 15,
-                  cursor: "pointer",
-                  position: "relative",
-                  zIndex: 2,
-                }}
+                className="rounded-2xl bg-violet-900 px-5 py-3 text-sm font-bold text-white"
               >
                 Desbloquear acesso
               </button>
 
-              <span
-                style={{
-                  background: "#ffffff",
-                  color: "#374151",
-                  borderRadius: 9999,
-                  padding: "10px 16px",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                }}
-              >
+              <span className="inline-flex rounded-full bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm">
                 Estado:{" "}
                 {paymentStatus === "approved"
                   ? "Aprovado"
@@ -580,187 +445,64 @@ export default function TeamPage() {
           </section>
         )}
 
-        <section
-          style={{
-            marginBottom: 24,
-            borderRadius: 24,
-            padding: "40px 32px",
-            color: "#ffffff",
-            background:
-              "linear-gradient(90deg, rgba(34,211,238,1) 0%, rgba(37,99,235,1) 50%, rgba(147,51,234,1) 100%)",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
-          }}
-        >
-          <p
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.2em",
-              opacity: 0.85,
-            }}
-          >
+        <section className="mb-6 overflow-hidden rounded-3xl bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 p-6 text-white shadow-xl sm:p-8">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/85">
             Entrada fantasy
           </p>
-          <h1
-            style={{
-              marginTop: 12,
-              fontSize: 52,
-              fontWeight: 900,
-              lineHeight: 1.05,
-              color: "#ffffff",
-            }}
-          >
+          <h1 className="mt-3 text-4xl font-black leading-tight sm:text-5xl">
             Cria a tua entrada para o Mundial 2026
           </h1>
-          <p
-            style={{
-              marginTop: 16,
-              maxWidth: 900,
-              fontSize: 20,
-              opacity: 0.95,
-              lineHeight: 1.6,
-              color: "#ffffff",
-            }}
-          >
+          <p className="mt-4 max-w-3xl text-base leading-7 text-white/95 sm:text-lg">
             Escolhe os teus picks principais antes do arranque do torneio e faz os
             teus palpites por jornada até 1 hora antes do primeiro jogo de cada ronda.
           </p>
         </section>
 
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1.1fr 0.9fr",
-            gap: 24,
-            marginBottom: 24,
-          }}
-        >
-          <div
-            style={{
-              background: "#ffffff",
-              borderRadius: 24,
-              padding: 24,
-              boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-              color: "#111827",
-            }}
-          >
-            <div
-              style={{
-                marginBottom: 20,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
+        <section className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
+            <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <p
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    color: "#7c3aed",
-                  }}
-                >
+                <p className="text-xs font-bold uppercase tracking-wide text-violet-600">
                   Picks principais
                 </p>
-                <h2
-                  style={{
-                    marginTop: 8,
-                    fontSize: 32,
-                    fontWeight: 800,
-                    color: "#111827",
-                  }}
-                >
+                <h2 className="mt-2 text-2xl font-extrabold text-gray-900 sm:text-3xl">
                   Dados da tua equipa
                 </h2>
               </div>
 
               <div
-                style={{
-                  background: picksLocked ? "#fee2e2" : "#dcfce7",
-                  color: picksLocked ? "#b91c1c" : "#15803d",
-                  borderRadius: 9999,
-                  padding: "8px 16px",
-                  fontSize: 14,
-                  fontWeight: 700,
-                }}
+                className={`inline-flex rounded-full px-4 py-2 text-sm font-bold ${
+                  picksLocked ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+                }`}
               >
                 {picksLocked ? "Picks fechados" : `Fecha em ${formatCountdown(picksLockDate)}`}
               </div>
             </div>
 
-            <div style={{ marginTop: 20 }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: "#4b5563",
-                }}
-              >
-                Nome da equipa
-              </label>
+            <div>
+              <label className="block text-sm font-bold text-gray-600">Nome da equipa</label>
               <input
                 type="text"
                 placeholder="Ex: Os Visionários"
                 value={teamName}
                 onChange={(e) => setTeamName(e.target.value)}
                 disabled={blockedByPayment}
-                style={{
-                  marginTop: 8,
-                  width: "100%",
-                  borderRadius: 16,
-                  border: "1px solid #e5e7eb",
-                  padding: "14px 16px",
-                  fontSize: 15,
-                  background: blockedByPayment ? "#f3f4f6" : "#ffffff",
-                  color: blockedByPayment ? "#6b7280" : "#111827",
-                  outline: "none",
-                }}
+                className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
               />
             </div>
 
-            <div
-              style={{
-                marginTop: 20,
-                display: "grid",
-                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                gap: 16,
-              }}
-            >
+            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
               <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "#4b5563",
-                  }}
-                >
-                  Melhor marcador
-                </label>
+                <label className="block text-sm font-bold text-gray-600">Melhor marcador</label>
                 <select
                   value={topScorerId}
                   onChange={(e) => setTopScorerId(e.target.value)}
                   disabled={picksLocked || blockedByPayment}
-                  style={{
-                    marginTop: 8,
-                    width: "100%",
-                    borderRadius: 16,
-                    border: "1px solid #e5e7eb",
-                    padding: "14px 16px",
-                    background: picksLocked || blockedByPayment ? "#f3f4f6" : "#ffffff",
-                    color: picksLocked || blockedByPayment ? "#6b7280" : "#111827",
-                    appearance: "none",
-                    WebkitAppearance: "none",
-                  }}
+                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                 >
-                  <option value="" style={{ color: "#111827" }}>
-                    Escolher jogador
-                  </option>
+                  <option value="">Escolher jogador</option>
                   {livePlayers.map((player) => (
-                    <option key={player.id} value={player.id} style={{ color: "#111827" }}>
+                    <option key={player.id} value={player.id}>
                       {player.name} • {player.team}
                     </option>
                   ))}
@@ -768,37 +510,16 @@ export default function TeamPage() {
               </div>
 
               <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "#4b5563",
-                  }}
-                >
-                  Melhor assistente
-                </label>
+                <label className="block text-sm font-bold text-gray-600">Melhor assistente</label>
                 <select
                   value={topAssistId}
                   onChange={(e) => setTopAssistId(e.target.value)}
                   disabled={picksLocked || blockedByPayment}
-                  style={{
-                    marginTop: 8,
-                    width: "100%",
-                    borderRadius: 16,
-                    border: "1px solid #e5e7eb",
-                    padding: "14px 16px",
-                    background: picksLocked || blockedByPayment ? "#f3f4f6" : "#ffffff",
-                    color: picksLocked || blockedByPayment ? "#6b7280" : "#111827",
-                    appearance: "none",
-                    WebkitAppearance: "none",
-                  }}
+                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                 >
-                  <option value="" style={{ color: "#111827" }}>
-                    Escolher jogador
-                  </option>
+                  <option value="">Escolher jogador</option>
                   {livePlayers.map((player) => (
-                    <option key={player.id} value={player.id} style={{ color: "#111827" }}>
+                    <option key={player.id} value={player.id}>
                       {player.name} • {player.team}
                     </option>
                   ))}
@@ -806,37 +527,16 @@ export default function TeamPage() {
               </div>
 
               <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "#4b5563",
-                  }}
-                >
-                  Seleção campeã
-                </label>
+                <label className="block text-sm font-bold text-gray-600">Seleção campeã</label>
                 <select
                   value={championTeam}
                   onChange={(e) => setChampionTeam(e.target.value)}
                   disabled={picksLocked || blockedByPayment}
-                  style={{
-                    marginTop: 8,
-                    width: "100%",
-                    borderRadius: 16,
-                    border: "1px solid #e5e7eb",
-                    padding: "14px 16px",
-                    background: picksLocked || blockedByPayment ? "#f3f4f6" : "#ffffff",
-                    color: picksLocked || blockedByPayment ? "#6b7280" : "#111827",
-                    appearance: "none",
-                    WebkitAppearance: "none",
-                  }}
+                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                 >
-                  <option value="" style={{ color: "#111827" }}>
-                    Escolher seleção
-                  </option>
+                  <option value="">Escolher seleção</option>
                   {teams.map((team) => (
-                    <option key={team.id} value={team.name} style={{ color: "#111827" }}>
+                    <option key={team.id} value={team.name}>
                       {team.name}
                     </option>
                   ))}
@@ -844,22 +544,12 @@ export default function TeamPage() {
               </div>
             </div>
 
-            <div style={{ marginTop: 24 }}>
+            <div className="mt-6">
               <button
                 type="button"
                 onClick={handleSavePicks}
                 disabled={savingPicks || picksLocked}
-                style={{
-                  background: "#4c1d95",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: 16,
-                  padding: "12px 24px",
-                  fontWeight: 700,
-                  fontSize: 15,
-                  cursor: savingPicks || picksLocked ? "not-allowed" : "pointer",
-                  opacity: savingPicks || picksLocked ? 0.6 : 1,
-                }}
+                className="rounded-2xl bg-violet-900 px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {savingPicks
                   ? "A guardar picks..."
@@ -872,120 +562,59 @@ export default function TeamPage() {
             </div>
           </div>
 
-          <div
-            style={{
-              background: "#ffffff",
-              borderRadius: 24,
-              padding: 24,
-              boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-              color: "#111827",
-            }}
-          >
-            <p
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                color: "#7c3aed",
-              }}
-            >
-              Resumo
-            </p>
-            <h2
-              style={{
-                marginTop: 8,
-                fontSize: 32,
-                fontWeight: 800,
-                color: "#111827",
-              }}
-            >
+          <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
+            <p className="text-xs font-bold uppercase tracking-wide text-violet-600">Resumo</p>
+            <h2 className="mt-2 text-2xl font-extrabold text-gray-900 sm:text-3xl">
               A tua entrada
             </h2>
 
-            <div style={{ marginTop: 20, display: "grid", gap: 16 }}>
-              <div style={{ borderRadius: 16, background: "#faf5ff", padding: 16 }}>
-                <p style={{ fontSize: 14, color: "#6b7280" }}>Equipa</p>
-                <p
-                  style={{
-                    marginTop: 6,
-                    fontSize: 22,
-                    fontWeight: 800,
-                    color: "#111827",
-                  }}
-                >
+            <div className="mt-5 grid gap-4">
+              <div className="rounded-2xl bg-violet-50 p-4">
+                <p className="text-sm text-gray-500">Equipa</p>
+                <p className="mt-2 text-xl font-extrabold text-gray-900 sm:text-2xl">
                   {teamName || "Sem nome ainda"}
                 </p>
               </div>
 
-              <div style={{ borderRadius: 16, background: "#faf5ff", padding: 16 }}>
-                <p style={{ fontSize: 14, color: "#6b7280" }}>Melhor marcador</p>
-                <p
-                  style={{
-                    marginTop: 6,
-                    fontSize: 18,
-                    fontWeight: 700,
-                    color: "#111827",
-                  }}
-                >
+              <div className="rounded-2xl bg-violet-50 p-4">
+                <p className="text-sm text-gray-500">Melhor marcador</p>
+                <p className="mt-2 text-base font-bold text-gray-900 sm:text-lg">
                   {topScorerPlayer
                     ? `${topScorerPlayer.name} • ${topScorerPlayer.team}`
                     : "Por escolher"}
                 </p>
               </div>
 
-              <div style={{ borderRadius: 16, background: "#faf5ff", padding: 16 }}>
-                <p style={{ fontSize: 14, color: "#6b7280" }}>Melhor assistente</p>
-                <p
-                  style={{
-                    marginTop: 6,
-                    fontSize: 18,
-                    fontWeight: 700,
-                    color: "#111827",
-                  }}
-                >
+              <div className="rounded-2xl bg-violet-50 p-4">
+                <p className="text-sm text-gray-500">Melhor assistente</p>
+                <p className="mt-2 text-base font-bold text-gray-900 sm:text-lg">
                   {topAssistPlayer
                     ? `${topAssistPlayer.name} • ${topAssistPlayer.team}`
                     : "Por escolher"}
                 </p>
               </div>
 
-              <div style={{ borderRadius: 16, background: "#faf5ff", padding: 16 }}>
-                <p style={{ fontSize: 14, color: "#6b7280" }}>Campeã escolhida</p>
-                <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 12 }}>
+              <div className="rounded-2xl bg-violet-50 p-4">
+                <p className="text-sm text-gray-500">Campeã escolhida</p>
+                <div className="mt-3 flex items-center gap-3">
                   {champion?.flag ? (
                     <img
                       src={champion.flag}
                       alt={champion.name}
-                      style={{ height: 28, width: 40, objectFit: "cover", borderRadius: 8 }}
+                      className="h-7 w-10 rounded object-cover"
                     />
                   ) : (
-                    <div
-                      style={{
-                        height: 28,
-                        width: 40,
-                        borderRadius: 8,
-                        background: "#e5e7eb",
-                      }}
-                    />
+                    <div className="h-7 w-10 rounded bg-gray-200" />
                   )}
-                  <p style={{ fontSize: 18, fontWeight: 700, color: "#111827" }}>
+                  <p className="text-base font-bold text-gray-900 sm:text-lg">
                     {championTeam || "Por escolher"}
                   </p>
                 </div>
               </div>
 
-              <div
-                style={{
-                  borderRadius: 16,
-                  padding: 16,
-                  color: "#ffffff",
-                  background: "linear-gradient(90deg, #22d3ee 0%, #6366f1 100%)",
-                }}
-              >
-                <p style={{ fontSize: 14, textTransform: "uppercase", opacity: 0.8 }}>
-                  Palpites preenchidos
-                </p>
-                <p style={{ marginTop: 6, fontSize: 34, fontWeight: 800 }}>
+              <div className="rounded-2xl bg-gradient-to-r from-cyan-400 to-indigo-500 p-4 text-white">
+                <p className="text-xs uppercase tracking-wide text-white/80">Palpites preenchidos</p>
+                <p className="mt-2 text-3xl font-extrabold">
                   {totalPredictionsFilled}/{games.length}
                 </p>
               </div>
@@ -993,39 +622,17 @@ export default function TeamPage() {
           </div>
         </section>
 
-        <section
-          style={{
-            background: "#ffffff",
-            borderRadius: 24,
-            padding: 24,
-            boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-            color: "#111827",
-          }}
-        >
-          <div style={{ marginBottom: 24 }}>
-            <p
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                color: "#7c3aed",
-              }}
-            >
+        <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
+          <div className="mb-6">
+            <p className="text-xs font-bold uppercase tracking-wide text-violet-600">
               Palpites por jornada
             </p>
-            <h2
-              style={{
-                marginTop: 8,
-                fontSize: 32,
-                fontWeight: 800,
-                color: "#111827",
-              }}
-            >
+            <h2 className="mt-2 text-2xl font-extrabold text-gray-900 sm:text-3xl">
               Jornadas e eliminatórias
             </h2>
           </div>
 
-          <div style={{ display: "grid", gap: 32 }}>
+          <div className="space-y-8">
             {gamesByRound.map(([roundLabel, roundGames]) => {
               const firstGame = getRoundFirstGame(roundGames);
               const roundLockDate = getLockDateFromGame(firstGame);
@@ -1033,42 +640,21 @@ export default function TeamPage() {
 
               return (
                 <div key={roundLabel}>
-                  <div
-                    style={{
-                      marginBottom: 16,
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 12,
-                      flexWrap: "wrap",
-                    }}
-                  >
+                  <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                      <h3 style={{ fontSize: 24, fontWeight: 800, color: "#111827" }}>
+                      <h3 className="text-xl font-extrabold text-gray-900 sm:text-2xl">
                         {roundLabel}
                       </h3>
-                      <p style={{ fontSize: 14, color: "#6b7280" }}>
+                      <p className="text-sm text-gray-500">
                         Fecha 1 hora antes do primeiro jogo da ronda
                       </p>
                     </div>
 
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        flexWrap: "wrap",
-                      }}
-                    >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                       <span
-                        style={{
-                          background: roundLocked ? "#fee2e2" : "#dcfce7",
-                          color: roundLocked ? "#b91c1c" : "#15803d",
-                          borderRadius: 9999,
-                          padding: "8px 12px",
-                          fontSize: 14,
-                          fontWeight: 700,
-                        }}
+                        className={`inline-flex rounded-full px-4 py-2 text-sm font-bold ${
+                          roundLocked ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+                        }`}
                       >
                         {roundLocked
                           ? "Submissões fechadas"
@@ -1079,21 +665,7 @@ export default function TeamPage() {
                         type="button"
                         onClick={() => handleSaveRound(roundLabel, roundGames)}
                         disabled={roundLocked || savingRoundLabel === roundLabel}
-                        style={{
-                          background: "#4c1d95",
-                          color: "#ffffff",
-                          border: "none",
-                          borderRadius: 16,
-                          padding: "10px 20px",
-                          fontWeight: 700,
-                          fontSize: 14,
-                          cursor:
-                            roundLocked || savingRoundLabel === roundLabel
-                              ? "not-allowed"
-                              : "pointer",
-                          opacity:
-                            roundLocked || savingRoundLabel === roundLabel ? 0.6 : 1,
-                        }}
+                        className="rounded-2xl bg-violet-900 px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {savingRoundLabel === roundLabel
                           ? "A guardar..."
@@ -1104,13 +676,7 @@ export default function TeamPage() {
                     </div>
                   </div>
 
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                      gap: 16,
-                    }}
-                  >
+                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                     {roundGames.map((game) => {
                       const homeTeam = teams.find((team) => team.name === game.homeTeam);
                       const awayTeam = teams.find((team) => team.name === game.awayTeam);
@@ -1119,220 +685,95 @@ export default function TeamPage() {
                       return (
                         <article
                           key={game.id}
-                          style={{
-                            borderRadius: 16,
-                            border: "1px solid #f3f4f6",
-                            padding: 16,
-                            background: roundLocked || blockedByPayment ? "#f9fafb" : "#fcfcfd",
-                            color: "#111827",
-                          }}
+                          className={`rounded-2xl border p-4 ${
+                            roundLocked || blockedByPayment
+                              ? "border-gray-200 bg-gray-50"
+                              : "border-gray-100 bg-[#fcfcfd]"
+                          }`}
                         >
-                          <div
-                            style={{
-                              marginBottom: 16,
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                            }}
-                          >
+                          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div>
-                              <p
-                                style={{
-                                  fontSize: 12,
-                                  fontWeight: 700,
-                                  textTransform: "uppercase",
-                                  color: "#9ca3af",
-                                }}
-                              >
+                              <p className="text-xs font-bold uppercase tracking-wide text-gray-400">
                                 {formatDate(game.date)} • {game.time}
                               </p>
-                              <div
-                                style={{
-                                  marginTop: 8,
-                                  display: "flex",
-                                  gap: 8,
-                                  flexWrap: "wrap",
-                                }}
-                              >
+
+                              <div className="mt-2 flex flex-wrap gap-2">
                                 {game.group && (
-                                  <span
-                                    style={{
-                                      borderRadius: 9999,
-                                      background: "#eff6ff",
-                                      color: "#1d4ed8",
-                                      padding: "4px 10px",
-                                      fontSize: 12,
-                                      fontWeight: 600,
-                                    }}
-                                  >
+                                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
                                     Grupo {game.group}
                                   </span>
                                 )}
-                                <span
-                                  style={{
-                                    borderRadius: 9999,
-                                    background: "#faf5ff",
-                                    color: "#7c3aed",
-                                    padding: "4px 10px",
-                                    fontSize: 12,
-                                    fontWeight: 600,
-                                  }}
-                                >
+
+                                <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
                                   {game.phase}
                                 </span>
                               </div>
                             </div>
 
-                            <span
-                              style={{
-                                borderRadius: 9999,
-                                background: "#f3f4f6",
-                                color: "#4b5563",
-                                padding: "4px 12px",
-                                fontSize: 12,
-                                fontWeight: 700,
-                              }}
-                            >
+                            <span className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-600">
                               {game.status}
                             </span>
                           </div>
 
-                          <div
-                            style={{
-                              display: "grid",
-                              gridTemplateColumns: "1fr auto 1fr",
-                              alignItems: "center",
-                              gap: 16,
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "flex-end",
-                                gap: 12,
-                              }}
-                            >
-                              <span
-                                style={{
-                                  textAlign: "right",
-                                  fontSize: 14,
-                                  fontWeight: 700,
-                                  color: "#111827",
-                                }}
-                              >
-                                {game.homeTeam}
-                              </span>
-                              {homeTeam?.flag ? (
-                                <img
-                                  src={homeTeam.flag}
-                                  alt={game.homeTeam}
-                                  style={{
-                                    height: 24,
-                                    width: 36,
-                                    objectFit: "cover",
-                                    borderRadius: 6,
-                                  }}
-                                />
-                              ) : (
-                                <div
-                                  style={{
-                                    height: 24,
-                                    width: 36,
-                                    borderRadius: 6,
-                                    background: "#e5e7eb",
-                                  }}
-                                />
-                              )}
-                            </div>
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex min-w-0 items-center gap-3">
+                                {homeTeam?.flag ? (
+                                  <img
+                                    src={homeTeam.flag}
+                                    alt={game.homeTeam}
+                                    className="h-6 w-9 rounded object-cover"
+                                  />
+                                ) : (
+                                  <div className="h-6 w-9 rounded bg-gray-200" />
+                                )}
+                                <span className="truncate text-sm font-bold text-gray-900">
+                                  {game.homeTeam}
+                                </span>
+                              </div>
 
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                               <input
                                 type="text"
                                 inputMode="numeric"
                                 value={prediction.home}
                                 disabled={roundLocked || blockedByPayment}
                                 onChange={(e) =>
-                                  handlePredictionChange(
-                                    game.id,
-                                    "home",
-                                    e.target.value,
-                                    roundLocked
-                                  )
+                                  handlePredictionChange(game.id, "home", e.target.value, roundLocked)
                                 }
-                                style={{
-                                  height: 48,
-                                  width: 56,
-                                  borderRadius: 12,
-                                  border: "1px solid #e5e7eb",
-                                  textAlign: "center",
-                                  fontSize: 18,
-                                  fontWeight: 700,
-                                  background:
-                                    roundLocked || blockedByPayment ? "#f3f4f6" : "#ffffff",
-                                  color:
-                                    roundLocked || blockedByPayment ? "#6b7280" : "#111827",
-                                }}
+                                className="h-12 w-14 rounded-xl border border-gray-200 bg-white text-center text-lg font-bold text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                               />
-                              <span
-                                style={{ fontSize: 20, fontWeight: 800, color: "#4c1d95" }}
-                              >
-                                -
-                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-center">
+                              <span className="text-xl font-extrabold text-violet-900">-</span>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex min-w-0 items-center gap-3">
+                                {awayTeam?.flag ? (
+                                  <img
+                                    src={awayTeam.flag}
+                                    alt={game.awayTeam}
+                                    className="h-6 w-9 rounded object-cover"
+                                  />
+                                ) : (
+                                  <div className="h-6 w-9 rounded bg-gray-200" />
+                                )}
+                                <span className="truncate text-sm font-bold text-gray-900">
+                                  {game.awayTeam}
+                                </span>
+                              </div>
+
                               <input
                                 type="text"
                                 inputMode="numeric"
                                 value={prediction.away}
                                 disabled={roundLocked || blockedByPayment}
                                 onChange={(e) =>
-                                  handlePredictionChange(
-                                    game.id,
-                                    "away",
-                                    e.target.value,
-                                    roundLocked
-                                  )
+                                  handlePredictionChange(game.id, "away", e.target.value, roundLocked)
                                 }
-                                style={{
-                                  height: 48,
-                                  width: 56,
-                                  borderRadius: 12,
-                                  border: "1px solid #e5e7eb",
-                                  textAlign: "center",
-                                  fontSize: 18,
-                                  fontWeight: 700,
-                                  background:
-                                    roundLocked || blockedByPayment ? "#f3f4f6" : "#ffffff",
-                                  color:
-                                    roundLocked || blockedByPayment ? "#6b7280" : "#111827",
-                                }}
+                                className="h-12 w-14 rounded-xl border border-gray-200 bg-white text-center text-lg font-bold text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                               />
-                            </div>
-
-                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                              {awayTeam?.flag ? (
-                                <img
-                                  src={awayTeam.flag}
-                                  alt={game.awayTeam}
-                                  style={{
-                                    height: 24,
-                                    width: 36,
-                                    objectFit: "cover",
-                                    borderRadius: 6,
-                                  }}
-                                />
-                              ) : (
-                                <div
-                                  style={{
-                                    height: 24,
-                                    width: 36,
-                                    borderRadius: 6,
-                                    background: "#e5e7eb",
-                                  }}
-                                />
-                              )}
-                              <span style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>
-                                {game.awayTeam}
-                              </span>
                             </div>
                           </div>
                         </article>
@@ -1349,79 +790,41 @@ export default function TeamPage() {
       {showPaymentModal && (
         <div
           onClick={closePaymentModal}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 9999,
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 16,
-          }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            style={{
-              width: "100%",
-              maxWidth: 520,
-              borderRadius: 24,
-              background: "#ffffff",
-              padding: 24,
-              boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-              color: "#111827",
-            }}
+            className="w-full max-w-xl rounded-3xl bg-white p-5 shadow-2xl sm:p-6"
           >
-            <h3 style={{ fontSize: 28, fontWeight: 800, color: "#111827" }}>
+            <h3 className="text-2xl font-extrabold text-gray-900 sm:text-3xl">
               Desbloquear Fantasy Mundial 2026
             </h3>
 
-            <p style={{ marginTop: 12, fontSize: 14, color: "#4b5563" }}>
+            <p className="mt-3 text-sm text-gray-600">
               O acesso completo custa <strong>10€</strong>.
             </p>
 
-            <div
-              style={{
-                marginTop: 16,
-                borderRadius: 16,
-                background: "#faf5ff",
-                padding: 16,
-              }}
-            >
-              <p style={{ fontSize: 14, color: "#6b7280" }}>
-                Pagamento por MB Way ou Revolut
-              </p>
-              <p style={{ marginTop: 6, fontSize: 24, fontWeight: 800, color: "#111827" }}>
-                918 888 416
-              </p>
-              <p style={{ marginTop: 10, fontSize: 14, color: "#4b5563", lineHeight: 1.6 }}>
+            <div className="mt-4 rounded-2xl bg-violet-50 p-4">
+              <p className="text-sm text-gray-500">Pagamento por MB Way ou Revolut</p>
+              <p className="mt-2 text-2xl font-extrabold text-gray-900">918 888 416</p>
+              <p className="mt-3 text-sm leading-6 text-gray-600">
                 Faz o pagamento e manda mensagem para esse número. Depois escolhe o
                 método utilizado e carrega em “Já paguei” para eu validar manualmente.
               </p>
             </div>
 
-            <div style={{ marginTop: 18 }}>
-              <p style={{ fontSize: 14, fontWeight: 700, color: "#374151", marginBottom: 10 }}>
-                Método de pagamento
-              </p>
+            <div className="mt-5">
+              <p className="mb-3 text-sm font-bold text-gray-700">Método de pagamento</p>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <button
                   type="button"
                   onClick={() => setPaymentMethod("mbway")}
-                  style={{
-                    border:
-                      paymentMethod === "mbway"
-                        ? "2px solid #4c1d95"
-                        : "1px solid #d1d5db",
-                    background: paymentMethod === "mbway" ? "#f5f3ff" : "#ffffff",
-                    color: "#111827",
-                    borderRadius: 16,
-                    padding: "14px 16px",
-                    fontWeight: 700,
-                    fontSize: 15,
-                    cursor: "pointer",
-                  }}
+                  className={`rounded-2xl px-4 py-3 text-sm font-bold ${
+                    paymentMethod === "mbway"
+                      ? "border-2 border-violet-900 bg-violet-50 text-gray-900"
+                      : "border border-gray-300 bg-white text-gray-900"
+                  }`}
                 >
                   MB Way
                 </button>
@@ -1429,41 +832,23 @@ export default function TeamPage() {
                 <button
                   type="button"
                   onClick={() => setPaymentMethod("revolut")}
-                  style={{
-                    border:
-                      paymentMethod === "revolut"
-                        ? "2px solid #4c1d95"
-                        : "1px solid #d1d5db",
-                    background: paymentMethod === "revolut" ? "#f5f3ff" : "#ffffff",
-                    color: "#111827",
-                    borderRadius: 16,
-                    padding: "14px 16px",
-                    fontWeight: 700,
-                    fontSize: 15,
-                    cursor: "pointer",
-                  }}
+                  className={`rounded-2xl px-4 py-3 text-sm font-bold ${
+                    paymentMethod === "revolut"
+                      ? "border-2 border-violet-900 bg-violet-50 text-gray-900"
+                      : "border border-gray-300 bg-white text-gray-900"
+                  }`}
                 >
                   Revolut
                 </button>
               </div>
             </div>
 
-            <div style={{ marginTop: 20, display: "flex", gap: 12 }}>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
                 onClick={handlePaymentSubmit}
                 disabled={submittingPayment}
-                style={{
-                  background: "#4c1d95",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: 16,
-                  padding: "12px 20px",
-                  fontWeight: 700,
-                  fontSize: 15,
-                  cursor: submittingPayment ? "not-allowed" : "pointer",
-                  opacity: submittingPayment ? 0.6 : 1,
-                }}
+                className="rounded-2xl bg-violet-900 px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submittingPayment ? "A enviar..." : "Já paguei"}
               </button>
@@ -1471,16 +856,7 @@ export default function TeamPage() {
               <button
                 type="button"
                 onClick={closePaymentModal}
-                style={{
-                  background: "#ffffff",
-                  color: "#374151",
-                  border: "1px solid #d1d5db",
-                  borderRadius: 16,
-                  padding: "12px 20px",
-                  fontWeight: 700,
-                  fontSize: 15,
-                  cursor: "pointer",
-                }}
+                className="rounded-2xl border border-gray-300 bg-white px-5 py-3 text-sm font-bold text-gray-700"
               >
                 Fechar
               </button>

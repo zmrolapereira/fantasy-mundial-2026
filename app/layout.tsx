@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   description: "Cria a tua equipa e compete no ranking global da fantasy.",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -28,10 +33,8 @@ export default function RootLayout({
       lang="pt"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-gray-100 text-gray-900">
+      <body className="min-h-full bg-gray-100 text-gray-900">
         {children}
-
-        {/* Analytics */}
         <Analytics />
       </body>
     </html>

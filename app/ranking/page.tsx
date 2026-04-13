@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { User } from "firebase/auth";
 import { listenToAuth } from "@/lib/auth";
@@ -13,6 +12,7 @@ import {
   subscribeToFantasyEntries,
 } from "@/lib/fantasy-entry";
 import { getStageLeaderboardSnapshot } from "@/lib/leaderboard-snapshots";
+import SiteHeader from "@/components/HeaderTemp";
 
 function getFlagByCountry(countryName?: string) {
   if (!countryName) return undefined;
@@ -35,12 +35,7 @@ function getOutcome(home: number, away: number) {
 }
 
 function getPredictionPoints(prediction: MatchPrediction, game?: Game) {
-  if (
-    !game ||
-    game.status !== "FT" ||
-    game.homeScore === null ||
-    game.awayScore === null
-  ) {
+  if (!game || game.status !== "FT" || game.homeScore === null || game.awayScore === null) {
     return 0;
   }
 
@@ -65,9 +60,7 @@ function getPredictionPoints(prediction: MatchPrediction, game?: Game) {
   return 0;
 }
 
-type RankedEntry = FantasyEntry & {
-  rank: number;
-};
+type RankedEntry = FantasyEntry & { rank: number };
 
 type PredictionWithGame = MatchPrediction & {
   game?: Game;
@@ -252,26 +245,19 @@ export default function RankingPage() {
   const [entries, setEntries] = useState<FantasyEntry[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
 
-  const [selectedPredictions, setSelectedPredictions] = useState<MatchPrediction[]>(
-    []
-  );
+  const [selectedPredictions, setSelectedPredictions] = useState<MatchPrediction[]>([]);
   const [loadingPredictions, setLoadingPredictions] = useState(false);
 
-  const [predictionsByUserId, setPredictionsByUserId] = useState<
-    Record<string, MatchPrediction[]>
-  >({});
+  const [predictionsByUserId, setPredictionsByUserId] = useState<Record<string, MatchPrediction[]>>({});
   const [loadingAllPredictions, setLoadingAllPredictions] = useState(false);
 
   const [selectedRoundFilter, setSelectedRoundFilter] = useState<string>("ALL");
   const [selectedPhaseFilter, setSelectedPhaseFilter] = useState<string>("ALL");
 
-  const [leaderboardMode, setLeaderboardMode] =
-    useState<LeaderboardMode>("overall");
+  const [leaderboardMode, setLeaderboardMode] = useState<LeaderboardMode>("overall");
   const [selectedStageId, setSelectedStageId] = useState<string>("");
 
-  const [stageSnapshotEntries, setStageSnapshotEntries] = useState<
-    StageRankedEntry[]
-  >([]);
+  const [stageSnapshotEntries, setStageSnapshotEntries] = useState<StageRankedEntry[]>([]);
   const [loadingStageSnapshot, setLoadingStageSnapshot] = useState(false);
 
   useEffect(() => {
@@ -292,8 +278,7 @@ export default function RankingPage() {
       const totalDiff = (b.totalPoints ?? 0) - (a.totalPoints ?? 0);
       if (totalDiff !== 0) return totalDiff;
 
-      const predictionDiff =
-        (b.predictionPoints ?? 0) - (a.predictionPoints ?? 0);
+      const predictionDiff = (b.predictionPoints ?? 0) - (a.predictionPoints ?? 0);
       if (predictionDiff !== 0) return predictionDiff;
 
       return (a.teamName ?? "").localeCompare(b.teamName ?? "");
@@ -304,7 +289,6 @@ export default function RankingPage() {
     return sorted.map((entry, index) => {
       if (index > 0) {
         const prev = sorted[index - 1];
-
         const samePoints =
           (entry.totalPoints ?? 0) === (prev.totalPoints ?? 0) &&
           (entry.predictionPoints ?? 0) === (prev.predictionPoints ?? 0);
@@ -312,10 +296,7 @@ export default function RankingPage() {
         if (!samePoints) currentRank = index + 1;
       }
 
-      return {
-        ...entry,
-        rank: currentRank,
-      };
+      return { ...entry, rank: currentRank };
     });
   }, [entries]);
 
@@ -367,11 +348,7 @@ export default function RankingPage() {
       const id = getStageId(label);
 
       if (!unique.has(id)) {
-        unique.set(id, {
-          id,
-          label,
-          order: getStageOrder(label),
-        });
+        unique.set(id, { id, label, order: getStageOrder(label) });
       }
     });
 
@@ -402,10 +379,7 @@ export default function RankingPage() {
       return;
     }
 
-    if (
-      leaderboard.length > 0 &&
-      !leaderboard.some((entry) => entry.userId === selectedUserId)
-    ) {
+    if (leaderboard.length > 0 && !leaderboard.some((entry) => entry.userId === selectedUserId)) {
       if (user?.uid && leaderboard.some((entry) => entry.userId === user.uid)) {
         setSelectedUserId(user.uid);
       } else {
@@ -428,10 +402,7 @@ export default function RankingPage() {
         return sum + getPredictionPoints(prediction, game);
       }, 0);
 
-      return {
-        ...entry,
-        stagePoints,
-      };
+      return { ...entry, stagePoints };
     });
 
     const sorted = withStagePoints.sort((a, b) => {
@@ -449,7 +420,6 @@ export default function RankingPage() {
     return sorted.map((entry, index) => {
       if (index > 0) {
         const prev = sorted[index - 1];
-
         const samePoints =
           entry.stagePoints === prev.stagePoints &&
           (entry.totalPoints ?? 0) === (prev.totalPoints ?? 0);
@@ -457,10 +427,7 @@ export default function RankingPage() {
         if (!samePoints) currentRank = index + 1;
       }
 
-      return {
-        ...entry,
-        rank: currentRank,
-      };
+      return { ...entry, rank: currentRank };
     });
   }, [entries, predictionsByUserId, selectedStageId]);
 
@@ -480,21 +447,19 @@ export default function RankingPage() {
           return;
         }
 
-        const mapped: StageRankedEntry[] = (snapshot as any).entries.map(
-          (entry: any) => {
-            const fullEntry = entries.find((e) => e.userId === entry.userId);
+        const mapped: StageRankedEntry[] = (snapshot as any).entries.map((entry: any) => {
+          const fullEntry = entries.find((e) => e.userId === entry.userId);
 
-            return {
-              ...(fullEntry ?? {
-                userId: entry.userId,
-                teamName: entry.teamName,
-                managerName: entry.managerName,
-              }),
-              rank: entry.rank,
-              stagePoints: entry.stagePoints,
-            } as StageRankedEntry;
-          }
-        );
+          return {
+            ...(fullEntry ?? {
+              userId: entry.userId,
+              teamName: entry.teamName,
+              managerName: entry.managerName,
+            }),
+            rank: entry.rank,
+            stagePoints: entry.stagePoints,
+          } as StageRankedEntry;
+        });
 
         setStageSnapshotEntries(mapped);
       } catch (error) {
@@ -511,8 +476,7 @@ export default function RankingPage() {
   const myStageEntry = useMemo(() => {
     if (!user?.uid) return null;
 
-    const source =
-      stageSnapshotEntries.length > 0 ? stageSnapshotEntries : stageLeaderboard;
+    const source = stageSnapshotEntries.length > 0 ? stageSnapshotEntries : stageLeaderboard;
 
     return source.find((entry) => entry.userId === user.uid) ?? null;
   }, [stageLeaderboard, stageSnapshotEntries, user?.uid]);
@@ -524,11 +488,9 @@ export default function RankingPage() {
     stageSnapshotEntries.length > 0 ? stageSnapshotEntries : stageLeaderboard;
 
   const activeStageEntry =
-    currentStageSource.find((entry) => entry.userId === selectedUserId) ??
-    currentStageSource[0];
+    currentStageSource.find((entry) => entry.userId === selectedUserId) ?? currentStageSource[0];
 
-  const activeEntry =
-    leaderboardMode === "overall" ? activeOverallEntry : activeStageEntry;
+  const activeEntry = leaderboardMode === "overall" ? activeOverallEntry : activeStageEntry;
 
   const activeStageLabel =
     stageOptions.find((option) => option.id === selectedStageId)?.label ?? "";
@@ -620,20 +582,14 @@ export default function RankingPage() {
   const filteredPredictions = useMemo(() => {
     return stageFilteredPredictions.filter((prediction) => {
       const matchesRound =
-        selectedRoundFilter === "ALL" ||
-        prediction.game?.round === selectedRoundFilter;
+        selectedRoundFilter === "ALL" || prediction.game?.round === selectedRoundFilter;
 
       const matchesPhase =
-        selectedPhaseFilter === "ALL" ||
-        prediction.game?.phase === selectedPhaseFilter;
+        selectedPhaseFilter === "ALL" || prediction.game?.phase === selectedPhaseFilter;
 
       return matchesRound && matchesPhase;
     });
-  }, [
-    stageFilteredPredictions,
-    selectedRoundFilter,
-    selectedPhaseFilter,
-  ]);
+  }, [stageFilteredPredictions, selectedRoundFilter, selectedPhaseFilter]);
 
   useEffect(() => {
     setSelectedRoundFilter("ALL");
@@ -651,46 +607,10 @@ export default function RankingPage() {
 
   return (
     <main className="min-h-screen bg-[#f4f6fb] text-gray-900">
-      <header className="mb-6 w-full border-b bg-white">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-4">
-          <div>
-            <h1 className="text-xl font-extrabold tracking-tight">
-              Fantasy Mundial 2026
-            </h1>
-            <p className="text-sm text-gray-500">Liga oficial do Mundial</p>
-          </div>
-
-          <nav className="flex gap-6 text-sm font-medium">
-            <Link href="/" className="hover:text-blue-600">
-              Home
-            </Link>
-            <Link href="/login" className="hover:text-blue-600">
-              Login
-            </Link>
-            <Link href="/team" className="hover:text-blue-600">
-              A Minha Equipa
-            </Link>
-            <Link href="/stats" className="hover:text-blue-600">
-              Estatísticas
-            </Link>
-            <Link href="/games" className="hover:text-blue-600">
-              Jogos
-            </Link>
-            <Link href="/table" className="hover:text-blue-600">
-              Tabela
-            </Link>
-            <Link href="/rules" className="hover:text-blue-600">
-              Info
-            </Link>
-            <Link href="/ranking" className="font-semibold text-blue-600">
-              Ranking
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <SiteHeader />
 
       <section className="mb-4">
-        <div className="mx-auto max-w-[1600px] px-4">
+        <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
           <div
             className="overflow-hidden rounded-[22px] shadow-lg"
             style={{
@@ -698,14 +618,14 @@ export default function RankingPage() {
                 "linear-gradient(90deg, #67c7e8 0%, #4f83ff 52%, #8b2cf5 100%)",
             }}
           >
-            <div className="px-6 py-5 md:px-8 md:py-6">
+            <div className="px-4 py-5 sm:px-6 md:px-8 md:py-6">
               <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                 <div className="max-w-3xl">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/85">
                     Leaderboard
                   </p>
 
-                  <h2 className="mt-2 text-3xl font-black tracking-tight text-white md:text-4xl">
+                  <h2 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl md:text-4xl">
                     {leaderboardMode === "overall"
                       ? "Ranking Global"
                       : `Leaderboard • ${activeStageLabel || "Jornada / Fase"}`}
@@ -758,11 +678,11 @@ export default function RankingPage() {
                   </div>
 
                   {leaderboardMode === "stage" && (
-                    <div className="mt-3 max-w-[300px]">
+                    <div className="mt-3 w-full max-w-[300px]">
                       <select
                         value={selectedStageId}
                         onChange={(e) => setSelectedStageId(e.target.value)}
-                        className="h-9 w-full rounded-xl border border-white/25 bg-white/95 px-3 text-sm font-semibold text-gray-900 outline-none"
+                        className="h-10 w-full rounded-xl border border-white/25 bg-white/95 px-3 text-sm font-semibold text-gray-900 outline-none"
                       >
                         {stageOptions.map((option) => (
                           <option key={option.id} value={option.id}>
@@ -774,14 +694,12 @@ export default function RankingPage() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 xl:w-auto">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 xl:w-auto">
                   <div className="rounded-2xl bg-white/18 px-4 py-3 backdrop-blur-sm">
                     <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
                       Equipas
                     </p>
-                    <p className="mt-1 text-xl font-black text-white">
-                      {leaderboard.length}
-                    </p>
+                    <p className="mt-1 text-xl font-black text-white">{leaderboard.length}</p>
                   </div>
 
                   <div className="rounded-2xl bg-white/18 px-4 py-3 backdrop-blur-sm">
@@ -810,7 +728,7 @@ export default function RankingPage() {
 
       {myEntry && (
         <section className="mb-4">
-          <div className="mx-auto max-w-[1600px] px-4">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <div className="rounded-[18px] border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -830,12 +748,8 @@ export default function RankingPage() {
 
                 <div className="grid grid-cols-3 gap-2">
                   <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-center">
-                    <p className="text-[9px] uppercase tracking-wide text-gray-500">
-                      Posição
-                    </p>
-                    <p className="text-base font-black text-gray-900">
-                      {myEntry.rank}º
-                    </p>
+                    <p className="text-[9px] uppercase tracking-wide text-gray-500">Posição</p>
+                    <p className="text-base font-black text-gray-900">{myEntry.rank}º</p>
                   </div>
 
                   <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-center">
@@ -862,7 +776,7 @@ export default function RankingPage() {
         </section>
       )}
 
-      <div className="mx-auto max-w-[1600px] px-4 pb-10">
+      <div className="mx-auto max-w-7xl px-4 pb-10 sm:px-6">
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.82fr_0.8fr]">
           <section>
             {podium.length > 0 && (
@@ -880,9 +794,7 @@ export default function RankingPage() {
                       key={entry.userId}
                       onClick={() => setSelectedUserId(entry.userId)}
                       className={`rounded-[18px] border px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 ${
-                        isSelected
-                          ? "border-violet-300 bg-violet-50"
-                          : "border-gray-200 bg-white"
+                        isSelected ? "border-violet-300 bg-violet-50" : "border-gray-200 bg-white"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -893,23 +805,19 @@ export default function RankingPage() {
                           <p className="mt-1 text-base font-black leading-tight text-gray-900">
                             {entry.teamName || "Sem nome"}
                           </p>
-                          <p className="mt-1 text-[11px] text-gray-500">
-                            {entry.managerName}
-                          </p>
+                          <p className="mt-1 text-[11px] text-gray-500">{entry.managerName}</p>
                         </div>
 
                         <div className="text-right">
                           <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-gray-500">
                             {leaderboardMode === "overall" ? "PTS" : "FASE"}
                           </p>
-                          <p className="mt-1 text-2xl font-black text-gray-900">
-                            {primaryPoints}
-                          </p>
+                          <p className="mt-1 text-2xl font-black text-gray-900">{primaryPoints}</p>
                         </div>
                       </div>
 
                       <div className="mt-3 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
                           {championFlag ? (
                             <img
                               src={championFlag}
@@ -920,7 +828,7 @@ export default function RankingPage() {
                             <div className="h-4 w-7 rounded bg-gray-200" />
                           )}
 
-                          <span className="text-[11px] font-semibold text-gray-600">
+                          <span className="truncate text-[11px] font-semibold text-gray-600">
                             {entry.championPick?.teamName || "Sem seleção"}
                           </span>
                         </div>
@@ -932,12 +840,7 @@ export default function RankingPage() {
                             <TinyStat label="P" value={entry.predictionPoints ?? 0} bg="rgba(16,185,129,0.12)" color="#047857" />
                           </div>
                         ) : (
-                          <TinyStat
-                            label=""
-                            value={`${(entry as StageRankedEntry).stagePoints ?? 0} pts`}
-                            bg="rgba(139,92,246,0.12)"
-                            color="#6d28d9"
-                          />
+                          <TinyStat label="" value={`${(entry as StageRankedEntry).stagePoints ?? 0} pts`} bg="rgba(139,92,246,0.12)" color="#6d28d9" />
                         )}
                       </div>
                     </button>
@@ -946,19 +849,17 @@ export default function RankingPage() {
               </div>
             )}
 
-            <div className="overflow-hidden rounded-[18px] border border-gray-200 bg-white shadow-sm">
-              <div className="grid grid-cols-[62px_1.55fr_1fr_82px_112px_20px] border-b border-gray-200 bg-gray-50 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.16em] text-gray-500">
+            <div className="rounded-[18px] border border-gray-200 bg-white shadow-sm">
+              <div className="hidden grid-cols-[62px_1.55fr_1fr_82px_112px_20px] border-b border-gray-200 bg-gray-50 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.16em] text-gray-500 lg:grid">
                 <div>Rank</div>
                 <div>Equipa</div>
                 <div>Manager</div>
-                <div className="text-center">
-                  {leaderboardMode === "overall" ? "Pts" : "Fase"}
-                </div>
+                <div className="text-center">{leaderboardMode === "overall" ? "Pts" : "Fase"}</div>
                 <div className="text-center">Picks</div>
                 <div />
               </div>
 
-              <div>
+              <div className="divide-y divide-gray-100">
                 {activeLeaderboard.map((entry) => {
                   const championFlag = getFlagByCountry(entry.championPick?.teamName);
                   const isSelected = activeEntry?.userId === entry.userId;
@@ -973,62 +874,98 @@ export default function RankingPage() {
                     <button
                       key={entry.userId}
                       onClick={() => setSelectedUserId(entry.userId)}
-                      className={`grid w-full grid-cols-[62px_1.55fr_1fr_82px_112px_20px] items-center border-b border-gray-100 px-3 py-2 text-left transition ${
-                        isSelected
-                          ? "bg-violet-50"
-                          : isMine
-                          ? "bg-blue-50"
-                          : "bg-white hover:bg-gray-50"
+                      className={`w-full text-left transition ${
+                        isSelected ? "bg-violet-50" : isMine ? "bg-blue-50" : "bg-white hover:bg-gray-50"
                       }`}
                     >
-                      <div className="flex items-center gap-1.5">
-                        <RankingBadge rank={entry.rank} isMine={isMine} />
-                        <span className="text-[10px]">{medalEmoji(entry.rank)}</span>
+                      <div className="hidden items-center grid-cols-[62px_1.55fr_1fr_82px_112px_20px] px-3 py-2 lg:grid">
+                        <div className="flex items-center gap-1.5">
+                          <RankingBadge rank={entry.rank} isMine={isMine} />
+                          <span className="text-[10px]">{medalEmoji(entry.rank)}</span>
+                        </div>
+
+                        <div>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <p className="text-[14px] font-black leading-tight text-gray-900">
+                              {entry.teamName || "Sem nome"}
+                            </p>
+                            {isMine && (
+                              <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wide text-blue-700">
+                                A tua
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-[11px] font-semibold text-gray-600">{entry.managerName}</p>
+                        </div>
+
+                        <div className="text-center">
+                          <p className="text-lg font-black text-gray-900">{displayedPoints}</p>
+                        </div>
+
+                        <div className="flex items-center justify-center">
+                          <div className="flex items-center gap-1">
+                            <MiniFlagBadge fallback="G" flag={undefined} />
+                            <MiniFlagBadge fallback="A" flag={undefined} />
+                            <MiniFlagBadge fallback="S" flag={championFlag} />
+                          </div>
+                        </div>
+
+                        <div className="text-center text-sm text-gray-400">›</div>
                       </div>
 
-                      <div>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <p className="text-[14px] font-black leading-tight text-gray-900">
-                            {entry.teamName || "Sem nome"}
-                          </p>
+                      <div className="block p-4 lg:hidden">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <RankingBadge rank={entry.rank} isMine={isMine} />
+                              <p className="truncate text-base font-black text-gray-900">
+                                {entry.teamName || "Sem nome"}
+                              </p>
+                            </div>
+                            <p className="mt-1 text-xs text-gray-500">{entry.managerName}</p>
+                          </div>
+
+                          <div className="text-right">
+                            <p className="text-xs font-bold uppercase text-gray-500">
+                              {leaderboardMode === "overall" ? "Pts" : "Fase"}
+                            </p>
+                            <p className="text-xl font-black text-gray-900">{displayedPoints}</p>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {championFlag ? (
+                              <img
+                                src={championFlag}
+                                alt={entry.championPick?.teamName || "Seleção"}
+                                className="h-4 w-7 rounded object-cover"
+                              />
+                            ) : (
+                              <div className="h-4 w-7 rounded bg-gray-200" />
+                            )}
+                            <span className="truncate text-xs font-semibold text-gray-600">
+                              {entry.championPick?.teamName || "Sem seleção"}
+                            </span>
+                          </div>
+
                           {isMine && (
-                            <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wide text-blue-700">
+                            <span className="rounded-full bg-blue-100 px-2 py-1 text-[10px] font-black uppercase text-blue-700">
                               A tua
                             </span>
                           )}
                         </div>
                       </div>
-
-                      <div>
-                        <p className="text-[11px] font-semibold text-gray-600">
-                          {entry.managerName}
-                        </p>
-                      </div>
-
-                      <div className="text-center">
-                        <p className="text-lg font-black text-gray-900">
-                          {displayedPoints}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-center">
-                        <div className="flex items-center gap-1">
-                          <MiniFlagBadge fallback="G" flag={undefined} />
-                          <MiniFlagBadge fallback="A" flag={undefined} />
-                          <MiniFlagBadge fallback="S" flag={championFlag} />
-                        </div>
-                      </div>
-
-                      <div className="text-center text-sm text-gray-400">›</div>
                     </button>
                   );
                 })}
 
                 {activeLeaderboard.length === 0 && (
                   <div className="px-6 py-10 text-center text-sm text-gray-500">
-                    {loadingAllPredictions
-                      ? "A carregar leaderboard..."
-                      : "Ainda não existem equipas registadas."}
+                    {loadingAllPredictions ? "A carregar leaderboard..." : "Ainda não existem equipas registadas."}
                   </div>
                 )}
               </div>
@@ -1043,33 +980,24 @@ export default function RankingPage() {
                 <div
                   className="rounded-[16px] p-4 text-white"
                   style={{
-                    background:
-                      "linear-gradient(90deg, #67c7e8 0%, #4f83ff 52%, #8b2cf5 100%)",
+                    background: "linear-gradient(90deg, #67c7e8 0%, #4f83ff 52%, #8b2cf5 100%)",
                   }}
                 >
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
                     Equipa selecionada
                   </p>
-                  <h3 className="mt-1 text-lg font-black">
-                    {activeEntry.teamName || "Sem nome"}
-                  </h3>
-                  <p className="mt-1 text-[11px] text-white/85">
-                    {activeEntry.managerName}
-                  </p>
+                  <h3 className="mt-1 text-lg font-black">{activeEntry.teamName || "Sem nome"}</h3>
+                  <p className="mt-1 text-[11px] text-white/85">{activeEntry.managerName}</p>
                 </div>
 
                 <div className="mt-3 rounded-[16px] border border-gray-200 bg-[#f8fafc] p-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500">
-                    {leaderboardMode === "overall"
-                      ? "Pontuação"
-                      : `Pontuação • ${activeStageLabel || "Fase"}`}
+                    {leaderboardMode === "overall" ? "Pontuação" : `Pontuação • ${activeStageLabel || "Fase"}`}
                   </p>
 
                   <div className="mt-2 rounded-2xl border border-gray-200 bg-white p-3 text-center">
                     <p className="text-[10px] uppercase tracking-wide text-gray-500">
-                      {leaderboardMode === "overall"
-                        ? "Pontos totais"
-                        : "Pontos da jornada/fase"}
+                      {leaderboardMode === "overall" ? "Pontos totais" : "Pontos da jornada/fase"}
                     </p>
                     <p className="mt-1 text-2xl font-black text-gray-900">
                       {leaderboardMode === "overall"
@@ -1081,68 +1009,42 @@ export default function RankingPage() {
                   {leaderboardMode === "overall" ? (
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <div className="rounded-2xl border border-gray-200 bg-white p-3">
-                        <p className="text-[9px] uppercase tracking-wide text-gray-500">
-                          Marcador
-                        </p>
-                        <p className="mt-1 text-lg font-black text-amber-700">
-                          {activeEntry.topScorerPoints ?? 0}
-                        </p>
+                        <p className="text-[9px] uppercase tracking-wide text-gray-500">Marcador</p>
+                        <p className="mt-1 text-lg font-black text-amber-700">{activeEntry.topScorerPoints ?? 0}</p>
                       </div>
 
                       <div className="rounded-2xl border border-gray-200 bg-white p-3">
-                        <p className="text-[9px] uppercase tracking-wide text-gray-500">
-                          Assist.
-                        </p>
-                        <p className="mt-1 text-lg font-black text-blue-700">
-                          {activeEntry.topAssistPoints ?? 0}
-                        </p>
+                        <p className="text-[9px] uppercase tracking-wide text-gray-500">Assist.</p>
+                        <p className="mt-1 text-lg font-black text-blue-700">{activeEntry.topAssistPoints ?? 0}</p>
                       </div>
 
                       <div className="rounded-2xl border border-gray-200 bg-white p-3">
-                        <p className="text-[9px] uppercase tracking-wide text-gray-500">
-                          Campeã
-                        </p>
-                        <p className="mt-1 text-lg font-black text-rose-700">
-                          {activeEntry.selectedTeamPoints ?? 0}
-                        </p>
+                        <p className="text-[9px] uppercase tracking-wide text-gray-500">Campeã</p>
+                        <p className="mt-1 text-lg font-black text-rose-700">{activeEntry.selectedTeamPoints ?? 0}</p>
                       </div>
 
                       <div className="rounded-2xl border border-gray-200 bg-white p-3">
-                        <p className="text-[9px] uppercase tracking-wide text-gray-500">
-                          Palpites
-                        </p>
-                        <p className="mt-1 text-lg font-black text-emerald-700">
-                          {activeEntry.predictionPoints ?? 0}
-                        </p>
+                        <p className="text-[9px] uppercase tracking-wide text-gray-500">Palpites</p>
+                        <p className="mt-1 text-lg font-black text-emerald-700">{activeEntry.predictionPoints ?? 0}</p>
                       </div>
                     </div>
                   ) : (
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <div className="rounded-2xl border border-gray-200 bg-white p-3">
-                        <p className="text-[9px] uppercase tracking-wide text-gray-500">
-                          Geral
-                        </p>
-                        <p className="mt-1 text-lg font-black text-gray-900">
-                          {activeOverallEntry?.rank ?? "—"}º
-                        </p>
+                        <p className="text-[9px] uppercase tracking-wide text-gray-500">Geral</p>
+                        <p className="mt-1 text-lg font-black text-gray-900">{activeOverallEntry?.rank ?? "—"}º</p>
                       </div>
 
                       <div className="rounded-2xl border border-gray-200 bg-white p-3">
-                        <p className="text-[9px] uppercase tracking-wide text-gray-500">
-                          Totais
-                        </p>
-                        <p className="mt-1 text-lg font-black text-gray-900">
-                          {activeOverallEntry?.totalPoints ?? 0}
-                        </p>
+                        <p className="text-[9px] uppercase tracking-wide text-gray-500">Totais</p>
+                        <p className="mt-1 text-lg font-black text-gray-900">{activeOverallEntry?.totalPoints ?? 0}</p>
                       </div>
                     </div>
                   )}
                 </div>
 
                 <div className="mt-3 rounded-[16px] border border-gray-200 bg-[#f8fafc] p-3">
-                  <p className="text-[10px] uppercase tracking-wide text-gray-500">
-                    Picks
-                  </p>
+                  <p className="text-[10px] uppercase tracking-wide text-gray-500">Picks</p>
                   <p className="mt-2 text-xs font-semibold text-gray-900">
                     Melhor marcador: {activeEntry.topScorerPick?.playerName || "—"}
                   </p>
@@ -1161,9 +1063,7 @@ export default function RankingPage() {
                         ? "Histórico"
                         : `Histórico • ${activeStageLabel || "Fase"}`}
                     </h4>
-                    {loadingPredictions && (
-                      <span className="text-[10px] text-gray-500">A carregar...</span>
-                    )}
+                    {loadingPredictions && <span className="text-[10px] text-gray-500">A carregar...</span>}
                   </div>
 
                   <div className="space-y-2">
@@ -1178,12 +1078,8 @@ export default function RankingPage() {
                             key={row.label}
                             className="flex items-center justify-between rounded-2xl border border-gray-200 bg-[#f8fafc] px-3 py-2"
                           >
-                            <p className="text-xs font-semibold text-gray-900">
-                              {row.label}
-                            </p>
-                            <p className="text-sm font-black text-gray-900">
-                              {row.points}
-                            </p>
+                            <p className="text-xs font-semibold text-gray-900">{row.label}</p>
+                            <p className="text-sm font-black text-gray-900">{row.points}</p>
                           </div>
                         ))
                       )
@@ -1191,10 +1087,7 @@ export default function RankingPage() {
                       <div className="rounded-2xl border border-gray-200 bg-[#f8fafc] p-3">
                         <p className="text-xs text-gray-600">
                           Esta vista mostra os pontos de predictions de{" "}
-                          <span className="font-bold text-gray-900">
-                            {activeStageLabel || "—"}
-                          </span>
-                          .
+                          <span className="font-bold text-gray-900">{activeStageLabel || "—"}</span>.
                         </p>
                       </div>
                     )}
@@ -1248,28 +1141,23 @@ export default function RankingPage() {
                           className="rounded-2xl border border-gray-200 bg-[#f8fafc] p-3"
                         >
                           <div className="flex items-center justify-between gap-3">
-                            <div>
+                            <div className="min-w-0">
                               <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
                                 {prediction.game
-                                  ? `${prediction.game.round} • ${formatDate(
-                                      prediction.game.date
-                                    )}`
+                                  ? `${prediction.game.round} • ${formatDate(prediction.game.date)}`
                                   : `Jogo ${prediction.gameId}`}
                               </p>
-                              <p className="mt-1 text-[11px] text-gray-500">
+                              <p className="mt-1 truncate text-[11px] text-gray-500">
                                 {prediction.game?.homeTeam || "Equipa A"} vs{" "}
                                 {prediction.game?.awayTeam || "Equipa B"}
                               </p>
                             </div>
 
-                            <div className="text-right">
+                            <div className="shrink-0 text-right">
                               <p className="text-xs font-black text-gray-900">
-                                {prediction.predictedHomeScore}-
-                                {prediction.predictedAwayScore}
+                                {prediction.predictedHomeScore}-{prediction.predictedAwayScore}
                               </p>
-                              <p className="text-[11px] text-violet-700">
-                                +{prediction.points} pts
-                              </p>
+                              <p className="text-[11px] text-violet-700">+{prediction.points} pts</p>
                             </div>
                           </div>
                         </div>

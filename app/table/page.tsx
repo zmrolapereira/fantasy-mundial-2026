@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { teams } from "@/data/teams";
 import { games, type Game } from "@/data/games";
+import SiteHeader from "@/components/HeaderTemp";
 
 type ViewMode = "groups" | "playoffs";
 
@@ -92,9 +92,7 @@ function getGroupStandings(group: string): StandingRow[] {
 
   return standings.sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
-    if (b.goalDifference !== a.goalDifference) {
-      return b.goalDifference - a.goalDifference;
-    }
+    if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
     if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
     return a.teamName.localeCompare(b.teamName);
   });
@@ -108,27 +106,18 @@ function formatDate(dateString: string) {
   });
 }
 
-function renderScore(game: Game) {
-  if (game.homeScore === null || game.awayScore === null) {
-    return "vs";
-  }
-  return `${game.homeScore} - ${game.awayScore}`;
-}
-
 function MatchCard({ game }: { game: Game }) {
   const isFinished = game.status === "FT";
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between gap-2">
         <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
           {formatDate(game.date)}
         </span>
         <span
           className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-            isFinished
-              ? "bg-green-100 text-green-700"
-              : "bg-gray-100 text-gray-600"
+            isFinished ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
           }`}
         >
           {game.status}
@@ -137,27 +126,17 @@ function MatchCard({ game }: { game: Game }) {
 
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3 rounded-xl bg-[#faf8fc] px-3 py-2">
-          <span className="text-sm font-semibold text-[#2f2140]">
-            {game.homeTeam}
-          </span>
-          <span className="text-sm font-extrabold text-[#4a145f]">
-            {game.homeScore ?? "-"}
-          </span>
+          <span className="text-sm font-semibold text-[#2f2140]">{game.homeTeam}</span>
+          <span className="text-sm font-extrabold text-[#4a145f]">{game.homeScore ?? "-"}</span>
         </div>
 
         <div className="flex items-center justify-between gap-3 rounded-xl bg-[#faf8fc] px-3 py-2">
-          <span className="text-sm font-semibold text-[#2f2140]">
-            {game.awayTeam}
-          </span>
-          <span className="text-sm font-extrabold text-[#4a145f]">
-            {game.awayScore ?? "-"}
-          </span>
+          <span className="text-sm font-semibold text-[#2f2140]">{game.awayTeam}</span>
+          <span className="text-sm font-extrabold text-[#4a145f]">{game.awayScore ?? "-"}</span>
         </div>
       </div>
 
-      <div className="mt-3 text-center text-xs font-medium text-gray-400">
-        {game.round}
-      </div>
+      <div className="mt-3 text-center text-xs font-medium text-gray-400">{game.round}</div>
     </div>
   );
 }
@@ -167,15 +146,13 @@ function GroupTable({ selectedGroup }: { selectedGroup: string }) {
 
   return (
     <div className="overflow-hidden rounded-3xl bg-white shadow-sm">
-      <div className="border-b border-gray-100 px-6 py-5">
-        <div className="flex items-center justify-between">
+      <div className="border-b border-gray-100 px-4 py-4 sm:px-6 sm:py-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-[#7b3aed]">
               Fase de grupos
             </p>
-            <h2 className="text-2xl font-extrabold text-[#3a0d57]">
-              Grupo {selectedGroup}
-            </h2>
+            <h2 className="text-2xl font-extrabold text-[#3a0d57]">Grupo {selectedGroup}</h2>
           </div>
 
           <div className="rounded-full bg-[#f3ecf8] px-4 py-2 text-sm font-semibold text-[#4a145f]">
@@ -185,19 +162,19 @@ function GroupTable({ selectedGroup }: { selectedGroup: string }) {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full">
+        <table className="min-w-[760px] w-full">
           <thead className="bg-[#faf7fc]">
             <tr className="border-b border-gray-100 text-left text-sm uppercase tracking-wide text-gray-500">
-              <th className="px-6 py-4 font-semibold">#</th>
-              <th className="px-6 py-4 font-semibold">Seleção</th>
-              <th className="px-4 py-4 text-center font-semibold">J</th>
-              <th className="px-4 py-4 text-center font-semibold">V</th>
-              <th className="px-4 py-4 text-center font-semibold">E</th>
-              <th className="px-4 py-4 text-center font-semibold">D</th>
-              <th className="px-4 py-4 text-center font-semibold">GM</th>
-              <th className="px-4 py-4 text-center font-semibold">GS</th>
-              <th className="px-4 py-4 text-center font-semibold">DG</th>
-              <th className="px-6 py-4 text-center font-semibold">Pts</th>
+              <th className="px-4 py-4 font-semibold sm:px-6">#</th>
+              <th className="px-4 py-4 font-semibold sm:px-6">Seleção</th>
+              <th className="px-3 py-4 text-center font-semibold">J</th>
+              <th className="px-3 py-4 text-center font-semibold">V</th>
+              <th className="px-3 py-4 text-center font-semibold">E</th>
+              <th className="px-3 py-4 text-center font-semibold">D</th>
+              <th className="px-3 py-4 text-center font-semibold">GM</th>
+              <th className="px-3 py-4 text-center font-semibold">GS</th>
+              <th className="px-3 py-4 text-center font-semibold">DG</th>
+              <th className="px-4 py-4 text-center font-semibold sm:px-6">Pts</th>
             </tr>
           </thead>
 
@@ -210,20 +187,14 @@ function GroupTable({ selectedGroup }: { selectedGroup: string }) {
                   key={team.teamId}
                   className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50"
                 >
-                  <td className="px-6 py-5">
+                  <td className="px-4 py-4 sm:px-6 sm:py-5">
                     <div className="flex items-center gap-3">
-                      <span
-                        className={`h-10 w-1 rounded-full ${
-                          isQualified ? "bg-green-500" : "bg-transparent"
-                        }`}
-                      />
-                      <span className="text-base font-bold text-[#3a0d57]">
-                        {index + 1}
-                      </span>
+                      <span className={`h-10 w-1 rounded-full ${isQualified ? "bg-green-500" : "bg-transparent"}`} />
+                      <span className="text-base font-bold text-[#3a0d57]">{index + 1}</span>
                     </div>
                   </td>
 
-                  <td className="px-6 py-5">
+                  <td className="px-4 py-4 sm:px-6 sm:py-5">
                     <div className="flex items-center gap-3">
                       <img
                         src={team.teamFlag}
@@ -231,9 +202,7 @@ function GroupTable({ selectedGroup }: { selectedGroup: string }) {
                         className="h-7 w-10 rounded object-cover shadow-sm"
                       />
                       <div>
-                        <p className="text-base font-bold text-[#2f2140]">
-                          {team.teamName}
-                        </p>
+                        <p className="text-base font-bold text-[#2f2140]">{team.teamName}</p>
                         <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
                           {team.teamCode}
                         </p>
@@ -241,26 +210,14 @@ function GroupTable({ selectedGroup }: { selectedGroup: string }) {
                     </div>
                   </td>
 
-                  <td className="px-4 py-5 text-center text-sm font-semibold text-gray-700">
-                    {team.played}
-                  </td>
-                  <td className="px-4 py-5 text-center text-sm font-semibold text-gray-700">
-                    {team.wins}
-                  </td>
-                  <td className="px-4 py-5 text-center text-sm font-semibold text-gray-700">
-                    {team.draws}
-                  </td>
-                  <td className="px-4 py-5 text-center text-sm font-semibold text-gray-700">
-                    {team.losses}
-                  </td>
-                  <td className="px-4 py-5 text-center text-sm font-semibold text-gray-700">
-                    {team.goalsFor}
-                  </td>
-                  <td className="px-4 py-5 text-center text-sm font-semibold text-gray-700">
-                    {team.goalsAgainst}
-                  </td>
+                  <td className="px-3 py-4 text-center text-sm font-semibold text-gray-700">{team.played}</td>
+                  <td className="px-3 py-4 text-center text-sm font-semibold text-gray-700">{team.wins}</td>
+                  <td className="px-3 py-4 text-center text-sm font-semibold text-gray-700">{team.draws}</td>
+                  <td className="px-3 py-4 text-center text-sm font-semibold text-gray-700">{team.losses}</td>
+                  <td className="px-3 py-4 text-center text-sm font-semibold text-gray-700">{team.goalsFor}</td>
+                  <td className="px-3 py-4 text-center text-sm font-semibold text-gray-700">{team.goalsAgainst}</td>
                   <td
-                    className={`px-4 py-5 text-center text-sm font-bold ${
+                    className={`px-3 py-4 text-center text-sm font-bold ${
                       team.goalDifference > 0
                         ? "text-green-600"
                         : team.goalDifference < 0
@@ -268,11 +225,9 @@ function GroupTable({ selectedGroup }: { selectedGroup: string }) {
                         : "text-gray-600"
                     }`}
                   >
-                    {team.goalDifference > 0
-                      ? `+${team.goalDifference}`
-                      : team.goalDifference}
+                    {team.goalDifference > 0 ? `+${team.goalDifference}` : team.goalDifference}
                   </td>
-                  <td className="px-6 py-5 text-center">
+                  <td className="px-4 py-4 text-center sm:px-6">
                     <span className="inline-flex min-w-[52px] items-center justify-center rounded-full bg-[#f3ecf8] px-3 py-1.5 text-sm font-extrabold text-[#4a145f]">
                       {team.points}
                     </span>
@@ -284,8 +239,8 @@ function GroupTable({ selectedGroup }: { selectedGroup: string }) {
         </table>
       </div>
 
-      <div className="border-t border-gray-100 bg-[#fcfcfd] px-6 py-4">
-        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+      <div className="border-t border-gray-100 bg-[#fcfcfd] px-4 py-4 sm:px-6">
+        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
           <div className="flex items-center gap-2">
             <span className="h-3 w-3 rounded-full bg-green-500" />
             <span>Top 2 destacados</span>
@@ -313,69 +268,45 @@ function PlayoffBracket() {
   const final = games.filter((game) => game.phase === "Final");
 
   return (
-    <div className="overflow-x-auto rounded-3xl bg-[#f5f2f8] p-6 shadow-sm">
-      <div className="flex min-w-[1800px] items-start gap-6">
-        <div className="min-w-[240px] flex-1">
-          <h3 className="mb-4 text-center text-lg font-extrabold text-[#3a0d57]">
-            16 avos
-          </h3>
+    <div className="overflow-x-auto rounded-3xl bg-[#f5f2f8] p-4 shadow-sm sm:p-6">
+      <div className="flex min-w-[1500px] items-start gap-4 sm:gap-6">
+        <div className="min-w-[220px] flex-1">
+          <h3 className="mb-4 text-center text-lg font-extrabold text-[#3a0d57]">16 avos</h3>
           <div className="space-y-4">
-            {roundOf32.map((game) => (
-              <MatchCard key={game.id} game={game} />
-            ))}
+            {roundOf32.map((game) => <MatchCard key={game.id} game={game} />)}
           </div>
         </div>
 
-        <div className="min-w-[240px] flex-1">
-          <h3 className="mb-4 text-center text-lg font-extrabold text-[#3a0d57]">
-            Oitavos
-          </h3>
+        <div className="min-w-[220px] flex-1">
+          <h3 className="mb-4 text-center text-lg font-extrabold text-[#3a0d57]">Oitavos</h3>
           <div className="space-y-8 pt-8">
-            {roundOf16.map((game) => (
-              <MatchCard key={game.id} game={game} />
-            ))}
+            {roundOf16.map((game) => <MatchCard key={game.id} game={game} />)}
           </div>
         </div>
 
-        <div className="min-w-[240px] flex-1">
-          <h3 className="mb-4 text-center text-lg font-extrabold text-[#3a0d57]">
-            Quartos
-          </h3>
+        <div className="min-w-[220px] flex-1">
+          <h3 className="mb-4 text-center text-lg font-extrabold text-[#3a0d57]">Quartos</h3>
           <div className="space-y-16 pt-24">
-            {quarterFinals.map((game) => (
-              <MatchCard key={game.id} game={game} />
-            ))}
+            {quarterFinals.map((game) => <MatchCard key={game.id} game={game} />)}
+          </div>
+        </div>
+
+        <div className="min-w-[220px] flex-1">
+          <h3 className="mb-4 text-center text-lg font-extrabold text-[#3a0d57]">Meias-finais</h3>
+          <div className="space-y-24 pt-44">
+            {semiFinals.map((game) => <MatchCard key={game.id} game={game} />)}
           </div>
         </div>
 
         <div className="min-w-[240px] flex-1">
-          <h3 className="mb-4 text-center text-lg font-extrabold text-[#3a0d57]">
-            Meias-finais
-          </h3>
-          <div className="space-y-24 pt-44">
-            {semiFinals.map((game) => (
-              <MatchCard key={game.id} game={game} />
-            ))}
-          </div>
-        </div>
-
-        <div className="min-w-[280px] flex-1">
-          <h3 className="mb-4 text-center text-lg font-extrabold text-[#3a0d57]">
-            Final
-          </h3>
+          <h3 className="mb-4 text-center text-lg font-extrabold text-[#3a0d57]">Final</h3>
           <div className="pt-[210px]">
-            {final.map((game) => (
-              <MatchCard key={game.id} game={game} />
-            ))}
+            {final.map((game) => <MatchCard key={game.id} game={game} />)}
           </div>
 
-          <h3 className="mb-4 mt-12 text-center text-lg font-extrabold text-[#3a0d57]">
-            3º lugar
-          </h3>
+          <h3 className="mb-4 mt-12 text-center text-lg font-extrabold text-[#3a0d57]">3º lugar</h3>
           <div>
-            {thirdPlace.map((game) => (
-              <MatchCard key={game.id} game={game} />
-            ))}
+            {thirdPlace.map((game) => <MatchCard key={game.id} game={game} />)}
           </div>
         </div>
       </div>
@@ -389,61 +320,18 @@ export default function TablePage() {
 
   return (
     <main className="min-h-screen bg-[#f4f5f7] text-gray-900">
-      <header className="mb-6 w-full border-b bg-white">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-4">
-          <div>
-            <h1 className="text-xl font-extrabold tracking-tight">
-              Fantasy Mundial 2026
-            </h1>
-            <p className="text-sm text-gray-500">Liga oficial do Mundial</p>
-          </div>
+      <SiteHeader />
 
-          <nav className="flex gap-6 text-sm font-medium">
-            <Link href="/" className="hover:text-blue-600">
-              Home
-            </Link>
-
-            <Link href="/login" className="hover:text-blue-600">
-              Login
-            </Link>
-
-            <Link href="/team" className="hover:text-blue-600">
-              A Minha Equipa
-            </Link>
-
-            <Link href="/stats" className="hover:text-blue-600">
-              Estatísticas
-            </Link>
-
-            <Link href="/games" className="hover:text-blue-600">
-              Jogos
-            </Link>
-
-            <Link href="/table" className="font-semibold text-blue-600">
-              Tabela
-            </Link>
-
-            <Link href="/rules" className="hover:text-blue-600">
-              Info
-            </Link>
-
-            <Link href="/ranking" className="hover:text-blue-600">
-              Ranking
-            </Link>
-          </nav>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-[1600px] px-4 pb-10">
+      <div className="mx-auto max-w-7xl px-4 pb-10 pt-6 sm:px-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-extrabold">Tabela classificativa</h1>
-          <p className="text-gray-500">
+          <h1 className="text-2xl font-extrabold sm:text-3xl">Tabela classificativa</h1>
+          <p className="text-sm text-gray-500 sm:text-base">
             Consulta a fase de grupos ou acompanha o bracket dos playoffs.
           </p>
         </div>
 
-        <div className="mb-6 rounded-3xl bg-white p-5 shadow-sm">
-          <div className="flex flex-wrap items-center gap-3">
+        <div className="mb-6 rounded-3xl bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <button
               onClick={() => setViewMode("groups")}
               className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${
@@ -470,7 +358,7 @@ export default function TablePage() {
               <select
                 value={selectedGroup}
                 onChange={(e) => setSelectedGroup(e.target.value)}
-                className="ml-0 rounded-xl border border-gray-200 bg-white px-4 py-3 font-medium outline-none focus:border-blue-500 md:ml-2"
+                className="rounded-xl border border-gray-200 bg-white px-4 py-3 font-medium outline-none focus:border-blue-500"
               >
                 {allGroups.map((group) => (
                   <option key={group} value={group}>
@@ -482,11 +370,7 @@ export default function TablePage() {
           </div>
         </div>
 
-        {viewMode === "groups" ? (
-          <GroupTable selectedGroup={selectedGroup} />
-        ) : (
-          <PlayoffBracket />
-        )}
+        {viewMode === "groups" ? <GroupTable selectedGroup={selectedGroup} /> : <PlayoffBracket />}
       </div>
     </main>
   );
