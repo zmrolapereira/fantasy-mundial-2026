@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { User } from "firebase/auth";
 import { listenToAuth } from "@/lib/auth";
 import Link from "next/link";
+import SiteHeader from "@/components/HeaderTemp";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = listenToAuth(setUser);
@@ -41,96 +41,9 @@ export default function HomePage() {
     },
   ];
 
-  const navLinks = [
-    { href: "/", label: "Home" },
-    { href: "/login", label: "Login" },
-    { href: "/team", label: "As Minhas Escolhas" },
-    { href: "/stats", label: "Estatísticas" },
-    { href: "/games", label: "Jogos" },
-    { href: "/table", label: "Tabela" },
-    { href: "/rules", label: "Info" },
-    { href: "/ranking", label: "Ranking" },
-  ];
-
   return (
     <main className="min-h-screen bg-gray-100 text-gray-900">
-      <header className="w-full border-b bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
-                Fantasy Mundial 2026
-              </h1>
-              <p className="mt-1 text-sm text-gray-500 sm:text-base">
-                Previsões oficiais do torneio
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setMenuOpen((prev) => !prev)}
-              className="inline-flex items-center justify-center rounded-xl border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 md:hidden"
-              aria-label="Abrir menu"
-              aria-expanded={menuOpen}
-            >
-              Menu
-            </button>
-
-            <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
-              <Link href="/" className="font-semibold text-blue-600">
-                Home
-              </Link>
-
-              <Link href="/login" className="hover:text-blue-600">
-                Login
-              </Link>
-
-              <Link href="/team" className="hover:text-blue-600">
-                As Minhas Escolhas
-              </Link>
-
-              <Link href="/stats" className="hover:text-blue-600">
-                Estatísticas
-              </Link>
-
-              <Link href="/games" className="hover:text-blue-600">
-                Jogos
-              </Link>
-
-              <Link href="/table" className="hover:text-blue-600">
-                Tabela
-              </Link>
-
-              <Link href="/rules" className="hover:text-blue-600">
-                Info
-              </Link>
-
-              <Link href="/ranking" className="hover:text-blue-600">
-                Ranking
-              </Link>
-            </nav>
-          </div>
-
-          {menuOpen && (
-            <nav className="mt-4 grid grid-cols-2 gap-2 md:hidden">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`rounded-xl px-4 py-3 text-sm font-medium ${
-                    link.href === "/"
-                      ? "bg-blue-50 text-blue-600"
-                      : "bg-gray-50 text-gray-700"
-                  }`}
-                  onClick={() => setMenuOpen(false)}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
-          )}
-        </div>
-      </header>
+      <SiteHeader />
 
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
         <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 shadow-xl">
@@ -140,7 +53,7 @@ export default function HomePage() {
                 Fantasy Oficial
               </p>
 
-              <h2 className="mb-4 text-4xl font-extrabold leading-tight sm:text-5xl md:text-5xl">
+              <h2 className="mb-4 text-4xl font-extrabold leading-tight sm:text-5xl">
                 Faz as tuas previsões para o Mundial 2026
               </h2>
 
@@ -260,15 +173,13 @@ export default function HomePage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
-        <div className="mb-6 flex items-end justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">
-              Formato
-            </p>
-            <h2 className="text-2xl font-extrabold sm:text-3xl">
-              O que conta para a tua pontuação
-            </h2>
-          </div>
+        <div className="mb-6">
+          <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">
+            Formato
+          </p>
+          <h2 className="text-2xl font-extrabold sm:text-3xl">
+            O que conta para a tua pontuação
+          </h2>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-4">

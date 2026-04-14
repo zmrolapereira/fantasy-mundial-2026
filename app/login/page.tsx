@@ -5,6 +5,7 @@ import { User } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { listenToAuth, loginWithGoogle, logoutUser } from "@/lib/auth";
+import SiteHeader from "@/components/HeaderTemp";
 
 export default function LoginPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -39,28 +40,15 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-100 px-4 py-10">
-      <div className="mx-auto max-w-4xl">
-        <div className="overflow-hidden rounded-3xl bg-white shadow-md">
+    <main className="min-h-screen bg-gray-100 text-gray-900">
+      <SiteHeader />
 
-          {/* HEADER */}
-          <div
-            className="relative px-8 py-10"
-            style={{
-              background: "linear-gradient(135deg, #4c1d95, #7c3aed)",
-              color: "#ffffff",
-            }}
-          >
-            {/* BOTÃO FECHAR */}
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+        <div className="overflow-hidden rounded-3xl bg-white shadow-md">
+          <div className="relative bg-gradient-to-br from-violet-900 to-violet-600 px-5 py-8 text-white sm:px-8 sm:py-10">
             <Link
               href="/"
-              className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full transition"
-              style={{
-                backgroundColor: "rgba(255,255,255,0.15)",
-                color: "#ffffff",
-                fontSize: 18,
-                fontWeight: 700,
-              }}
+              className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-lg font-bold text-white transition hover:bg-white/25"
             >
               ✕
             </Link>
@@ -69,35 +57,34 @@ export default function LoginPage() {
               Fantasy Mundial 2026
             </p>
 
-            <h1 className="mt-3 text-4xl font-extrabold leading-tight">
+            <h1 className="mt-3 text-3xl font-extrabold leading-tight sm:text-4xl">
               Login
             </h1>
 
-            <p className="mt-4 max-w-2xl text-base opacity-90">
+            <p className="mt-4 max-w-2xl text-sm opacity-90 sm:text-base">
               Entra com a tua conta Google para criares a tua equipa,
               guardares os teus picks e participares no ranking da fantasy.
             </p>
           </div>
 
-          {/* BODY */}
-          <div className="p-8">
+          <div className="p-5 sm:p-8">
             {!user ? (
               <>
                 <p className="text-sm font-semibold uppercase tracking-wide text-purple-700">
                   Acesso
                 </p>
 
-                <h2 className="mt-2 text-3xl font-extrabold text-gray-900">
+                <h2 className="mt-2 text-2xl font-extrabold text-gray-900 sm:text-3xl">
                   Entra na tua conta
                 </h2>
 
-                <p className="mt-3 text-base text-gray-600">
+                <p className="mt-3 text-sm text-gray-600 sm:text-base">
                   Usa o teu Google para entrar rapidamente e começar a jogar.
                 </p>
 
                 <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
                   <p className="text-sm text-gray-500">Método de login</p>
-                  <p className="mt-1 text-2xl font-bold text-gray-900">
+                  <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">
                     Google Sign-In
                   </p>
                 </div>
@@ -106,13 +93,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={handleLogin}
                   disabled={loading}
-                  className="mt-6 w-full rounded-xl px-6 py-4 text-base font-semibold transition"
-                  style={{
-                    backgroundColor: "#4c1d95",
-                    color: "#ffffff",
-                    border: "none",
-                    opacity: loading ? 0.6 : 1,
-                  }}
+                  className="mt-6 w-full rounded-xl bg-violet-900 px-6 py-4 text-base font-semibold text-white transition disabled:opacity-60"
                 >
                   {loading ? "A entrar..." : "Entrar com Google"}
                 </button>
@@ -123,16 +104,16 @@ export default function LoginPage() {
                   Sessão iniciada
                 </p>
 
-                <h2 className="mt-2 text-3xl font-extrabold text-gray-900">
+                <h2 className="mt-2 text-2xl font-extrabold text-gray-900 sm:text-3xl">
                   Bem-vindo
                 </h2>
 
                 <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
                   <p className="text-sm text-gray-500">Utilizador</p>
-                  <p className="mt-1 text-xl font-bold text-gray-900">
+                  <p className="mt-1 text-lg font-bold text-gray-900 sm:text-xl">
                     {user.displayName || "Utilizador"}
                   </p>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-1 break-words text-sm text-gray-500">
                     {user.email}
                   </p>
                 </div>
@@ -141,12 +122,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => router.push("/team")}
-                    className="flex-1 rounded-xl px-6 py-4 text-base font-semibold"
-                    style={{
-                      backgroundColor: "#4c1d95",
-                      color: "#ffffff",
-                      border: "none",
-                    }}
+                    className="flex-1 rounded-xl bg-violet-900 px-6 py-4 text-base font-semibold text-white"
                   >
                     Ir para a minha equipa
                   </button>
@@ -154,12 +130,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="flex-1 rounded-xl px-6 py-4 text-base font-semibold"
-                    style={{
-                      backgroundColor: "#ffffff",
-                      color: "#374151",
-                      border: "1px solid #d1d5db",
-                    }}
+                    className="flex-1 rounded-xl border border-gray-300 bg-white px-6 py-4 text-base font-semibold text-gray-700"
                   >
                     Terminar sessão
                   </button>
