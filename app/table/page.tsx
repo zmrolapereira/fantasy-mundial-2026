@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { teams } from "@/data/teams";
 import { games, type Game } from "@/data/games";
-import SiteHeader from "@/components/HeaderTemp";
+import SiteHeader from "@/components/SiteHeader";
 
 type ViewMode = "groups" | "playoffs";
 

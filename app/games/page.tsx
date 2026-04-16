@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { games, type Game, type GamePhase } from "@/data/games";
 import { teams } from "@/data/teams";
-import SiteHeader from "@/components/HeaderTemp";
+import SiteHeader from "@/components/SiteHeader";
 
 type PhaseFilter =
   | "ALL"

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Player } from "@/data/players";
 import { subscribeToLivePlayers } from "@/lib/player-stats";
-import SiteHeader from "@/components/HeaderTemp";
+import SiteHeader from "@/components/SiteHeader";
 
 type StatType = "goals" | "assists" | "points";
 type PositionType = "ALL" | "GR" | "DEF" | "MED" | "ATA";

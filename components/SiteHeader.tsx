@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
+import type { User } from "firebase/auth";
+import { listenToAuth } from "@/lib/auth";
 
-const links = [
+const ADMIN_EMAIL = "zmrolapereira@gmail.com";
+
+const baseLinks = [
   { href: "/", label: "Home" },
   { href: "/login", label: "Login" },
   { href: "/team", label: "A Minha Equipa" },
@@ -18,6 +22,20 @@ const links = [
 export default function SiteHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = listenToAuth(setUser);
+    return () => unsubscribe();
+  }, []);
+
+  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+  const links = useMemo(() => {
+    return isAdmin
+      ? [...baseLinks, { href: "/admin", label: "Admin" }]
+      : baseLinks;
+  }, [isAdmin]);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white/95 backdrop-blur">
@@ -51,7 +69,11 @@ export default function SiteHeader() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={active ? "font-semibold text-blue-600" : "text-gray-700 hover:text-blue-600"}
+                  className={
+                    active
+                      ? "font-semibold text-blue-600"
+                      : "text-gray-700 hover:text-blue-600"
+                  }
                 >
                   {link.label}
                 </Link>

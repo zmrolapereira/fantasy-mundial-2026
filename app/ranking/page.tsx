@@ -12,7 +12,7 @@ import {
   subscribeToFantasyEntries,
 } from "@/lib/fantasy-entry";
 import { getStageLeaderboardSnapshot } from "@/lib/leaderboard-snapshots";
-import SiteHeader from "@/components/HeaderTemp";
+import SiteHeader from "@/components/SiteHeader";
 
 function getFlagByCountry(countryName?: string) {
   if (!countryName) return undefined;

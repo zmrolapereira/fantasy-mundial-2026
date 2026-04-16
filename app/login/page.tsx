@@ -5,7 +5,7 @@ import { User } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { listenToAuth, loginWithGoogle, logoutUser } from "@/lib/auth";
-import SiteHeader from "@/components/HeaderTemp";
+import SiteHeader from "@/components/SiteHeader";
 
 export default function LoginPage() {
   const [user, setUser] = useState<User | null>(null);

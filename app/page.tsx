@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { User } from "firebase/auth";
 import { listenToAuth } from "@/lib/auth";
 import Link from "next/link";
-import SiteHeader from "@/components/HeaderTemp";
+import SiteHeader from "@/components/SiteHeader";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);

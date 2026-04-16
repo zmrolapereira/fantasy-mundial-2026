@@ -19,6 +19,7 @@ import {
   type PaymentRequest,
 } from "@/lib/users";
 import { saveStageLeaderboardSnapshot } from "@/lib/leaderboard-snapshots";
+import SiteHeader from "@/components/SiteHeader";
 
 const ADMIN_EMAIL = "zmrolapereira@gmail.com";
 
@@ -326,20 +327,23 @@ export default function AdminPage() {
   if (!user) {
     return (
       <main
-        className="min-h-screen px-4 py-6"
+        className="min-h-screen"
         style={{ backgroundColor: "#f3f4f6", color: "#111827" }}
       >
-        <div
-          className="mx-auto max-w-3xl rounded-2xl p-6 shadow-sm"
-          style={{
-            backgroundColor: "#ffffff",
-            border: "1px solid #e5e7eb",
-            color: "#111827",
-          }}
-        >
-          <p style={{ color: "#374151", fontSize: 16, fontWeight: 500 }}>
-            Tens de iniciar sessão.
-          </p>
+        <SiteHeader />
+        <div className="px-4 py-6">
+          <div
+            className="mx-auto max-w-3xl rounded-2xl p-6 shadow-sm"
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid #e5e7eb",
+              color: "#111827",
+            }}
+          >
+            <p style={{ color: "#374151", fontSize: 16, fontWeight: 500 }}>
+              Tens de iniciar sessão.
+            </p>
+          </div>
         </div>
       </main>
     );
@@ -348,20 +352,23 @@ export default function AdminPage() {
   if (!isAdmin) {
     return (
       <main
-        className="min-h-screen px-4 py-6"
+        className="min-h-screen"
         style={{ backgroundColor: "#f3f4f6", color: "#111827" }}
       >
-        <div
-          className="mx-auto max-w-3xl rounded-2xl p-6 shadow-sm"
-          style={{
-            backgroundColor: "#ffffff",
-            border: "1px solid #e5e7eb",
-            color: "#111827",
-          }}
-        >
-          <p style={{ color: "#374151", fontSize: 16, fontWeight: 500 }}>
-            Não tens acesso a esta página.
-          </p>
+        <SiteHeader />
+        <div className="px-4 py-6">
+          <div
+            className="mx-auto max-w-3xl rounded-2xl p-6 shadow-sm"
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid #e5e7eb",
+              color: "#111827",
+            }}
+          >
+            <p style={{ color: "#374151", fontSize: 16, fontWeight: 500 }}>
+              Não tens acesso a esta página.
+            </p>
+          </div>
         </div>
       </main>
     );
@@ -600,533 +607,535 @@ export default function AdminPage() {
 
   return (
     <main
-      className="min-h-screen px-3 py-5 sm:px-4 md:px-5 md:py-6"
+      className="min-h-screen"
       style={{
         backgroundColor: "#f3f4f6",
         color: "#111827",
       }}
     >
-      <div className="mx-auto max-w-5xl space-y-4">
-        <section
-          className="rounded-3xl p-6 shadow-lg"
-          style={{
-            backgroundColor: "#2f2140",
-            border: "1px solid #2f2140",
-            color: "#ffffff",
-          }}
-        >
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-2xl">
-              <p
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.2em",
-                  color: "rgba(255,255,255,0.84)",
-                  margin: 0,
-                }}
-              >
-                Painel de Administração
-              </p>
+      <SiteHeader />
 
-              <h1
-                style={{
-                  marginTop: 10,
-                  marginBottom: 0,
-                  fontSize: 44,
-                  lineHeight: 1.05,
-                  fontWeight: 900,
-                  color: "#ffffff",
-                }}
-              >
-                Gestão da Fantasy Mundial 2026
-              </h1>
-
-              <p
-                style={{
-                  marginTop: 14,
-                  fontSize: 15,
-                  color: "rgba(255,255,255,0.92)",
-                }}
-              >
-                Aprova pagamentos, atualiza estatísticas e guarda snapshots da
-                leaderboard por jornada/fase.
-              </p>
-
-              <div
-                style={{
-                  display: "inline-flex",
-                  marginTop: 14,
-                  padding: "8px 12px",
-                  borderRadius: 9999,
-                  backgroundColor: "#4a3563",
-                  border: "1px solid rgba(255,255,255,0.18)",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: "#ffffff",
-                }}
-              >
-                Sessão admin: {user.email}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 sm:min-w-[320px]">
-              <StatBox label="Registos" value={totalPayments} />
-              <StatBox label="Pendentes" value={totalPending} />
-              <StatBox label="Aprovados" value={totalApproved} />
-              <StatBox label="Rejeitados" value={totalRejected} />
-            </div>
-          </div>
-        </section>
-
-        <section
-          className="rounded-2xl p-4 shadow-sm"
-          style={{
-            backgroundColor: "#ffffff",
-            border: "1px solid #e5e7eb",
-            color: "#111827",
-          }}
-        >
-          <div className="flex flex-wrap gap-2">
-            <TabButton value="payments" label="Pagamentos" />
-            <TabButton value="stats" label="Atualizar stats" />
-          </div>
-        </section>
-
-        {activeTab === "payments" && (
+      <div className="px-3 py-5 sm:px-4 md:px-5 md:py-6">
+        <div className="mx-auto max-w-5xl space-y-4">
           <section
-            className="rounded-2xl p-5 shadow-sm"
+            className="rounded-3xl p-6 shadow-lg"
             style={{
-              backgroundColor: "#ffffff",
-              border: "1px solid #e5e7eb",
-              color: "#111827",
+              backgroundColor: "#2f2140",
+              border: "1px solid #2f2140",
+              color: "#ffffff",
             }}
           >
-            <div style={{ borderBottom: "1px solid #e5e7eb", paddingBottom: 16 }}>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.16em",
-                  color: "#7c3aed",
-                }}
-              >
-                Gestão
-              </p>
-
-              <h2
-                style={{
-                  marginTop: 8,
-                  marginBottom: 0,
-                  fontSize: 34,
-                  fontWeight: 800,
-                  color: "#111827",
-                }}
-              >
-                Pagamentos
-              </h2>
-
-              <p
-                style={{
-                  marginTop: 8,
-                  fontSize: 15,
-                  color: "#6b7280",
-                }}
-              >
-                Pesquisa utilizadores, filtra por método e valida pagamentos.
-              </p>
-
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                <div className="xl:col-span-2">
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: 14,
-                      fontWeight: 700,
-                      color: "#374151",
-                    }}
-                  >
-                    Pesquisar utilizador
-                  </label>
-                  <input
-                    type="text"
-                    value={paymentSearch}
-                    onChange={(e) => setPaymentSearch(e.target.value)}
-                    placeholder="Nome, email ou userId"
-                    className="mt-1.5 h-11 w-full rounded-xl px-3 text-sm outline-none"
-                    style={{
-                      backgroundColor: "#ffffff",
-                      color: "#111827",
-                      border: "1px solid #d1d5db",
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: 14,
-                      fontWeight: 700,
-                      color: "#374151",
-                    }}
-                  >
-                    Método
-                  </label>
-                  <select
-                    value={paymentMethodFilter}
-                    onChange={(e) =>
-                      setPaymentMethodFilter(
-                        e.target.value as PaymentMethodFilter
-                      )
-                    }
-                    className="mt-1.5 h-11 w-full rounded-xl px-3 text-sm outline-none"
-                    style={{
-                      backgroundColor: "#ffffff",
-                      color: "#111827",
-                      border: "1px solid #d1d5db",
-                    }}
-                  >
-                    <option value="all">Todos</option>
-                    <option value="mbway">MB Way</option>
-                    <option value="revolut">Revolut</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {loadingPayments ? (
-              <p className="mt-4" style={{ fontSize: 14, color: "#6b7280" }}>
-                A carregar pagamentos...
-              </p>
-            ) : filteredPayments.length === 0 ? (
-              <p className="mt-4" style={{ fontSize: 14, color: "#6b7280" }}>
-                Não existem pagamentos para os filtros selecionados.
-              </p>
-            ) : (
-              <div className="mt-4 space-y-6">
-                <div>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: "#a16207" }}>
-                    Pendentes
-                  </h3>
-                  {pendingPayments.length === 0 ? (
-                    <p className="mt-2" style={{ fontSize: 14, color: "#6b7280" }}>
-                      Não existem pagamentos pendentes.
-                    </p>
-                  ) : (
-                    <div className="mt-3 space-y-3">
-                      {pendingPayments.map((payment) => (
-                        <PaymentCard
-                          key={payment.userId}
-                          payment={payment}
-                          variant="pending"
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: "#15803d" }}>
-                    Aprovados
-                  </h3>
-                  {approvedPayments.length === 0 ? (
-                    <p className="mt-2" style={{ fontSize: 14, color: "#6b7280" }}>
-                      Ainda não existem pagamentos aprovados.
-                    </p>
-                  ) : (
-                    <div className="mt-3 space-y-3">
-                      {approvedPayments.map((payment) => (
-                        <PaymentCard
-                          key={payment.userId}
-                          payment={payment}
-                          variant="approved"
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: "#b91c1c" }}>
-                    Rejeitados
-                  </h3>
-                  {rejectedPayments.length === 0 ? (
-                    <p className="mt-2" style={{ fontSize: 14, color: "#6b7280" }}>
-                      Ainda não existem pagamentos rejeitados.
-                    </p>
-                  ) : (
-                    <div className="mt-3 space-y-3">
-                      {rejectedPayments.map((payment) => (
-                        <PaymentCard
-                          key={payment.userId}
-                          payment={payment}
-                          variant="rejected"
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </section>
-        )}
-
-        {activeTab === "stats" && (
-          <section
-            className="rounded-2xl p-5 shadow-sm"
-            style={{
-              backgroundColor: "#ffffff",
-              border: "1px solid #e5e7eb",
-              color: "#111827",
-            }}
-          >
-            <div style={{ borderBottom: "1px solid #e5e7eb", paddingBottom: 16 }}>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.16em",
-                  color: "#7c3aed",
-                }}
-              >
-                Gestão
-              </p>
-
-              <h2
-                style={{
-                  marginTop: 8,
-                  marginBottom: 0,
-                  fontSize: 34,
-                  fontWeight: 800,
-                  color: "#111827",
-                }}
-              >
-                Atualizar stats dos jogadores
-              </h2>
-
-              <p
-                style={{
-                  marginTop: 8,
-                  fontSize: 15,
-                  color: "#6b7280",
-                }}
-              >
-                Atualiza golos e assistências, recalcula os pontos e guarda
-                snapshots históricos da leaderboard.
-              </p>
-            </div>
-
-            <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-              <div className="md:col-span-2 lg:col-span-4">
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "#374151",
-                  }}
-                >
-                  Jogador
-                </label>
-
-                <select
-                  value={selectedPlayerId}
-                  onChange={(e) => setSelectedPlayerId(e.target.value)}
-                  className="mt-1.5 h-11 w-full rounded-xl px-3 text-sm outline-none"
-                  style={{
-                    backgroundColor: "#ffffff",
-                    color: "#111827",
-                    border: "1px solid #d1d5db",
-                  }}
-                >
-                  {players.map((player) => (
-                    <option key={player.id} value={player.id}>
-                      {player.name} • {player.team}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "#374151",
-                  }}
-                >
-                  Golos
-                </label>
-
-                <input
-                  type="number"
-                  min="0"
-                  value={goals}
-                  onChange={(e) => setGoals(e.target.value)}
-                  className="mt-1.5 h-11 w-full rounded-xl px-3 text-sm outline-none"
-                  style={{
-                    backgroundColor: "#ffffff",
-                    color: "#111827",
-                    border: "1px solid #d1d5db",
-                  }}
-                />
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "#374151",
-                  }}
-                >
-                  Assistências
-                </label>
-
-                <input
-                  type="number"
-                  min="0"
-                  value={assists}
-                  onChange={(e) => setAssists(e.target.value)}
-                  className="mt-1.5 h-11 w-full rounded-xl px-3 text-sm outline-none"
-                  style={{
-                    backgroundColor: "#ffffff",
-                    color: "#111827",
-                    border: "1px solid #d1d5db",
-                  }}
-                />
-              </div>
-
-              <div className="flex items-end md:col-span-2 lg:col-span-2">
-                <button
-                  type="button"
-                  onClick={handleSaveStats}
-                  disabled={loadingSave || loadingPlayerStats}
-                  className="inline-flex h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-                  style={{
-                    backgroundColor: "#2f2140",
-                    color: "#ffffff",
-                    border: "1px solid #2f2140",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
-                  }}
-                >
-                  {loadingSave ? "A guardar..." : "Guardar stats"}
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={loadHistory}
-                disabled={loadingHistory}
-                className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-                style={{
-                  backgroundColor: "#ffffff",
-                  color: "#111827",
-                  border: "1px solid #d1d5db",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
-                }}
-              >
-                {loadingHistory
-                  ? "A carregar histórico..."
-                  : "Ver histórico de atualizações"}
-              </button>
-            </div>
-
-            {selectedPlayer && (
-              <div
-                className="mt-4 rounded-xl p-4"
-                style={{
-                  backgroundColor: "#faf5ff",
-                  border: "1px solid #e9d5ff",
-                  color: "#111827",
-                }}
-              >
-                <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>
-                  Jogador selecionado
-                </p>
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-2xl">
                 <p
                   style={{
-                    marginTop: 4,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.2em",
+                    color: "rgba(255,255,255,0.84)",
+                    margin: 0,
+                  }}
+                >
+                  Painel de Administração
+                </p>
+
+                <h1
+                  style={{
+                    marginTop: 10,
                     marginBottom: 0,
-                    fontSize: 14,
+                    fontSize: 44,
+                    lineHeight: 1.05,
+                    fontWeight: 900,
+                    color: "#ffffff",
+                  }}
+                >
+                  Gestão da Fantasy Mundial 2026
+                </h1>
+
+                <p
+                  style={{
+                    marginTop: 14,
+                    fontSize: 15,
+                    color: "rgba(255,255,255,0.92)",
+                  }}
+                >
+                  Aprova pagamentos, atualiza estatísticas e guarda snapshots da
+                  leaderboard por jornada/fase.
+                </p>
+
+                <div
+                  style={{
+                    display: "inline-flex",
+                    marginTop: 14,
+                    padding: "8px 12px",
+                    borderRadius: 9999,
+                    backgroundColor: "#4a3563",
+                    border: "1px solid rgba(255,255,255,0.18)",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: "#ffffff",
+                  }}
+                >
+                  Sessão admin: {user.email}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 sm:min-w-[320px]">
+                <StatBox label="Registos" value={totalPayments} />
+                <StatBox label="Pendentes" value={totalPending} />
+                <StatBox label="Aprovados" value={totalApproved} />
+                <StatBox label="Rejeitados" value={totalRejected} />
+              </div>
+            </div>
+          </section>
+
+          <section
+            className="rounded-2xl p-4 shadow-sm"
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid #e5e7eb",
+              color: "#111827",
+            }}
+          >
+            <div className="flex flex-wrap gap-2">
+              <TabButton value="payments" label="Pagamentos" />
+              <TabButton value="stats" label="Atualizar stats" />
+            </div>
+          </section>
+
+          {activeTab === "payments" && (
+            <section
+              className="rounded-2xl p-5 shadow-sm"
+              style={{
+                backgroundColor: "#ffffff",
+                border: "1px solid #e5e7eb",
+                color: "#111827",
+              }}
+            >
+              <div style={{ borderBottom: "1px solid #e5e7eb", paddingBottom: 16 }}>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.16em",
+                    color: "#7c3aed",
+                  }}
+                >
+                  Gestão
+                </p>
+
+                <h2
+                  style={{
+                    marginTop: 8,
+                    marginBottom: 0,
+                    fontSize: 34,
                     fontWeight: 800,
                     color: "#111827",
                   }}
                 >
-                  {selectedPlayer.name} • {selectedPlayer.team}
-                </p>
-                <p style={{ marginTop: 8, fontSize: 14, color: "#374151" }}>
-                  Valores atuais:{" "}
-                  <span style={{ fontWeight: 700 }}>{goals}</span> golos •{" "}
-                  <span style={{ fontWeight: 700 }}>{assists}</span> assistências
-                </p>
-              </div>
-            )}
+                  Pagamentos
+                </h2>
 
-            <div
-              className="mt-6 rounded-2xl border border-gray-200 bg-[#f8fafc] p-4"
+                <p
+                  style={{
+                    marginTop: 8,
+                    fontSize: 15,
+                    color: "#6b7280",
+                  }}
+                >
+                  Pesquisa utilizadores, filtra por método e valida pagamentos.
+                </p>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="xl:col-span-2">
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: "#374151",
+                      }}
+                    >
+                      Pesquisar utilizador
+                    </label>
+                    <input
+                      type="text"
+                      value={paymentSearch}
+                      onChange={(e) => setPaymentSearch(e.target.value)}
+                      placeholder="Nome, email ou userId"
+                      className="mt-1.5 h-11 w-full rounded-xl px-3 text-sm outline-none"
+                      style={{
+                        backgroundColor: "#ffffff",
+                        color: "#111827",
+                        border: "1px solid #d1d5db",
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: "#374151",
+                      }}
+                    >
+                      Método
+                    </label>
+                    <select
+                      value={paymentMethodFilter}
+                      onChange={(e) =>
+                        setPaymentMethodFilter(
+                          e.target.value as PaymentMethodFilter
+                        )
+                      }
+                      className="mt-1.5 h-11 w-full rounded-xl px-3 text-sm outline-none"
+                      style={{
+                        backgroundColor: "#ffffff",
+                        color: "#111827",
+                        border: "1px solid #d1d5db",
+                      }}
+                    >
+                      <option value="all">Todos</option>
+                      <option value="mbway">MB Way</option>
+                      <option value="revolut">Revolut</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {loadingPayments ? (
+                <p className="mt-4" style={{ fontSize: 14, color: "#6b7280" }}>
+                  A carregar pagamentos...
+                </p>
+              ) : filteredPayments.length === 0 ? (
+                <p className="mt-4" style={{ fontSize: 14, color: "#6b7280" }}>
+                  Não existem pagamentos para os filtros selecionados.
+                </p>
+              ) : (
+                <div className="mt-4 space-y-6">
+                  <div>
+                    <h3 style={{ fontSize: 18, fontWeight: 800, color: "#a16207" }}>
+                      Pendentes
+                    </h3>
+                    {pendingPayments.length === 0 ? (
+                      <p className="mt-2" style={{ fontSize: 14, color: "#6b7280" }}>
+                        Não existem pagamentos pendentes.
+                      </p>
+                    ) : (
+                      <div className="mt-3 space-y-3">
+                        {pendingPayments.map((payment) => (
+                          <PaymentCard
+                            key={payment.userId}
+                            payment={payment}
+                            variant="pending"
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <h3 style={{ fontSize: 18, fontWeight: 800, color: "#15803d" }}>
+                      Aprovados
+                    </h3>
+                    {approvedPayments.length === 0 ? (
+                      <p className="mt-2" style={{ fontSize: 14, color: "#6b7280" }}>
+                        Ainda não existem pagamentos aprovados.
+                      </p>
+                    ) : (
+                      <div className="mt-3 space-y-3">
+                        {approvedPayments.map((payment) => (
+                          <PaymentCard
+                            key={payment.userId}
+                            payment={payment}
+                            variant="approved"
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <h3 style={{ fontSize: 18, fontWeight: 800, color: "#b91c1c" }}>
+                      Rejeitados
+                    </h3>
+                    {rejectedPayments.length === 0 ? (
+                      <p className="mt-2" style={{ fontSize: 14, color: "#6b7280" }}>
+                        Ainda não existem pagamentos rejeitados.
+                      </p>
+                    ) : (
+                      <div className="mt-3 space-y-3">
+                        {rejectedPayments.map((payment) => (
+                          <PaymentCard
+                            key={payment.userId}
+                            payment={payment}
+                            variant="rejected"
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {activeTab === "stats" && (
+            <section
+              className="rounded-2xl p-5 shadow-sm"
+              style={{
+                backgroundColor: "#ffffff",
+                border: "1px solid #e5e7eb",
+                color: "#111827",
+              }}
             >
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
-                Snapshot leaderboard
-              </p>
+              <div style={{ borderBottom: "1px solid #e5e7eb", paddingBottom: 16 }}>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.16em",
+                    color: "#7c3aed",
+                  }}
+                >
+                  Gestão
+                </p>
 
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700">
-                    Stage ID
+                <h2
+                  style={{
+                    marginTop: 8,
+                    marginBottom: 0,
+                    fontSize: 34,
+                    fontWeight: 800,
+                    color: "#111827",
+                  }}
+                >
+                  Atualizar stats dos jogadores
+                </h2>
+
+                <p
+                  style={{
+                    marginTop: 8,
+                    fontSize: 15,
+                    color: "#6b7280",
+                  }}
+                >
+                  Atualiza golos e assistências, recalcula os pontos e guarda
+                  snapshots históricos da leaderboard.
+                </p>
+              </div>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                <div className="md:col-span-2 lg:col-span-4">
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: "#374151",
+                    }}
+                  >
+                    Jogador
                   </label>
+
+                  <select
+                    value={selectedPlayerId}
+                    onChange={(e) => setSelectedPlayerId(e.target.value)}
+                    className="mt-1.5 h-11 w-full rounded-xl px-3 text-sm outline-none"
+                    style={{
+                      backgroundColor: "#ffffff",
+                      color: "#111827",
+                      border: "1px solid #d1d5db",
+                    }}
+                  >
+                    {players.map((player) => (
+                      <option key={player.id} value={player.id}>
+                        {player.name} • {player.team}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: "#374151",
+                    }}
+                  >
+                    Golos
+                  </label>
+
                   <input
-                    type="text"
-                    value={snapshotStageId}
-                    onChange={(e) => setSnapshotStageId(e.target.value)}
-                    placeholder="jornada 1, oitavos, quartos..."
-                    className="mt-1.5 h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm outline-none"
+                    type="number"
+                    min="0"
+                    value={goals}
+                    onChange={(e) => setGoals(e.target.value)}
+                    className="mt-1.5 h-11 w-full rounded-xl px-3 text-sm outline-none"
+                    style={{
+                      backgroundColor: "#ffffff",
+                      color: "#111827",
+                      border: "1px solid #d1d5db",
+                    }}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700">
-                    Label
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: "#374151",
+                    }}
+                  >
+                    Assistências
                   </label>
+
                   <input
-                    type="text"
-                    value={snapshotLabel}
-                    onChange={(e) => setSnapshotLabel(e.target.value)}
-                    placeholder="Jornada 1"
-                    className="mt-1.5 h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm outline-none"
+                    type="number"
+                    min="0"
+                    value={assists}
+                    onChange={(e) => setAssists(e.target.value)}
+                    className="mt-1.5 h-11 w-full rounded-xl px-3 text-sm outline-none"
+                    style={{
+                      backgroundColor: "#ffffff",
+                      color: "#111827",
+                      border: "1px solid #d1d5db",
+                    }}
                   />
+                </div>
+
+                <div className="flex items-end md:col-span-2 lg:col-span-2">
+                  <button
+                    type="button"
+                    onClick={handleSaveStats}
+                    disabled={loadingSave || loadingPlayerStats}
+                    className="inline-flex h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{
+                      backgroundColor: "#2f2140",
+                      color: "#ffffff",
+                      border: "1px solid #2f2140",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+                    }}
+                  >
+                    {loadingSave ? "A guardar..." : "Guardar stats"}
+                  </button>
                 </div>
               </div>
 
-              <button
-  type="button"
-  onClick={handleSaveSnapshot}
-  disabled={savingSnapshot}
-  className="mt-4 inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold transition disabled:opacity-60"
-  style={{
-    backgroundColor: "#7c3aed",
-    color: "#ffffff",
-    border: "1px solid #6d28d9",
-    boxShadow: "0 2px 6px rgba(124,58,237,0.25)",
-    minWidth: 190,
-    display: "inline-flex",
-  }}
->
-  {savingSnapshot ? "A guardar..." : "Guardar snapshot"}
-</button>
-            </div>
-          </section>
-        )}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={loadHistory}
+                  disabled={loadingHistory}
+                  className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{
+                    backgroundColor: "#ffffff",
+                    color: "#111827",
+                    border: "1px solid #d1d5db",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
+                  }}
+                >
+                  {loadingHistory
+                    ? "A carregar histórico..."
+                    : "Ver histórico de atualizações"}
+                </button>
+              </div>
+
+              {selectedPlayer && (
+                <div
+                  className="mt-4 rounded-xl p-4"
+                  style={{
+                    backgroundColor: "#faf5ff",
+                    border: "1px solid #e9d5ff",
+                    color: "#111827",
+                  }}
+                >
+                  <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>
+                    Jogador selecionado
+                  </p>
+                  <p
+                    style={{
+                      marginTop: 4,
+                      marginBottom: 0,
+                      fontSize: 14,
+                      fontWeight: 800,
+                      color: "#111827",
+                    }}
+                  >
+                    {selectedPlayer.name} • {selectedPlayer.team}
+                  </p>
+                  <p style={{ marginTop: 8, fontSize: 14, color: "#374151" }}>
+                    Valores atuais:{" "}
+                    <span style={{ fontWeight: 700 }}>{goals}</span> golos •{" "}
+                    <span style={{ fontWeight: 700 }}>{assists}</span> assistências
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-6 rounded-2xl border border-gray-200 bg-[#f8fafc] p-4">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
+                  Snapshot leaderboard
+                </p>
+
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700">
+                      Stage ID
+                    </label>
+                    <input
+                      type="text"
+                      value={snapshotStageId}
+                      onChange={(e) => setSnapshotStageId(e.target.value)}
+                      placeholder="jornada 1, oitavos, quartos..."
+                      className="mt-1.5 h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700">
+                      Label
+                    </label>
+                    <input
+                      type="text"
+                      value={snapshotLabel}
+                      onChange={(e) => setSnapshotLabel(e.target.value)}
+                      placeholder="Jornada 1"
+                      className="mt-1.5 h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm outline-none"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSaveSnapshot}
+                  disabled={savingSnapshot}
+                  className="mt-4 inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold transition disabled:opacity-60"
+                  style={{
+                    backgroundColor: "#7c3aed",
+                    color: "#ffffff",
+                    border: "1px solid #6d28d9",
+                    boxShadow: "0 2px 6px rgba(124,58,237,0.25)",
+                    minWidth: 190,
+                    display: "inline-flex",
+                  }}
+                >
+                  {savingSnapshot ? "A guardar..." : "Guardar snapshot"}
+                </button>
+              </div>
+            </section>
+          )}
+        </div>
       </div>
 
       {historyOpen && (

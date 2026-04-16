@@ -23,7 +23,7 @@ import {
   getRoundGroups,
 } from "@/lib/fantasy-deadlines";
 import { getUserProfile, submitPaymentRequest } from "@/lib/users";
-import SiteHeader from "@/components/HeaderTemp";
+import SiteHeader from "@/components/SiteHeader";
 
 type PredictionMap = Record<number, { home: string; away: string }>;
 

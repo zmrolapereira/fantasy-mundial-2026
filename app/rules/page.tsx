@@ -1,6 +1,6 @@
 "use client";
 
-import SiteHeader from "@/components/HeaderTemp";
+import SiteHeader from "@/components/SiteHeader";
 
 const overviewCards = [
   {
