@@ -72,6 +72,7 @@ export const submitPaymentRequest = async (params: {
     { merge: true }
   );
 
+  // Só atualiza campos "seguros" no perfil do utilizador
   const userRef = doc(db, "users", params.userId);
 
   await setDoc(
@@ -80,11 +81,7 @@ export const submitPaymentRequest = async (params: {
       uid: params.userId,
       email: params.email,
       displayName: params.displayName,
-      paymentStatus: "pending",
-      hasPaidAccess: false,
-      createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      paidAt: null,
     },
     { merge: true }
   );
