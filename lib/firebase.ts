@@ -12,7 +12,7 @@ const firebaseConfig = {
   appId: "1:814775466865:web:44c80fdf23e7d7732294d0",
 
   // 🔥 MUITO IMPORTANTE (provavelmente falta-te isto)
-  measurementId: "G-XXXXXXXXXX", // <- VAI BUSCAR AO FIREBASE
+  measurementId: "G-VJRJCJXXC3", // <- VAI BUSCAR AO FIREBASE
 };
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
