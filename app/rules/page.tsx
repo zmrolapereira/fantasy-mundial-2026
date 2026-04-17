@@ -117,7 +117,9 @@ function SectionTitle({
       </p>
       <h2 className="mt-2 text-2xl font-extrabold text-gray-900">{title}</h2>
       {subtitle ? (
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-600">{subtitle}</p>
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-600">
+          {subtitle}
+        </p>
       ) : null}
     </div>
   );
@@ -159,11 +161,30 @@ export default function InfoPage() {
                 </div>
               ))}
             </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <a
+                href="/faq"
+                className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-gray-900 shadow transition hover:scale-[1.02]"
+              >
+                Ver FAQ
+              </a>
+
+              <a
+                href="mailto:fantasymundial2026@gmail.com"
+                className="inline-flex items-center justify-center rounded-full border border-white/70 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+              >
+                Contactar suporte
+              </a>
+            </div>
           </div>
         </section>
 
         <section className="mt-8 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8">
-          <SectionTitle eyebrow="Visão geral" title="Resumo rápido da competição" />
+          <SectionTitle
+            eyebrow="Visão geral"
+            title="Resumo rápido da competição"
+          />
 
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {overviewCards.map((item) => (
@@ -172,12 +193,16 @@ export default function InfoPage() {
                 className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-slate-700">{item.label}</p>
+                  <p className="text-sm font-semibold text-slate-700">
+                    {item.label}
+                  </p>
                   <span className="rounded-full bg-blue-600 px-3 py-1 text-xs font-bold text-white">
                     {item.value}
                   </span>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-gray-600">{item.text}</p>
+                <p className="mt-3 text-sm leading-6 text-gray-600">
+                  {item.text}
+                </p>
               </div>
             ))}
           </div>
@@ -198,8 +223,12 @@ export default function InfoPage() {
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-sm font-extrabold text-white">
                   {step.number}
                 </div>
-                <h3 className="mt-4 text-lg font-bold text-gray-900">{step.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-gray-600">{step.text}</p>
+                <h3 className="mt-4 text-lg font-bold text-gray-900">
+                  {step.title}
+                </h3>
+                <p className="mt-3 text-sm leading-7 text-gray-600">
+                  {step.text}
+                </p>
               </div>
             ))}
           </div>
@@ -221,8 +250,12 @@ export default function InfoPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-700">
                   {block.title}
                 </p>
-                <h3 className="mt-2 text-xl font-extrabold text-gray-900">{block.value}</h3>
-                <p className="mt-3 text-sm leading-7 text-gray-600">{block.text}</p>
+                <h3 className="mt-2 text-xl font-extrabold text-gray-900">
+                  {block.value}
+                </h3>
+                <p className="mt-3 text-sm leading-7 text-gray-600">
+                  {block.text}
+                </p>
               </div>
             ))}
           </div>
@@ -238,9 +271,9 @@ export default function InfoPage() {
                   Acertar no sentido do jogo
                 </h3>
                 <p className="mt-2 text-sm leading-7 text-gray-600">
-                  Vale <span className="font-bold text-gray-900">1 ponto</span> quando
-                  prevês corretamente vitória da equipa da casa, empate ou vitória da
-                  equipa visitante.
+                  Vale <span className="font-bold text-gray-900">1 ponto</span>{" "}
+                  quando prevês corretamente vitória da equipa da casa, empate
+                  ou vitória da equipa visitante.
                 </p>
               </div>
 
@@ -249,23 +282,31 @@ export default function InfoPage() {
                   Acertar no resultado exato
                 </h3>
                 <p className="mt-2 text-sm leading-7 text-gray-600">
-                  Vale <span className="font-bold text-gray-900">2 pontos no total</span>.
-                  O resultado exato não acumula 1+2.
+                  Vale{" "}
+                  <span className="font-bold text-gray-900">
+                    2 pontos no total
+                  </span>
+                  . O resultado exato não acumula 1+2.
                 </p>
               </div>
 
               <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <h3 className="text-base font-bold text-gray-900">Quando contam os pontos</h3>
+                <h3 className="text-base font-bold text-gray-900">
+                  Quando contam os pontos
+                </h3>
                 <p className="mt-2 text-sm leading-7 text-gray-600">
-                  Só contam jogos oficialmente concluídos. Se a prediction estiver errada,
-                  esse jogo vale 0 pontos.
+                  Só contam jogos oficialmente concluídos. Se a prediction
+                  estiver errada, esse jogo vale 0 pontos.
                 </p>
               </div>
             </div>
           </article>
 
           <article className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8">
-            <SectionTitle eyebrow="Seleção escolhida" title="Resultados e progressão" />
+            <SectionTitle
+              eyebrow="Seleção escolhida"
+              title="Resultados e progressão"
+            />
 
             <div className="grid gap-3 sm:grid-cols-2">
               {selectedTeamRules.map((rule) => (
@@ -274,7 +315,9 @@ export default function InfoPage() {
                   className="rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-gray-900">{rule.title}</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {rule.title}
+                    </p>
                     <span className="rounded-full bg-violet-600 px-3 py-1 text-xs font-bold text-white">
                       {rule.points}
                     </span>
@@ -287,7 +330,10 @@ export default function InfoPage() {
 
         <section className="mt-8 grid gap-6 xl:grid-cols-[1fr_1fr]">
           <article className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8">
-            <SectionTitle eyebrow="Prize Pool" title="Distribuição dos prémios" />
+            <SectionTitle
+              eyebrow="Prize Pool"
+              title="Distribuição dos prémios"
+            />
 
             <div className="grid gap-4 sm:grid-cols-3">
               {prizePool.map((item) => (
@@ -298,8 +344,12 @@ export default function InfoPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-700">
                     {item.title}
                   </p>
-                  <h3 className="mt-2 text-xl font-extrabold text-gray-900">{item.value}</h3>
-                  <p className="mt-3 text-sm leading-7 text-gray-600">{item.text}</p>
+                  <h3 className="mt-2 text-xl font-extrabold text-gray-900">
+                    {item.value}
+                  </h3>
+                  <p className="mt-3 text-sm leading-7 text-gray-600">
+                    {item.text}
+                  </p>
                 </div>
               ))}
             </div>

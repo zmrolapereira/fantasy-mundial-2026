@@ -16,6 +16,7 @@ const baseLinks = [
   { href: "/games", label: "Jogos" },
   { href: "/table", label: "Tabela" },
   { href: "/rules", label: "Info" },
+  { href: "/faq", label: "FAQ" }, // 👈 NOVO
   { href: "/ranking", label: "Ranking" },
 ];
 
@@ -56,8 +57,6 @@ export default function SiteHeader() {
             type="button"
             onClick={() => setOpen((prev) => !prev)}
             className="inline-flex items-center justify-center rounded-xl border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 md:hidden"
-            aria-label="Abrir menu"
-            aria-expanded={open}
           >
             Menu
           </button>
