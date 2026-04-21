@@ -52,39 +52,71 @@ export const submitPaymentRequest = async (params: {
   paymentMethod: "mbway" | "revolut";
 }) => {
   const paymentRef = doc(db, "payments", params.userId);
+  const paymentSnap = await getDoc(paymentRef);
 
-  await setDoc(
-    paymentRef,
-    {
-      userId: params.userId,
-      email: params.email,
-      displayName: params.displayName,
-      amount: 10,
-      method: params.paymentMethod,
-      paymentMethod: params.paymentMethod,
-      mbwayNumber: "918888416",
-      status: "pending",
-      submittedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      approvedAt: null,
-      rejectedAt: null,
-    },
-    { merge: true }
-  );
+  if (paymentSnap.exists()) {
+    const existingPayment = paymentSnap.data() as PaymentRequest;
 
-  // Só atualiza campos "seguros" no perfil do utilizador
+    if (existingPayment.status === "pending") {
+      return { ok: true, status: "already_pending" as const };
+    }
+
+    if (existingPayment.status === "approved") {
+      return { ok: true, status: "already_approved" as const };
+    }
+
+    if (existingPayment.status === "rejected") {
+      return { ok: true, status: "already_rejected" as const };
+    }
+  }
+
+  await setDoc(paymentRef, {
+    userId: params.userId,
+    email: params.email,
+    displayName: params.displayName,
+    amount: 10,
+    method: params.paymentMethod,
+    paymentMethod: params.paymentMethod,
+    mbwayNumber: "918888416",
+    status: "pending",
+    submittedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    approvedAt: null,
+    rejectedAt: null,
+  });
+
   const userRef = doc(db, "users", params.userId);
+  const userSnap = await getDoc(userRef);
 
-  await setDoc(
-    userRef,
-    {
-      uid: params.userId,
-      email: params.email,
-      displayName: params.displayName,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
+  if (!userSnap.exists()) {
+    await setDoc(
+      userRef,
+      {
+        uid: params.userId,
+        email: params.email,
+        displayName: params.displayName,
+        hasPaidAccess: false,
+        paymentStatus: "pending",
+        paidAt: null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } else {
+    await setDoc(
+      userRef,
+      {
+        uid: params.userId,
+        email: params.email,
+        displayName: params.displayName,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
+
+  return { ok: true, status: "created" as const };
 };
 
 export const getPendingPayments = async () => {

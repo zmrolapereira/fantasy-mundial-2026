@@ -239,19 +239,39 @@ export default function TeamPage() {
   try {
     setSubmittingPayment(true);
 
-    await submitPaymentRequest({
+    const result = await submitPaymentRequest({
       userId: user.uid,
       email: user.email || "",
       displayName: user.displayName || user.email || "Utilizador",
       paymentMethod,
     });
 
-    setPaymentStatus("pending");
     closePaymentModal();
 
-    alert(
-      "Pedido enviado com sucesso. Agora vais aparecer no /admin para aprovação manual."
-    );
+    if (result.status === "created") {
+      setPaymentStatus("pending");
+      alert("Pedido enviado com sucesso. Agora tens de aguardar pela aprovação do admin.");
+      return;
+    }
+
+    if (result.status === "already_pending") {
+      setPaymentStatus("pending");
+      alert("O teu pedido já foi enviado. Agora tens de aguardar pela aprovação do admin.");
+      return;
+    }
+
+    if (result.status === "already_approved") {
+      setPaymentStatus("approved");
+      setHasPaidAccess(true);
+      alert("O teu pagamento já foi aprovado. Já tens acesso desbloqueado.");
+      return;
+    }
+
+    if (result.status === "already_rejected") {
+      setPaymentStatus("rejected");
+      alert("O teu pedido anterior foi rejeitado. Contacta o admin para nova validação.");
+      return;
+    }
   } catch (error: any) {
     console.error("PAYMENT REQUEST ERROR:", error);
     alert(error?.message || "Erro ao registar o pedido de pagamento.");
