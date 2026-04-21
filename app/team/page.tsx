@@ -225,40 +225,40 @@ export default function TeamPage() {
   };
 
   const handlePaymentSubmit = async () => {
-    if (!user) {
-      alert("Tens de iniciar sessão primeiro.");
-      router.push("/login");
-      return;
-    }
+  if (!user) {
+    alert("Tens de iniciar sessão primeiro.");
+    router.push("/login");
+    return;
+  }
 
-    if (!paymentMethod) {
-      alert("Escolhe o método de pagamento.");
-      return;
-    }
+  if (!paymentMethod) {
+    alert("Escolhe o método de pagamento.");
+    return;
+  }
 
-    try {
-      setSubmittingPayment(true);
+  try {
+    setSubmittingPayment(true);
 
-      await submitPaymentRequest({
-        userId: user.uid,
-        email: user.email || "",
-        displayName: user.displayName || user.email || "Utilizador",
-        paymentMethod,
-      });
+    await submitPaymentRequest({
+      userId: user.uid,
+      email: user.email || "",
+      displayName: user.displayName || user.email || "Utilizador",
+      paymentMethod,
+    });
 
-      setPaymentStatus("pending");
-      closePaymentModal();
+    setPaymentStatus("pending");
+    closePaymentModal();
 
-      alert(
-        "Pedido enviado com sucesso. Agora vais aparecer no /admin para aprovação manual."
-      );
-    } catch (error) {
-      console.error(error);
-      alert("Erro ao registar o pedido de pagamento.");
-    } finally {
-      setSubmittingPayment(false);
-    }
-  };
+    alert(
+      "Pedido enviado com sucesso. Agora vais aparecer no /admin para aprovação manual."
+    );
+  } catch (error: any) {
+    console.error("PAYMENT REQUEST ERROR:", error);
+    alert(error?.message || "Erro ao registar o pedido de pagamento.");
+  } finally {
+    setSubmittingPayment(false);
+  }
+};
 
   const handleSavePicks = async () => {
     if (!user) {
