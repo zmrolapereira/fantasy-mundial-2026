@@ -344,7 +344,6 @@ export default function RankingPage() {
   const stageWinnerPrize = stagesPot / 8;
 
   return {
-    totalPot,
     totalPrizes, // 👈 NOVO
     firstPrize,
     secondPrize,
@@ -864,10 +863,10 @@ export default function RankingPage() {
 
                   <div className="rounded-2xl bg-white/18 px-4 py-3 backdrop-blur-sm">
                     <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
-                      Pote total
+                       Total prémios
                     </p>
                     <p className="mt-1 text-xl font-black text-white">
-                      {formatEuro(prizeSummary.totalPot)}
+                        {formatEuro(prizeSummary.totalPrizes)}
                     </p>
                   </div>
 
