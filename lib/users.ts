@@ -66,7 +66,21 @@ export const submitPaymentRequest = async (params: {
     }
 
     if (existingPayment.status === "rejected") {
-      return { ok: true, status: "already_rejected" as const };
+      await updateDoc(paymentRef, {
+        email: params.email,
+        displayName: params.displayName,
+        amount: 10,
+        method: params.paymentMethod,
+        paymentMethod: params.paymentMethod,
+        mbwayNumber: "918888416",
+        status: "pending",
+        submittedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        approvedAt: null,
+        rejectedAt: null,
+      });
+
+      return { ok: true, status: "resent_after_rejected" as const };
     }
   }
 

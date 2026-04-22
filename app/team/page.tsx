@@ -224,7 +224,7 @@ export default function TeamPage() {
     setPaymentMethod("");
   };
 
-  const handlePaymentSubmit = async () => {
+const handlePaymentSubmit = async () => {
   if (!user) {
     alert("Tens de iniciar sessão primeiro.");
     router.push("/login");
@@ -267,9 +267,10 @@ export default function TeamPage() {
       return;
     }
 
-    if (result.status === "already_rejected") {
-      setPaymentStatus("rejected");
-      alert("O teu pedido anterior foi rejeitado. Contacta o admin para nova validação.");
+    if (result.status === "resent_after_rejected") {
+      setPaymentStatus("pending");
+      setHasPaidAccess(false);
+      alert("Pedido reenviado com sucesso. Aguarda nova aprovação do admin.");
       return;
     }
   } catch (error: any) {
