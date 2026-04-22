@@ -1359,22 +1359,22 @@ export default function AdminPage() {
       </div>
 
       <div className="mt-6 flex justify-end">
-  <button
-    type="button"
-    onClick={handleRecalculatePoints}
-    disabled={loadingSave}
-    className="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
-    style={{
-      backgroundColor: "#111827",
-      color: "#ffffff",
-      border: "1px solid #111827",
-      boxShadow: "0 2px 6px rgba(17,24,39,0.18)",
-      minWidth: 220,
-    }}
-  >
-    {loadingSave ? "A recalcular..." : "Recalcular pontos"}
-  </button>
-</div>
+        <button
+          type="button"
+          onClick={handleRecalculatePoints}
+          disabled={loadingSave}
+          className="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+          style={{
+            backgroundColor: "#111827",
+            color: "#ffffff",
+            border: "1px solid #111827",
+            boxShadow: "0 2px 6px rgba(17,24,39,0.18)",
+            minWidth: 220,
+          }}
+        >
+         {loadingSave ? "A recalcular..." : "Recalcular pontos"}
+      </button>
+    </div>
 
       {historyOpen && (
         <div
