@@ -62,7 +62,7 @@ export const games: Game[] = [
     awayTeam: "Bósnia e Herzegovina",
     homeScore: null,
     awayScore: null,
-    status: "Por jogar",
+    status: "FT",
   },
   {
     id: 4,
@@ -75,7 +75,7 @@ export const games: Game[] = [
     awayTeam: "Canadá",
     homeScore: null,
     awayScore: null,
-    status: "Por jogar",
+    status: "FT",
   },
   {
     id: 5,
@@ -88,7 +88,7 @@ export const games: Game[] = [
     awayTeam: "Marrocos",
     homeScore: null,
     awayScore: null,
-    status: "Por jogar",
+    status: "FT",
   },
   {
     id: 6,
