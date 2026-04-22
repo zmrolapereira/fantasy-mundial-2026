@@ -11,7 +11,10 @@ import {
   getPredictionsForUser,
   subscribeToFantasyEntries,
 } from "@/lib/fantasy-entry";
-import { getStageLeaderboardSnapshot } from "@/lib/leaderboard-snapshots";
+import {
+  getAllLeaderboardSnapshots,
+  getStageLeaderboardSnapshot,
+} from "@/lib/leaderboard-snapshots";
 import SiteHeader from "@/components/SiteHeader";
 
 function getFlagByCountry(countryName?: string) {
@@ -85,44 +88,22 @@ type StageRankedEntry = FantasyEntry & {
   stagePoints: number;
 };
 
-function buildPredictionHistory(predictions: PredictionWithGame[]) {
-  const order = [
-    "Jornada 1",
-    "Jornada 2",
-    "Jornada 3",
-    "16 avos",
-    "Oitavos",
-    "Quartos",
-    "Meias-finais",
-    "3º lugar",
-    "Final",
-  ];
+type SnapshotEntry = {
+  userId: string;
+  teamName: string;
+  managerName: string;
+  stagePoints: number;
+  totalPointsAtThatMoment: number;
+  rank: number;
+};
 
-  const grouped: Record<string, number> = {};
-
-  predictions.forEach((prediction) => {
-    if (!prediction.game || prediction.game.status !== "FT") return;
-
-    const label =
-      prediction.game.phase === "Fase de Grupos"
-        ? prediction.game.round
-        : prediction.game.phase;
-
-    grouped[label] = (grouped[label] || 0) + prediction.points;
-  });
-
-  return Object.entries(grouped)
-    .map(([label, points]) => ({ label, points }))
-    .sort((a, b) => {
-      const aIndex = order.indexOf(a.label);
-      const bIndex = order.indexOf(b.label);
-
-      if (aIndex === -1 && bIndex === -1) return a.label.localeCompare(b.label);
-      if (aIndex === -1) return 1;
-      if (bIndex === -1) return -1;
-      return aIndex - bIndex;
-    });
-}
+type LeaderboardSnapshot = {
+  id: string;
+  stageId: string;
+  label: string;
+  entries: SnapshotEntry[];
+  createdAt?: unknown;
+};
 
 function getStageLabel(game?: Game) {
   if (!game) return "";
@@ -137,7 +118,8 @@ function getStageOrder(label: string) {
     "16 avos",
     "Oitavos",
     "Quartos",
-    "Meias-finais",
+    "Meia-final 1",
+    "Meia-final 2",
     "3º lugar",
     "Final",
   ];
@@ -240,6 +222,46 @@ function TinyStat({
   );
 }
 
+function buildPredictionHistory(predictions: PredictionWithGame[]) {
+  const order = [
+    "Jornada 1",
+    "Jornada 2",
+    "Jornada 3",
+    "16 avos",
+    "Oitavos",
+    "Quartos",
+    "Meia-final 1",
+    "Meia-final 2",
+    "3º lugar",
+    "Final",
+  ];
+
+  const grouped: Record<string, number> = {};
+
+  predictions.forEach((prediction) => {
+    if (!prediction.game || prediction.game.status !== "FT") return;
+
+    const label =
+      prediction.game.phase === "Fase de Grupos"
+        ? prediction.game.round
+        : prediction.game.phase;
+
+    grouped[label] = (grouped[label] || 0) + prediction.points;
+  });
+
+  return Object.entries(grouped)
+    .map(([label, points]) => ({ label, points }))
+    .sort((a, b) => {
+      const aIndex = order.indexOf(a.label);
+      const bIndex = order.indexOf(b.label);
+
+      if (aIndex === -1 && bIndex === -1) return a.label.localeCompare(b.label);
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
+    });
+}
+
 export default function RankingPage() {
   const [user, setUser] = useState<User | null>(null);
   const [entries, setEntries] = useState<FantasyEntry[]>([]);
@@ -259,6 +281,7 @@ export default function RankingPage() {
 
   const [stageSnapshotEntries, setStageSnapshotEntries] = useState<StageRankedEntry[]>([]);
   const [loadingStageSnapshot, setLoadingStageSnapshot] = useState(false);
+  const [allSnapshots, setAllSnapshots] = useState<LeaderboardSnapshot[]>([]);
 
   useEffect(() => {
     const unsubscribe = listenToAuth(setUser);
@@ -329,6 +352,20 @@ export default function RankingPage() {
     loadAllPredictions();
   }, [leaderboard]);
 
+  useEffect(() => {
+    const loadAllSnapshots = async () => {
+      try {
+        const snapshots = await getAllLeaderboardSnapshots();
+        setAllSnapshots((snapshots as LeaderboardSnapshot[]) || []);
+      } catch (error) {
+        console.error(error);
+        setAllSnapshots([]);
+      }
+    };
+
+    loadAllSnapshots();
+  }, []);
+
   const finishedGames = useMemo(() => {
     return games.filter(
       (game) =>
@@ -388,48 +425,57 @@ export default function RankingPage() {
     }
   }, [leaderboard, selectedUserId, user?.uid]);
 
-  const stageLeaderboard: StageRankedEntry[] = useMemo(() => {
-    if (!selectedStageId) return [];
+  const orderedStageIds = useMemo(() => {
+    return stageOptions.map((option) => option.id);
+  }, [stageOptions]);
 
-    const withStagePoints = entries.map((entry) => {
-      const predictions = predictionsByUserId[entry.userId] ?? [];
+  const snapshotsByStageId = useMemo(() => {
+    const map = new Map<string, LeaderboardSnapshot>();
 
-      const stagePoints = predictions.reduce((sum, prediction) => {
-        const game = games.find((g) => g.id === prediction.gameId);
-        const stageId = getStageId(getStageLabel(game));
-
-        if (stageId !== selectedStageId) return sum;
-        return sum + getPredictionPoints(prediction, game);
-      }, 0);
-
-      return { ...entry, stagePoints };
+    allSnapshots.forEach((snapshot) => {
+      const id = snapshot.stageId || snapshot.id;
+      map.set(String(id).trim().toLowerCase(), snapshot);
     });
 
-    const sorted = withStagePoints.sort((a, b) => {
-      const stageDiff = b.stagePoints - a.stagePoints;
-      if (stageDiff !== 0) return stageDiff;
+    return map;
+  }, [allSnapshots]);
 
-      const totalDiff = (b.totalPoints ?? 0) - (a.totalPoints ?? 0);
-      if (totalDiff !== 0) return totalDiff;
+  const previousStageId = useMemo(() => {
+    const currentIndex = orderedStageIds.indexOf(selectedStageId);
+    if (currentIndex <= 0) return null;
+    return orderedStageIds[currentIndex - 1];
+  }, [orderedStageIds, selectedStageId]);
 
-      return (a.teamName ?? "").localeCompare(b.teamName ?? "");
-    });
+  const stageHistoryFromSnapshots = useMemo(() => {
+    return orderedStageIds
+      .map((stageId, index) => {
+        const currentSnapshot = snapshotsByStageId.get(stageId);
+        if (!currentSnapshot) return null;
 
-    let currentRank = 1;
+        const currentRow = currentSnapshot.entries?.find(
+          (entry) => entry.userId === selectedUserId
+        );
+        if (!currentRow) return null;
 
-    return sorted.map((entry, index) => {
-      if (index > 0) {
-        const prev = sorted[index - 1];
-        const samePoints =
-          entry.stagePoints === prev.stagePoints &&
-          (entry.totalPoints ?? 0) === (prev.totalPoints ?? 0);
+        const prevStageId = index > 0 ? orderedStageIds[index - 1] : null;
+        const prevSnapshot = prevStageId ? snapshotsByStageId.get(prevStageId) : null;
+        const prevRow = prevSnapshot?.entries?.find(
+          (entry) => entry.userId === selectedUserId
+        );
 
-        if (!samePoints) currentRank = index + 1;
-      }
+        const stageLabel =
+          stageOptions.find((option) => option.id === stageId)?.label ?? currentSnapshot.label;
 
-      return { ...entry, rank: currentRank };
-    });
-  }, [entries, predictionsByUserId, selectedStageId]);
+        const currentTotal = Number(currentRow.totalPointsAtThatMoment ?? 0);
+        const prevTotal = Number(prevRow?.totalPointsAtThatMoment ?? 0);
+
+        return {
+          label: stageLabel,
+          points: Math.max(0, currentTotal - prevTotal),
+        };
+      })
+      .filter(Boolean) as HistoryRow[];
+  }, [orderedStageIds, snapshotsByStageId, selectedUserId, stageOptions]);
 
   useEffect(() => {
     const loadStageSnapshot = async () => {
@@ -440,28 +486,77 @@ export default function RankingPage() {
 
       try {
         setLoadingStageSnapshot(true);
-        const snapshot = await getStageLeaderboardSnapshot(selectedStageId);
 
-        if (!snapshot || !Array.isArray((snapshot as any).entries)) {
+        const currentSnapshot = await getStageLeaderboardSnapshot(selectedStageId);
+        if (!currentSnapshot || !Array.isArray((currentSnapshot as any).entries)) {
           setStageSnapshotEntries([]);
           return;
         }
 
-        const mapped: StageRankedEntry[] = (snapshot as any).entries.map((entry: any) => {
+        const prevId = previousStageId;
+        const previousSnapshot =
+          prevId && snapshotsByStageId.has(prevId)
+            ? snapshotsByStageId.get(prevId)
+            : null;
+
+        const previousEntriesMap = new Map<string, SnapshotEntry>();
+        if (previousSnapshot?.entries) {
+          previousSnapshot.entries.forEach((entry) => {
+            previousEntriesMap.set(entry.userId, entry);
+          });
+        }
+
+        const mapped: StageRankedEntry[] = (currentSnapshot as any).entries.map((entry: any) => {
           const fullEntry = entries.find((e) => e.userId === entry.userId);
+
+          const currentTotal = Number(entry.totalPointsAtThatMoment ?? 0);
+          const previousTotal = Number(
+            previousEntriesMap.get(entry.userId)?.totalPointsAtThatMoment ?? 0
+          );
+          const stagePoints = Math.max(0, currentTotal - previousTotal);
 
           return {
             ...(fullEntry ?? {
               userId: entry.userId,
               teamName: entry.teamName,
               managerName: entry.managerName,
+              totalPoints: currentTotal,
+              predictionPoints: 0,
+              topScorerPoints: 0,
+              topAssistPoints: 0,
+              selectedTeamPoints: 0,
+              topScorerPick: null,
+              topAssistPick: null,
+              championPick: null,
             }),
-            rank: entry.rank,
-            stagePoints: entry.stagePoints,
+            rank: 0,
+            stagePoints,
           } as StageRankedEntry;
         });
 
-        setStageSnapshotEntries(mapped);
+        const sorted = mapped.sort((a, b) => {
+          if (b.stagePoints !== a.stagePoints) return b.stagePoints - a.stagePoints;
+          return (b.totalPoints ?? 0) - (a.totalPoints ?? 0);
+        });
+
+        let currentRank = 1;
+        const ranked = sorted.map((entry, index) => {
+          if (index > 0) {
+            const prev = sorted[index - 1];
+            const same =
+              entry.stagePoints === prev.stagePoints &&
+              (entry.totalPoints ?? 0) === (prev.totalPoints ?? 0);
+
+            if (!same) currentRank = index + 1;
+          }
+
+          return {
+            ...entry,
+            rank: currentRank,
+          };
+        });
+
+        setStageSnapshotEntries(ranked);
       } catch (error) {
         console.error(error);
         setStageSnapshotEntries([]);
@@ -471,24 +566,19 @@ export default function RankingPage() {
     };
 
     loadStageSnapshot();
-  }, [leaderboardMode, selectedStageId, entries]);
+  }, [leaderboardMode, selectedStageId, entries, previousStageId, snapshotsByStageId]);
 
   const myStageEntry = useMemo(() => {
     if (!user?.uid) return null;
 
-    const source = stageSnapshotEntries.length > 0 ? stageSnapshotEntries : stageLeaderboard;
-
-    return source.find((entry) => entry.userId === user.uid) ?? null;
-  }, [stageLeaderboard, stageSnapshotEntries, user?.uid]);
+    return stageSnapshotEntries.find((entry) => entry.userId === user.uid) ?? null;
+  }, [stageSnapshotEntries, user?.uid]);
 
   const activeOverallEntry =
     leaderboard.find((entry) => entry.userId === selectedUserId) ?? leaderboard[0];
 
-  const currentStageSource =
-    stageSnapshotEntries.length > 0 ? stageSnapshotEntries : stageLeaderboard;
-
   const activeStageEntry =
-    currentStageSource.find((entry) => entry.userId === selectedUserId) ?? currentStageSource[0];
+    stageSnapshotEntries.find((entry) => entry.userId === selectedUserId) ?? stageSnapshotEntries[0];
 
   const activeEntry = leaderboardMode === "overall" ? activeOverallEntry : activeStageEntry;
 
@@ -498,8 +588,8 @@ export default function RankingPage() {
   const podium = useMemo(() => {
     return leaderboardMode === "overall"
       ? leaderboard.slice(0, 3)
-      : currentStageSource.slice(0, 3);
-  }, [leaderboard, currentStageSource, leaderboardMode]);
+      : stageSnapshotEntries.slice(0, 3);
+  }, [leaderboard, stageSnapshotEntries, leaderboardMode]);
 
   useEffect(() => {
     const loadPredictions = async () => {
@@ -550,8 +640,12 @@ export default function RankingPage() {
   }, [finishedPredictionsWithGameData, leaderboardMode, selectedStageId]);
 
   const selectedHistory: HistoryRow[] = useMemo(() => {
+    if (leaderboardMode === "stage") {
+      return stageHistoryFromSnapshots;
+    }
+
     return buildPredictionHistory(finishedPredictionsWithGameData);
-  }, [finishedPredictionsWithGameData]);
+  }, [finishedPredictionsWithGameData, leaderboardMode, stageHistoryFromSnapshots]);
 
   const availableRounds = useMemo(() => {
     return [
@@ -597,11 +691,7 @@ export default function RankingPage() {
   }, [leaderboardMode, selectedStageId, selectedUserId]);
 
   const activeLeaderboard =
-    leaderboardMode === "overall"
-      ? leaderboard
-      : stageSnapshotEntries.length > 0
-      ? stageSnapshotEntries
-      : stageLeaderboard;
+    leaderboardMode === "overall" ? leaderboard : stageSnapshotEntries;
 
   const myEntry = leaderboardMode === "overall" ? myOverallEntry : myStageEntry;
 
@@ -634,7 +724,7 @@ export default function RankingPage() {
                   <p className="mt-2 text-sm leading-6 text-white/95">
                     {leaderboardMode === "overall"
                       ? "Vê a classificação geral e acompanha a posição da tua equipa."
-                      : "Classificação da jornada ou fase com base nos jogos concluídos."}
+                      : "Classificação por jornada ou fase com base nos pontos totais feitos nessa etapa."}
                   </p>
 
                   {leaderboardMode === "stage" && (
@@ -643,7 +733,7 @@ export default function RankingPage() {
                         ? "A carregar snapshot..."
                         : stageSnapshotEntries.length > 0
                         ? "Snapshot histórico guardado"
-                        : "Cálculo em tempo real"}
+                        : "Sem snapshot guardado para esta etapa"}
                     </p>
                   )}
 
@@ -965,7 +1055,11 @@ export default function RankingPage() {
 
                 {activeLeaderboard.length === 0 && (
                   <div className="px-6 py-10 text-center text-sm text-gray-500">
-                    {loadingAllPredictions ? "A carregar leaderboard..." : "Ainda não existem equipas registadas."}
+                    {leaderboardMode === "stage"
+                      ? "Ainda não existe snapshot para esta jornada/fase."
+                      : loadingAllPredictions
+                      ? "A carregar leaderboard..."
+                      : "Ainda não existem equipas registadas."}
                   </div>
                 )}
               </div>
@@ -997,7 +1091,7 @@ export default function RankingPage() {
 
                   <div className="mt-2 rounded-2xl border border-gray-200 bg-white p-3 text-center">
                     <p className="text-[10px] uppercase tracking-wide text-gray-500">
-                      {leaderboardMode === "overall" ? "Pontos totais" : "Pontos da jornada/fase"}
+                      {leaderboardMode === "overall" ? "Pontos totais" : "Pontos totais da fase"}
                     </p>
                     <p className="mt-1 text-2xl font-black text-gray-900">
                       {leaderboardMode === "overall"
@@ -1031,13 +1125,31 @@ export default function RankingPage() {
                   ) : (
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <div className="rounded-2xl border border-gray-200 bg-white p-3">
-                        <p className="text-[9px] uppercase tracking-wide text-gray-500">Geral</p>
-                        <p className="mt-1 text-lg font-black text-gray-900">{activeOverallEntry?.rank ?? "—"}º</p>
+                        <p className="text-[9px] uppercase tracking-wide text-gray-500">Rank fase</p>
+                        <p className="mt-1 text-lg font-black text-violet-700">
+                          {(activeEntry as StageRankedEntry).rank ?? "—"}º
+                        </p>
                       </div>
 
                       <div className="rounded-2xl border border-gray-200 bg-white p-3">
-                        <p className="text-[9px] uppercase tracking-wide text-gray-500">Totais</p>
-                        <p className="mt-1 text-lg font-black text-gray-900">{activeOverallEntry?.totalPoints ?? 0}</p>
+                        <p className="text-[9px] uppercase tracking-wide text-gray-500">Rank geral</p>
+                        <p className="mt-1 text-lg font-black text-gray-900">
+                          {activeOverallEntry?.rank ?? "—"}º
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-gray-200 bg-white p-3">
+                        <p className="text-[9px] uppercase tracking-wide text-gray-500">Total geral</p>
+                        <p className="mt-1 text-lg font-black text-gray-900">
+                          {activeOverallEntry?.totalPoints ?? 0}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-gray-200 bg-white p-3">
+                        <p className="text-[9px] uppercase tracking-wide text-gray-500">Etapa</p>
+                        <p className="mt-1 text-sm font-black text-emerald-700">
+                          {activeStageLabel || "—"}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -1059,37 +1171,28 @@ export default function RankingPage() {
                 <div className="mt-3">
                   <div className="mb-2 flex items-center justify-between">
                     <h4 className="text-xs font-black text-gray-900">
-                      {leaderboardMode === "overall"
-                        ? "Histórico"
-                        : `Histórico • ${activeStageLabel || "Fase"}`}
+                      Histórico
                     </h4>
-                    {loadingPredictions && <span className="text-[10px] text-gray-500">A carregar...</span>}
+                    {loadingPredictions && leaderboardMode === "overall" && (
+                      <span className="text-[10px] text-gray-500">A carregar...</span>
+                    )}
                   </div>
 
                   <div className="space-y-2">
-                    {leaderboardMode === "overall" ? (
-                      selectedHistory.length === 0 && !loadingPredictions ? (
-                        <div className="rounded-2xl border border-gray-200 bg-[#f8fafc] p-3 text-xs text-gray-500">
-                          Ainda não há histórico disponível.
-                        </div>
-                      ) : (
-                        selectedHistory.map((row) => (
-                          <div
-                            key={row.label}
-                            className="flex items-center justify-between rounded-2xl border border-gray-200 bg-[#f8fafc] px-3 py-2"
-                          >
-                            <p className="text-xs font-semibold text-gray-900">{row.label}</p>
-                            <p className="text-sm font-black text-gray-900">{row.points}</p>
-                          </div>
-                        ))
-                      )
-                    ) : (
-                      <div className="rounded-2xl border border-gray-200 bg-[#f8fafc] p-3">
-                        <p className="text-xs text-gray-600">
-                          Esta vista mostra os pontos de predictions de{" "}
-                          <span className="font-bold text-gray-900">{activeStageLabel || "—"}</span>.
-                        </p>
+                    {selectedHistory.length === 0 ? (
+                      <div className="rounded-2xl border border-gray-200 bg-[#f8fafc] p-3 text-xs text-gray-500">
+                        Ainda não há histórico disponível.
                       </div>
+                    ) : (
+                      selectedHistory.map((row) => (
+                        <div
+                          key={row.label}
+                          className="flex items-center justify-between rounded-2xl border border-gray-200 bg-[#f8fafc] px-3 py-2"
+                        >
+                          <p className="text-xs font-semibold text-gray-900">{row.label}</p>
+                          <p className="text-sm font-black text-gray-900">{row.points}</p>
+                        </div>
+                      ))
                     )}
                   </div>
                 </div>
@@ -1097,9 +1200,7 @@ export default function RankingPage() {
                 <div className="mt-3">
                   <div className="mb-2 flex flex-col gap-2">
                     <h4 className="text-xs font-black text-gray-900">
-                      {leaderboardMode === "overall"
-                        ? "Palpites"
-                        : `Palpites • ${activeStageLabel || "Fase"}`}
+                      Palpites concluídos
                     </h4>
 
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
