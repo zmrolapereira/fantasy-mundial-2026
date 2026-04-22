@@ -86,6 +86,32 @@ export const saveFantasyEntry = async (entry: FantasyEntry) => {
   );
 };
 
+export const saveBoostTokenForUser = async (
+  userId: string,
+  boostToken: BoostToken | null
+) => {
+  const entryRef = doc(db, "fantasyEntries", userId);
+  const existingDoc = await getDoc(entryRef);
+
+  if (!existingDoc.exists()) {
+    throw new Error("Primeiro tens de guardar os picks principais.");
+  }
+
+  await setDoc(
+    entryRef,
+    {
+      boostToken: boostToken
+        ? {
+            ...boostToken,
+            activatedAt: serverTimestamp(),
+          }
+        : null,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+};
+
 export const getFantasyEntryByUserId = async (userId: string) => {
   const entryRef = doc(db, "fantasyEntries", userId);
   const snap = await getDoc(entryRef);
