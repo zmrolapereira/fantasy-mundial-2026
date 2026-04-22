@@ -343,15 +343,15 @@ export const games: Game[] = [
   // =========================
   {
     id: 25,
-    date: "2026-06-18",
+    date: "2026-04-22",
     time: "19:00",
     round: "Jornada 2",
     phase: "Fase de Grupos",
     group: "A",
     homeTeam: "África do Sul",
     awayTeam: "República Checa",
-    homeScore: null,
-    awayScore: null,
+    homeScore: 2,
+    awayScore: 0,
     status: "Por jogar",
   },
   {
