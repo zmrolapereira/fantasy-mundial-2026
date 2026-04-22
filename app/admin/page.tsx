@@ -270,6 +270,18 @@ export default function AdminPage() {
     setLoadingSave(false);
   }
 };
+  const handleRecalculatePoints = async () => {
+  try {
+    setLoadingSave(true);
+    await recalculateAllFantasyPoints();
+    alert("Pontos recalculados com sucesso.");
+  } catch (error: any) {
+    console.error("RECALCULATE POINTS ERROR:", error);
+    alert(error?.message || "Erro ao recalcular os pontos.");
+  } finally {
+    setLoadingSave(false);
+  }
+};
 
   const handleApprove = async (userId: string) => {
     try {
@@ -1259,25 +1271,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={loadHistory}
-                  disabled={loadingHistory || !selectedPlayerId}
-                  className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-                  style={{
-                    backgroundColor: "#ffffff",
-                    color: "#111827",
-                    border: "1px solid #d1d5db",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
-                  }}
-                >
-                  {loadingHistory
-                    ? "A carregar histórico..."
-                    : "Ver histórico de atualizações"}
-                </button>
-              </div>
-
               {selectedPlayer && (
                 <div
                   className="mt-4 rounded-xl p-4"
@@ -1364,6 +1357,24 @@ export default function AdminPage() {
           )}
         </div>
       </div>
+
+      <div className="mt-6 flex justify-end">
+  <button
+    type="button"
+    onClick={handleRecalculatePoints}
+    disabled={loadingSave}
+    className="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+    style={{
+      backgroundColor: "#111827",
+      color: "#ffffff",
+      border: "1px solid #111827",
+      boxShadow: "0 2px 6px rgba(17,24,39,0.18)",
+      minWidth: 220,
+    }}
+  >
+    {loadingSave ? "A recalcular..." : "Recalcular pontos"}
+  </button>
+</div>
 
       {historyOpen && (
         <div
