@@ -31,6 +31,10 @@ function formatDate(dateString: string) {
   });
 }
 
+function formatEuro(value: number) {
+  return `${value.toFixed(2)}€`;
+}
+
 function getOutcome(home: number, away: number) {
   if (home > away) return "HOME";
   if (away > home) return "AWAY";
@@ -322,6 +326,25 @@ export default function RankingPage() {
       return { ...entry, rank: currentRank };
     });
   }, [entries]);
+
+  const totalTeams = leaderboard.length;
+
+  const prizeSummary = useMemo(() => {
+    const totalPot = totalTeams * 10;
+    const podiumPot = totalPot * 0.65;
+
+    const firstPrize = podiumPot * 0.6;
+    const secondPrize = podiumPot * 0.3;
+    const thirdPrize = podiumPot * 0.1;
+
+    return {
+      totalPot,
+      podiumPot,
+      firstPrize,
+      secondPrize,
+      thirdPrize,
+    };
+  }, [totalTeams]);
 
   useEffect(() => {
     const loadAllPredictions = async () => {
@@ -709,7 +732,7 @@ export default function RankingPage() {
             }}
           >
             <div className="px-4 py-5 sm:px-6 md:px-8 md:py-6">
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+              <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
                 <div className="max-w-3xl">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/85">
                     Leaderboard
@@ -723,7 +746,7 @@ export default function RankingPage() {
 
                   <p className="mt-2 text-sm leading-6 text-white/95">
                     {leaderboardMode === "overall"
-                      ? "Vê a classificação geral e acompanha a posição da tua equipa."
+                      ? "Vê a classificação geral, o prémio total e acompanha a posição da tua equipa."
                       : "Classificação por jornada ou fase com base nos pontos totais feitos nessa etapa."}
                   </p>
 
@@ -782,14 +805,46 @@ export default function RankingPage() {
                       </select>
                     </div>
                   )}
+
+                  {leaderboardMode === "overall" && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <div className="rounded-full bg-white/18 px-4 py-2 text-sm font-bold text-white backdrop-blur-sm">
+                        1º lugar: {formatEuro(prizeSummary.firstPrize)}
+                      </div>
+                      <div className="rounded-full bg-white/18 px-4 py-2 text-sm font-bold text-white backdrop-blur-sm">
+                        2º lugar: {formatEuro(prizeSummary.secondPrize)}
+                      </div>
+                      <div className="rounded-full bg-white/18 px-4 py-2 text-sm font-bold text-white backdrop-blur-sm">
+                        3º lugar: {formatEuro(prizeSummary.thirdPrize)}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 xl:w-auto">
+                <div className="grid grid-cols-2 gap-2 xl:grid-cols-5 xl:w-auto">
                   <div className="rounded-2xl bg-white/18 px-4 py-3 backdrop-blur-sm">
                     <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
                       Equipas
                     </p>
-                    <p className="mt-1 text-xl font-black text-white">{leaderboard.length}</p>
+                    <p className="mt-1 text-xl font-black text-white">{totalTeams}</p>
+                  </div>
+
+                  <div className="rounded-2xl bg-white/18 px-4 py-3 backdrop-blur-sm">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
+                      Pote total
+                    </p>
+                    <p className="mt-1 text-xl font-black text-white">
+                      {formatEuro(prizeSummary.totalPot)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl bg-white/18 px-4 py-3 backdrop-blur-sm">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
+                      Valor pódio
+                    </p>
+                    <p className="mt-1 text-xl font-black text-white">
+                      {formatEuro(prizeSummary.podiumPot)}
+                    </p>
                   </div>
 
                   <div className="rounded-2xl bg-white/18 px-4 py-3 backdrop-blur-sm">
