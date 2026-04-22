@@ -33,6 +33,13 @@ type TimestampLike =
 
 type PaymentMethodFilter = "all" | "mbway" | "revolut";
 type AdminTab = "payments" | "stats";
+type PositionFilter = "ALL" | "GR" | "DEF" | "MED" | "ATA";
+
+type HistoryItemWithDiff = PlayerStatHistoryItem & {
+  id: string;
+  goalsDiff: number | null;
+  assistsDiff: number | null;
+};
 
 export default function AdminPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -58,24 +65,74 @@ export default function AdminPage() {
 
   const [historyOpen, setHistoryOpen] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [historyItems, setHistoryItems] = useState<
-    (PlayerStatHistoryItem & { id: string })[]
-  >([]);
+  const [historyItems, setHistoryItems] = useState<HistoryItemWithDiff[]>([]);
 
   const [snapshotStageId, setSnapshotStageId] = useState("jornada 1");
   const [snapshotLabel, setSnapshotLabel] = useState("Jornada 1");
   const [savingSnapshot, setSavingSnapshot] = useState(false);
+
+  // filtros stats
+  const [playerTeamFilter, setPlayerTeamFilter] = useState<string>("ALL");
+  const [playerPositionFilter, setPlayerPositionFilter] =
+    useState<PositionFilter>("ALL");
+  const [playerSearch, setPlayerSearch] = useState("");
 
   useEffect(() => {
     const unsubscribe = listenToAuth(setUser);
     return () => unsubscribe();
   }, []);
 
+  const isAdmin = user?.email === ADMIN_EMAIL;
+
+  const uniqueTeams = useMemo(() => {
+    return ["ALL", ...Array.from(new Set(players.map((player) => player.team))).sort((a, b) =>
+      a.localeCompare(b)
+    )];
+  }, []);
+
+  const filteredPlayers = useMemo(() => {
+    const search = playerSearch.trim().toLowerCase();
+
+    return [...players]
+      .filter((player) => {
+        const matchesTeam =
+          playerTeamFilter === "ALL" || player.team === playerTeamFilter;
+
+        const matchesPosition =
+          playerPositionFilter === "ALL" ||
+          player.position === playerPositionFilter;
+
+        const matchesSearch =
+          !search || player.name.toLowerCase().includes(search);
+
+        return matchesTeam && matchesPosition && matchesSearch;
+      })
+      .sort((a, b) => {
+        if (a.team !== b.team) return a.team.localeCompare(b.team);
+        return a.name.localeCompare(b.name);
+      });
+  }, [playerTeamFilter, playerPositionFilter, playerSearch]);
+
+  useEffect(() => {
+    if (!selectedPlayerId && filteredPlayers.length > 0) {
+      setSelectedPlayerId(String(filteredPlayers[0].id));
+      return;
+    }
+
+    const stillExists = filteredPlayers.some(
+      (player) => String(player.id) === selectedPlayerId
+    );
+
+    if (!stillExists) {
+      setSelectedPlayerId(
+        filteredPlayers.length > 0 ? String(filteredPlayers[0].id) : ""
+      );
+    }
+  }, [filteredPlayers, selectedPlayerId]);
+
   const selectedPlayer = useMemo(() => {
     return players.find((player) => String(player.id) === selectedPlayerId);
   }, [selectedPlayerId]);
-
-  const isAdmin = user?.email === ADMIN_EMAIL;
 
   const loadPayments = async () => {
     try {
@@ -140,7 +197,39 @@ export default function AdminPage() {
     try {
       setLoadingHistory(true);
       const data = await getPlayerStatHistory(Number(selectedPlayerId));
-      setHistoryItems(data);
+
+      const sorted = [...data].sort((a, b) => {
+        const getMs = (value: TimestampLike) => {
+          if (!value) return 0;
+          if (value instanceof Date) return value.getTime();
+          if (typeof value === "number") return value;
+          if (typeof value === "string") return new Date(value).getTime();
+          if (
+            typeof value === "object" &&
+            value !== null &&
+            "seconds" in value &&
+            typeof value.seconds === "number"
+          ) {
+            return value.seconds * 1000;
+          }
+          return 0;
+        };
+
+        return getMs(b.createdAt as TimestampLike) - getMs(a.createdAt as TimestampLike);
+      });
+
+      const enriched: HistoryItemWithDiff[] = sorted.map((item, index) => {
+        const nextOlder = sorted[index + 1];
+
+        return {
+          ...item,
+          id: item.id,
+          goalsDiff: nextOlder ? item.goals - nextOlder.goals : null,
+          assistsDiff: nextOlder ? item.assists - nextOlder.assists : null,
+        };
+      });
+
+      setHistoryItems(enriched);
       setHistoryOpen(true);
     } catch (error) {
       console.error(error);
@@ -254,6 +343,13 @@ export default function AdminPage() {
     } catch {
       return "Sem data";
     }
+  };
+
+  const formatDiff = (value: number | null, label: string) => {
+    if (value === null) return `Primeiro registo de ${label}`;
+    if (value === 0) return `Sem alteração de ${label}`;
+    if (value > 0) return `+${value} ${label}`;
+    return `${value} ${label}`;
   };
 
   const getPaymentField = (payment: PaymentRequest, fieldName: string) => {
@@ -927,9 +1023,129 @@ export default function AdminPage() {
                     color: "#6b7280",
                   }}
                 >
-                  Atualiza golos e assistências, recalcula os pontos e guarda
-                  snapshots históricos da leaderboard.
+                  Atualiza golos e assistências, filtra por seleção/posição,
+                  pesquisa por nome e consulta o histórico de alterações.
                 </p>
+              </div>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: "#374151",
+                    }}
+                  >
+                    Seleção
+                  </label>
+
+                  <select
+                    value={playerTeamFilter}
+                    onChange={(e) => setPlayerTeamFilter(e.target.value)}
+                    className="mt-1.5 h-11 w-full rounded-xl px-3 text-sm outline-none"
+                    style={{
+                      backgroundColor: "#ffffff",
+                      color: "#111827",
+                      border: "1px solid #d1d5db",
+                    }}
+                  >
+                    {uniqueTeams.map((team) => (
+                      <option key={team} value={team}>
+                        {team === "ALL" ? "Todas as seleções" : team}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: "#374151",
+                    }}
+                  >
+                    Posição
+                  </label>
+
+                  <select
+                    value={playerPositionFilter}
+                    onChange={(e) =>
+                      setPlayerPositionFilter(e.target.value as PositionFilter)
+                    }
+                    className="mt-1.5 h-11 w-full rounded-xl px-3 text-sm outline-none"
+                    style={{
+                      backgroundColor: "#ffffff",
+                      color: "#111827",
+                      border: "1px solid #d1d5db",
+                    }}
+                  >
+                    <option value="ALL">Todas as posições</option>
+                    <option value="GR">GR</option>
+                    <option value="DEF">DEF</option>
+                    <option value="MED">MED</option>
+                    <option value="ATA">ATA</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2 xl:col-span-2">
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: "#374151",
+                    }}
+                  >
+                    Pesquisar jogador
+                  </label>
+
+                  <input
+                    type="text"
+                    value={playerSearch}
+                    onChange={(e) => setPlayerSearch(e.target.value)}
+                    placeholder="Ex.: Cristiano, Bruno, Son..."
+                    className="mt-1.5 h-11 w-full rounded-xl px-3 text-sm outline-none"
+                    style={{
+                      backgroundColor: "#ffffff",
+                      color: "#111827",
+                      border: "1px solid #d1d5db",
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPlayerTeamFilter("ALL");
+                    setPlayerPositionFilter("ALL");
+                    setPlayerSearch("");
+                  }}
+                  className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold"
+                  style={{
+                    backgroundColor: "#ffffff",
+                    color: "#374151",
+                    border: "1px solid #d1d5db",
+                  }}
+                >
+                  Limpar filtros
+                </button>
+
+                <div
+                  className="inline-flex h-10 items-center rounded-xl px-4 text-sm font-semibold"
+                  style={{
+                    backgroundColor: "#f9fafb",
+                    color: "#4b5563",
+                    border: "1px solid #e5e7eb",
+                  }}
+                >
+                  {filteredPlayers.length} jogadores encontrados
+                </div>
               </div>
 
               <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
@@ -955,11 +1171,15 @@ export default function AdminPage() {
                       border: "1px solid #d1d5db",
                     }}
                   >
-                    {players.map((player) => (
-                      <option key={player.id} value={player.id}>
-                        {player.name} • {player.team}
-                      </option>
-                    ))}
+                    {filteredPlayers.length === 0 ? (
+                      <option value="">Nenhum jogador encontrado</option>
+                    ) : (
+                      filteredPlayers.map((player) => (
+                        <option key={player.id} value={player.id}>
+                          {player.name} • {player.team} • {player.position}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
 
@@ -1019,7 +1239,9 @@ export default function AdminPage() {
                   <button
                     type="button"
                     onClick={handleSaveStats}
-                    disabled={loadingSave || loadingPlayerStats}
+                    disabled={
+                      loadingSave || loadingPlayerStats || !selectedPlayerId
+                    }
                     className="inline-flex h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                     style={{
                       backgroundColor: "#2f2140",
@@ -1037,7 +1259,7 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={loadHistory}
-                  disabled={loadingHistory}
+                  disabled={loadingHistory || !selectedPlayerId}
                   className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                   style={{
                     backgroundColor: "#ffffff",
@@ -1073,7 +1295,8 @@ export default function AdminPage() {
                       color: "#111827",
                     }}
                   >
-                    {selectedPlayer.name} • {selectedPlayer.team}
+                    {selectedPlayer.name} • {selectedPlayer.team} •{" "}
+                    {selectedPlayer.position}
                   </p>
                   <p style={{ marginTop: 8, fontSize: 14, color: "#374151" }}>
                     Valores atuais:{" "}
@@ -1185,7 +1408,7 @@ export default function AdminPage() {
               </button>
             </div>
 
-            <div className="mt-4 max-h-[430px] space-y-2 overflow-y-auto pr-1">
+            <div className="mt-4 max-h-[430px] space-y-3 overflow-y-auto pr-1">
               {historyItems.length === 0 ? (
                 <div
                   className="rounded-xl p-4"
@@ -1202,7 +1425,7 @@ export default function AdminPage() {
                 historyItems.map((item) => (
                   <div
                     key={item.id}
-                    className="rounded-xl p-3"
+                    className="rounded-xl p-4"
                     style={{
                       backgroundColor: "#f9fafb",
                       border: "1px solid #e5e7eb",
@@ -1232,16 +1455,66 @@ export default function AdminPage() {
                     </div>
 
                     <div
-                      className="mt-2 grid gap-1 sm:grid-cols-2"
+                      className="mt-3 grid gap-2 sm:grid-cols-2"
                       style={{ fontSize: 14, color: "#374151" }}
                     >
-                      <p style={{ margin: 0 }}>
-                        Golos: <span style={{ fontWeight: 700 }}>{item.goals}</span>
-                      </p>
-                      <p style={{ margin: 0 }}>
-                        Assistências:{" "}
-                        <span style={{ fontWeight: 700 }}>{item.assists}</span>
-                      </p>
+                      <div
+                        className="rounded-lg p-3"
+                        style={{
+                          backgroundColor: "#ffffff",
+                          border: "1px solid #e5e7eb",
+                        }}
+                      >
+                        <p style={{ margin: 0, fontSize: 12, color: "#6b7280" }}>
+                          Golos totais
+                        </p>
+                        <p style={{ marginTop: 4, marginBottom: 0, fontWeight: 800 }}>
+                          {item.goals}
+                        </p>
+                        <p
+                          style={{
+                            marginTop: 6,
+                            marginBottom: 0,
+                            fontSize: 12,
+                            color:
+                              item.goalsDiff !== null && item.goalsDiff > 0
+                                ? "#15803d"
+                                : "#6b7280",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {formatDiff(item.goalsDiff, "golos")}
+                        </p>
+                      </div>
+
+                      <div
+                        className="rounded-lg p-3"
+                        style={{
+                          backgroundColor: "#ffffff",
+                          border: "1px solid #e5e7eb",
+                        }}
+                      >
+                        <p style={{ margin: 0, fontSize: 12, color: "#6b7280" }}>
+                          Assistências totais
+                        </p>
+                        <p style={{ marginTop: 4, marginBottom: 0, fontWeight: 800 }}>
+                          {item.assists}
+                        </p>
+                        <p
+                          style={{
+                            marginTop: 6,
+                            marginBottom: 0,
+                            fontSize: 12,
+                            color:
+                              item.assistsDiff !== null && item.assistsDiff > 0
+                                ? "#15803d"
+                                : "#6b7280",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {formatDiff(item.assistsDiff, "assistências")}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 ))
