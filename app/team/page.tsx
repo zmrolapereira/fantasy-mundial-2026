@@ -26,6 +26,7 @@ import { getUserProfile, submitPaymentRequest } from "@/lib/users";
 import SiteHeader from "@/components/SiteHeader";
 
 type PredictionMap = Record<number, { home: string; away: string }>;
+type PositionFilter = "ALL" | "GR" | "DEF" | "MED" | "ATA";
 
 function formatDate(dateString: string) {
   const date = new Date(dateString);
@@ -57,6 +58,18 @@ export default function TeamPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [submittingPayment, setSubmittingPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"mbway" | "revolut" | "">("");
+
+  // filtros melhor marcador
+  const [topScorerTeamFilter, setTopScorerTeamFilter] = useState("ALL");
+  const [topScorerPositionFilter, setTopScorerPositionFilter] =
+    useState<PositionFilter>("ALL");
+  const [topScorerSearch, setTopScorerSearch] = useState("");
+
+  // filtros melhor assistente
+  const [topAssistTeamFilter, setTopAssistTeamFilter] = useState("ALL");
+  const [topAssistPositionFilter, setTopAssistPositionFilter] =
+    useState<PositionFilter>("ALL");
+  const [topAssistSearch, setTopAssistSearch] = useState("");
 
   useEffect(() => {
     const unsubscribe = listenToAuth((authUser) => {
@@ -186,6 +199,90 @@ export default function TeamPage() {
     });
   }, []);
 
+  const uniqueTeams = useMemo(() => {
+    return ["ALL", ...Array.from(new Set(livePlayers.map((player) => player.team))).sort((a, b) =>
+      a.localeCompare(b)
+    )];
+  }, [livePlayers]);
+
+  const topScorerFilteredPlayers = useMemo(() => {
+    const search = topScorerSearch.trim().toLowerCase();
+
+    return [...livePlayers]
+      .filter((player) => {
+        const matchesTeam =
+          topScorerTeamFilter === "ALL" || player.team === topScorerTeamFilter;
+
+        const matchesPosition =
+          topScorerPositionFilter === "ALL" ||
+          player.position === topScorerPositionFilter;
+
+        const matchesSearch =
+          !search || player.name.toLowerCase().includes(search);
+
+        return matchesTeam && matchesPosition && matchesSearch;
+      })
+      .sort((a, b) => {
+        if (a.team !== b.team) return a.team.localeCompare(b.team);
+        return a.name.localeCompare(b.name);
+      });
+  }, [livePlayers, topScorerTeamFilter, topScorerPositionFilter, topScorerSearch]);
+
+  const topAssistFilteredPlayers = useMemo(() => {
+    const search = topAssistSearch.trim().toLowerCase();
+
+    return [...livePlayers]
+      .filter((player) => {
+        const matchesTeam =
+          topAssistTeamFilter === "ALL" || player.team === topAssistTeamFilter;
+
+        const matchesPosition =
+          topAssistPositionFilter === "ALL" ||
+          player.position === topAssistPositionFilter;
+
+        const matchesSearch =
+          !search || player.name.toLowerCase().includes(search);
+
+        return matchesTeam && matchesPosition && matchesSearch;
+      })
+      .sort((a, b) => {
+        if (a.team !== b.team) return a.team.localeCompare(b.team);
+        return a.name.localeCompare(b.name);
+      });
+  }, [livePlayers, topAssistTeamFilter, topAssistPositionFilter, topAssistSearch]);
+
+  useEffect(() => {
+    if (!topScorerId && topScorerFilteredPlayers.length > 0) return;
+
+    const exists = topScorerFilteredPlayers.some(
+      (player) => String(player.id) === topScorerId
+    );
+
+    if (!exists && topScorerFilteredPlayers.length > 0) {
+      setTopScorerId(String(topScorerFilteredPlayers[0].id));
+    }
+
+    if (!exists && topScorerFilteredPlayers.length === 0) {
+      setTopScorerId("");
+    }
+  }, [topScorerFilteredPlayers, topScorerId]);
+
+  useEffect(() => {
+    if (!topAssistId && topAssistFilteredPlayers.length > 0) return;
+
+    const exists = topAssistFilteredPlayers.some(
+      (player) => String(player.id) === topAssistId
+    );
+
+    if (!exists && topAssistFilteredPlayers.length > 0) {
+      setTopAssistId(String(topAssistFilteredPlayers[0].id));
+    }
+
+    if (!exists && topAssistFilteredPlayers.length === 0) {
+      setTopAssistId("");
+    }
+  }, [topAssistFilteredPlayers, topAssistId]);
+
   const topScorerPlayer = livePlayers.find((player) => String(player.id) === topScorerId);
   const topAssistPlayer = livePlayers.find((player) => String(player.id) === topAssistId);
   const champion = teams.find((team) => team.name === championTeam);
@@ -224,64 +321,64 @@ export default function TeamPage() {
     setPaymentMethod("");
   };
 
-const handlePaymentSubmit = async () => {
-  if (!user) {
-    alert("Tens de iniciar sessão primeiro.");
-    router.push("/login");
-    return;
-  }
-
-  if (!paymentMethod) {
-    alert("Escolhe o método de pagamento.");
-    return;
-  }
-
-  try {
-    setSubmittingPayment(true);
-
-    const result = await submitPaymentRequest({
-      userId: user.uid,
-      email: user.email || "",
-      displayName: user.displayName || user.email || "Utilizador",
-      paymentMethod,
-    });
-
-    closePaymentModal();
-
-    if (result.status === "created") {
-      setPaymentStatus("pending");
-      setHasPaidAccess(false);
-      alert("Pedido enviado com sucesso. Agora tens de aguardar pela aprovação do admin.");
+  const handlePaymentSubmit = async () => {
+    if (!user) {
+      alert("Tens de iniciar sessão primeiro.");
+      router.push("/login");
       return;
     }
 
-    if (result.status === "already_pending") {
-      setPaymentStatus("pending");
-      setHasPaidAccess(false);
-      alert("O teu pedido já foi enviado. Agora tens de aguardar pela aprovação do admin.");
+    if (!paymentMethod) {
+      alert("Escolhe o método de pagamento.");
       return;
     }
 
-    if (result.status === "already_approved") {
-      setPaymentStatus("approved");
-      setHasPaidAccess(true);
-      alert("O teu pagamento já foi aprovado. Já tens acesso desbloqueado.");
-      return;
-    }
+    try {
+      setSubmittingPayment(true);
 
-    if (result.status === "resent_after_rejected") {
-      setPaymentStatus("pending");
-      setHasPaidAccess(false);
-      alert("Pedido reenviado com sucesso. Agora tens de aguardar pela aprovação do admin.");
-      return;
+      const result = await submitPaymentRequest({
+        userId: user.uid,
+        email: user.email || "",
+        displayName: user.displayName || user.email || "Utilizador",
+        paymentMethod,
+      });
+
+      closePaymentModal();
+
+      if (result.status === "created") {
+        setPaymentStatus("pending");
+        setHasPaidAccess(false);
+        alert("Pedido enviado com sucesso. Agora tens de aguardar pela aprovação do admin.");
+        return;
+      }
+
+      if (result.status === "already_pending") {
+        setPaymentStatus("pending");
+        setHasPaidAccess(false);
+        alert("O teu pedido já foi enviado. Agora tens de aguardar pela aprovação do admin.");
+        return;
+      }
+
+      if (result.status === "already_approved") {
+        setPaymentStatus("approved");
+        setHasPaidAccess(true);
+        alert("O teu pagamento já foi aprovado. Já tens acesso desbloqueado.");
+        return;
+      }
+
+      if (result.status === "resent_after_rejected") {
+        setPaymentStatus("pending");
+        setHasPaidAccess(false);
+        alert("Pedido reenviado com sucesso. Agora tens de aguardar pela aprovação do admin.");
+        return;
+      }
+    } catch (error: any) {
+      console.error("PAYMENT REQUEST ERROR:", error);
+      alert(error?.message || "Erro ao registar o pedido de pagamento.");
+    } finally {
+      setSubmittingPayment(false);
     }
-  } catch (error: any) {
-    console.error("PAYMENT REQUEST ERROR:", error);
-    alert(error?.message || "Erro ao registar o pedido de pagamento.");
-  } finally {
-    setSubmittingPayment(false);
-  }
-};
+  };
 
   const handleSavePicks = async () => {
     if (!user) {
@@ -514,36 +611,158 @@ const handlePaymentSubmit = async () => {
               />
             </div>
 
-            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div>
-                <label className="block text-sm font-bold text-gray-600">Melhor marcador</label>
+            <div className="mt-5 grid grid-cols-1 gap-6">
+              <div className="rounded-2xl border border-gray-200 bg-[#fafafa] p-4">
+                <label className="block text-sm font-bold text-gray-700">
+                  Melhor marcador
+                </label>
+
+                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <select
+                    value={topScorerTeamFilter}
+                    onChange={(e) => setTopScorerTeamFilter(e.target.value)}
+                    disabled={picksLocked || blockedByPayment}
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                  >
+                    {uniqueTeams.map((team) => (
+                      <option key={team} value={team}>
+                        {team === "ALL" ? "Todas as seleções" : team}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={topScorerPositionFilter}
+                    onChange={(e) =>
+                      setTopScorerPositionFilter(e.target.value as PositionFilter)
+                    }
+                    disabled={picksLocked || blockedByPayment}
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                  >
+                    <option value="ALL">Todas as posições</option>
+                    <option value="GR">GR</option>
+                    <option value="DEF">DEF</option>
+                    <option value="MED">MED</option>
+                    <option value="ATA">ATA</option>
+                  </select>
+
+                  <input
+                    type="text"
+                    placeholder="Pesquisar jogador"
+                    value={topScorerSearch}
+                    onChange={(e) => setTopScorerSearch(e.target.value)}
+                    disabled={picksLocked || blockedByPayment}
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                  />
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTopScorerTeamFilter("ALL");
+                      setTopScorerPositionFilter("ALL");
+                      setTopScorerSearch("");
+                    }}
+                    disabled={picksLocked || blockedByPayment}
+                    className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
+                  >
+                    Limpar filtros
+                  </button>
+
+                  <span className="inline-flex rounded-xl bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-700">
+                    {topScorerFilteredPlayers.length} jogadores
+                  </span>
+                </div>
+
                 <select
                   value={topScorerId}
                   onChange={(e) => setTopScorerId(e.target.value)}
                   disabled={picksLocked || blockedByPayment}
-                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                  className="mt-3 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                 >
                   <option value="">Escolher jogador</option>
-                  {livePlayers.map((player) => (
+                  {topScorerFilteredPlayers.map((player) => (
                     <option key={player.id} value={player.id}>
-                      {player.name} • {player.team}
+                      {player.name} • {player.team} • {player.position}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-bold text-gray-600">Melhor assistente</label>
+              <div className="rounded-2xl border border-gray-200 bg-[#fafafa] p-4">
+                <label className="block text-sm font-bold text-gray-700">
+                  Melhor assistente
+                </label>
+
+                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <select
+                    value={topAssistTeamFilter}
+                    onChange={(e) => setTopAssistTeamFilter(e.target.value)}
+                    disabled={picksLocked || blockedByPayment}
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                  >
+                    {uniqueTeams.map((team) => (
+                      <option key={team} value={team}>
+                        {team === "ALL" ? "Todas as seleções" : team}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={topAssistPositionFilter}
+                    onChange={(e) =>
+                      setTopAssistPositionFilter(e.target.value as PositionFilter)
+                    }
+                    disabled={picksLocked || blockedByPayment}
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                  >
+                    <option value="ALL">Todas as posições</option>
+                    <option value="GR">GR</option>
+                    <option value="DEF">DEF</option>
+                    <option value="MED">MED</option>
+                    <option value="ATA">ATA</option>
+                  </select>
+
+                  <input
+                    type="text"
+                    placeholder="Pesquisar jogador"
+                    value={topAssistSearch}
+                    onChange={(e) => setTopAssistSearch(e.target.value)}
+                    disabled={picksLocked || blockedByPayment}
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                  />
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTopAssistTeamFilter("ALL");
+                      setTopAssistPositionFilter("ALL");
+                      setTopAssistSearch("");
+                    }}
+                    disabled={picksLocked || blockedByPayment}
+                    className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
+                  >
+                    Limpar filtros
+                  </button>
+
+                  <span className="inline-flex rounded-xl bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-700">
+                    {topAssistFilteredPlayers.length} jogadores
+                  </span>
+                </div>
+
                 <select
                   value={topAssistId}
                   onChange={(e) => setTopAssistId(e.target.value)}
                   disabled={picksLocked || blockedByPayment}
-                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                  className="mt-3 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                 >
                   <option value="">Escolher jogador</option>
-                  {livePlayers.map((player) => (
+                  {topAssistFilteredPlayers.map((player) => (
                     <option key={player.id} value={player.id}>
-                      {player.name} • {player.team}
+                      {player.name} • {player.team} • {player.position}
                     </option>
                   ))}
                 </select>
