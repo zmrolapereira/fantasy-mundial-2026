@@ -250,12 +250,14 @@ const handlePaymentSubmit = async () => {
 
     if (result.status === "created") {
       setPaymentStatus("pending");
+      setHasPaidAccess(false);
       alert("Pedido enviado com sucesso. Agora tens de aguardar pela aprovação do admin.");
       return;
     }
 
     if (result.status === "already_pending") {
       setPaymentStatus("pending");
+      setHasPaidAccess(false);
       alert("O teu pedido já foi enviado. Agora tens de aguardar pela aprovação do admin.");
       return;
     }
@@ -270,7 +272,7 @@ const handlePaymentSubmit = async () => {
     if (result.status === "resent_after_rejected") {
       setPaymentStatus("pending");
       setHasPaidAccess(false);
-      alert("Pedido reenviado com sucesso. Aguarda nova aprovação do admin.");
+      alert("Pedido reenviado com sucesso. Agora tens de aguardar pela aprovação do admin.");
       return;
     }
   } catch (error: any) {
