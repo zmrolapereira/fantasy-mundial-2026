@@ -22,6 +22,14 @@ export type ChampionPick = {
   teamName: string;
 };
 
+export type BoostTokenTarget = "topScorer" | "topAssist";
+
+export type BoostToken = {
+  target: BoostTokenTarget;
+  stage: string;
+  activatedAt?: unknown;
+};
+
 export type FantasyEntry = {
   userId: string;
   teamName: string;
@@ -30,12 +38,15 @@ export type FantasyEntry = {
   topAssistPick: PlayerPick | null;
   championPick: ChampionPick | null;
 
+  boostToken?: BoostToken | null;
+
   totalPoints: number;
 
   predictionPoints?: number;
   topScorerPoints?: number;
   topAssistPoints?: number;
   selectedTeamPoints?: number;
+  boostTokenPoints?: number;
 
   createdAt?: unknown;
   updatedAt?: unknown;
@@ -112,6 +123,7 @@ export const getPredictionsByUserId = async (userId: string) => {
 
   return snap.docs.map((docSnap) => docSnap.data() as MatchPrediction);
 };
+
 export const subscribeToFantasyEntries = (
   callback: (entries: FantasyEntry[]) => void
 ) => {
@@ -131,6 +143,7 @@ export const getPredictionsForUser = async (userId: string) => {
     .map((docSnap) => docSnap.data() as MatchPrediction)
     .sort((a, b) => a.gameId - b.gameId);
 };
+
 export const updateFantasyEntryPoints = async (
   userId: string,
   points: {
@@ -139,6 +152,7 @@ export const updateFantasyEntryPoints = async (
     topScorerPoints: number;
     topAssistPoints: number;
     selectedTeamPoints: number;
+    boostTokenPoints: number;
   }
 ) => {
   const entryRef = doc(db, "fantasyEntries", userId);
@@ -149,9 +163,11 @@ export const updateFantasyEntryPoints = async (
     topScorerPoints: points.topScorerPoints,
     topAssistPoints: points.topAssistPoints,
     selectedTeamPoints: points.selectedTeamPoints,
+    boostTokenPoints: points.boostTokenPoints,
     updatedAt: serverTimestamp(),
   });
 };
+
 export const getAllFantasyEntries = async () => {
   const snap = await getDocs(collection(db, "fantasyEntries"));
   return snap.docs.map((docSnap) => docSnap.data() as FantasyEntry);
