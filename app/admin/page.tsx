@@ -240,32 +240,36 @@ export default function AdminPage() {
   };
 
   const handleSaveStats = async () => {
-    if (!selectedPlayerId || !selectedPlayer) {
-      alert("Escolhe um jogador.");
-      return;
-    }
+  if (!selectedPlayerId || !selectedPlayer) {
+    alert("Escolhe um jogador.");
+    return;
+  }
 
-    try {
-      setLoadingSave(true);
+  try {
+    setLoadingSave(true);
 
-      await savePlayerTournamentStat(
-        Number(selectedPlayerId),
-        selectedPlayer.name,
-        Number(goals || 0),
-        Number(assists || 0)
-      );
+    console.log("1. savePlayerTournamentStat");
+    await savePlayerTournamentStat(
+      Number(selectedPlayerId),
+      selectedPlayer.name,
+      Number(goals || 0),
+      Number(assists || 0)
+    );
 
-      await loadPlayerStats();
-      await recalculateAllFantasyPoints();
+    console.log("2. loadPlayerStats");
+    await loadPlayerStats();
 
-      alert("Stats guardadas com sucesso e pontos recalculados.");
-    } catch (error) {
-      console.error(error);
-      alert("Erro ao guardar as stats.");
-    } finally {
-      setLoadingSave(false);
-    }
-  };
+    console.log("3. recalculateAllFantasyPoints");
+    await recalculateAllFantasyPoints();
+
+    alert("Stats guardadas com sucesso e pontos recalculados.");
+  } catch (error: any) {
+    console.error("SAVE STATS ERROR:", error);
+    alert(error?.message || "Erro ao guardar as stats.");
+  } finally {
+    setLoadingSave(false);
+  }
+};
 
   const handleApprove = async (userId: string) => {
     try {
