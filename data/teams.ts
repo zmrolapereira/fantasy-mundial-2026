@@ -15,14 +15,14 @@ export const teams: Team[] = [
   { id: "mex", name: "México", code: "MEX", flag: flag("mx"), group: "A" },
   { id: "rsa", name: "África do Sul", code: "RSA", flag: flag("za"), group: "A" },
   { id: "kor", name: "Coreia do Sul", code: "KOR", flag: flag("kr"), group: "A" },
-  { id: "den", name: "Dinamarca", code: "DEN", flag: flag("dk"), group: "A" },
+  { id: "cze", name: "República Checa", code: "CZE", flag: flag("cz"), group: "A" },
 
   // Grupo B
   { id: "can", name: "Canadá", code: "CAN", flag: flag("ca"), group: "B" },
+  { id: "bih", name: "Bósnia e Herzegovina", code: "BIH", flag: flag("ba"), group: "B" },
   { id: "qat", name: "Qatar", code: "QAT", flag: flag("qa"), group: "B" },
   { id: "sui", name: "Suíça", code: "SUI", flag: flag("ch"), group: "B" },
-  { id: "ita", name: "Itália", code: "ITA", flag: flag("it"), group: "B" },
-
+  
   // Grupo C
   { id: "bra", name: "Brasil", code: "BRA", flag: flag("br"), group: "C" },
   { id: "mar", name: "Marrocos", code: "MAR", flag: flag("ma"), group: "C" },
@@ -44,8 +44,8 @@ export const teams: Team[] = [
   // Grupo F
   { id: "ned", name: "Holanda", code: "NED", flag: flag("nl"), group: "F" },
   { id: "jpn", name: "Japão", code: "JPN", flag: flag("jp"), group: "F" },
+  { id: "swe", name: "Suécia", code: "SWE", flag: flag("se"), group: "F" },
   { id: "tun", name: "Tunísia", code: "TUN", flag: flag("tn"), group: "F" },
-  { id: "ukr", name: "Ucrânia", code: "UKR", flag: flag("ua"), group: "F" },
 
   // Grupo G
   { id: "bel", name: "Bélgica", code: "BEL", flag: flag("be"), group: "G" },
@@ -60,9 +60,9 @@ export const teams: Team[] = [
   { id: "uru", name: "Uruguai", code: "URU", flag: flag("uy"), group: "H" },
 
   // Grupo I
-  { id: "bol", name: "Bolívia", code: "BOL", flag: flag("bo"), group: "I" },
   { id: "fra", name: "França", code: "FRA", flag: flag("fr"), group: "I" },
   { id: "sen", name: "Senegal", code: "SEN", flag: flag("sn"), group: "I" },
+  { id: "irq", name: "Iraque", code: "IRQ", flag: flag("iq"), group: "I" },
   { id: "nor", name: "Noruega", code: "NOR", flag: flag("no"), group: "I" },
 
   // Grupo J
@@ -72,8 +72,8 @@ export const teams: Team[] = [
   { id: "jor", name: "Jordânia", code: "JOR", flag: flag("jo"), group: "J" },
 
   // Grupo K
-  { id: "jam", name: "Jamaica", code: "JAM", flag: flag("jm"), group: "K" },
   { id: "por", name: "Portugal", code: "POR", flag: flag("pt"), group: "K" },
+  { id: "cod", name: "RD Congo", code: "COD", flag: flag("cd"), group: "K" },
   { id: "uzb", name: "Uzbequistão", code: "UZB", flag: flag("uz"), group: "K" },
   { id: "col", name: "Colômbia", code: "COL", flag: flag("co"), group: "K" },
 
