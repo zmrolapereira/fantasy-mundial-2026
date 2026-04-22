@@ -330,23 +330,28 @@ export default function RankingPage() {
   const totalTeams = leaderboard.length;
 
   const prizeSummary = useMemo(() => {
-    const totalPot = totalTeams * 10;
-    const podiumPot = totalPot * 0.65;
+  const totalPot = totalTeams * 10;
 
-    const firstPrize = podiumPot * 0.6;
-    const secondPrize = podiumPot * 0.3;
-    const thirdPrize = podiumPot * 0.1;
+  const podiumPot = totalPot * 0.65;
+  const stagesPot = totalPot * 0.2;
 
-    const stageWinnerPrize = (totalPot * 0.2) / 8;
+  const totalPrizes = podiumPot + stagesPot; // 👈 NOVO
 
-    return {
-      totalPot,
-      firstPrize,
-      secondPrize,
-      thirdPrize,
-      stageWinnerPrize,
-    };
-  }, [totalTeams]);
+  const firstPrize = podiumPot * 0.6;
+  const secondPrize = podiumPot * 0.3;
+  const thirdPrize = podiumPot * 0.1;
+
+  const stageWinnerPrize = stagesPot / 8;
+
+  return {
+    totalPot,
+    totalPrizes, // 👈 NOVO
+    firstPrize,
+    secondPrize,
+    thirdPrize,
+    stageWinnerPrize,
+  };
+}, [totalTeams]);
 
   useEffect(() => {
     const loadAllPredictions = async () => {
