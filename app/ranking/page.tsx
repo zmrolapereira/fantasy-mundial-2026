@@ -337,12 +337,14 @@ export default function RankingPage() {
     const secondPrize = podiumPot * 0.3;
     const thirdPrize = podiumPot * 0.1;
 
+    const stageWinnerPrize = (totalPot * 0.2) / 8;
+
     return {
       totalPot,
-      podiumPot,
       firstPrize,
       secondPrize,
       thirdPrize,
+      stageWinnerPrize,
     };
   }, [totalTeams]);
 
@@ -746,7 +748,7 @@ export default function RankingPage() {
 
                   <p className="mt-2 text-sm leading-6 text-white/95">
                     {leaderboardMode === "overall"
-                      ? "Vê a classificação geral, o prémio total e acompanha a posição da tua equipa."
+                      ? "Vê a classificação geral, o pote total e os prémios finais da fantasy."
                       : "Classificação por jornada ou fase com base nos pontos totais feitos nessa etapa."}
                   </p>
 
@@ -807,15 +809,41 @@ export default function RankingPage() {
                   )}
 
                   {leaderboardMode === "overall" && (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <div className="rounded-full bg-white/18 px-4 py-2 text-sm font-bold text-white backdrop-blur-sm">
-                        1º lugar: {formatEuro(prizeSummary.firstPrize)}
+                    <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                      <div className="rounded-2xl bg-yellow-300/90 px-4 py-3 text-slate-900 shadow-sm backdrop-blur-sm">
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em]">
+                          🥇 1º lugar
+                        </p>
+                        <p className="mt-1 text-2xl font-black">
+                          {formatEuro(prizeSummary.firstPrize)}
+                        </p>
+                        <p className="mt-1 text-[11px] font-semibold text-slate-800/80">
+                          60% do prémio final
+                        </p>
                       </div>
-                      <div className="rounded-full bg-white/18 px-4 py-2 text-sm font-bold text-white backdrop-blur-sm">
-                        2º lugar: {formatEuro(prizeSummary.secondPrize)}
+
+                      <div className="rounded-2xl bg-slate-200/95 px-4 py-3 text-slate-900 shadow-sm backdrop-blur-sm">
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em]">
+                          🥈 2º lugar
+                        </p>
+                        <p className="mt-1 text-2xl font-black">
+                          {formatEuro(prizeSummary.secondPrize)}
+                        </p>
+                        <p className="mt-1 text-[11px] font-semibold text-slate-800/80">
+                          30% do prémio final
+                        </p>
                       </div>
-                      <div className="rounded-full bg-white/18 px-4 py-2 text-sm font-bold text-white backdrop-blur-sm">
-                        3º lugar: {formatEuro(prizeSummary.thirdPrize)}
+
+                      <div className="rounded-2xl bg-amber-500/90 px-4 py-3 text-white shadow-sm backdrop-blur-sm">
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em]">
+                          🥉 3º lugar
+                        </p>
+                        <p className="mt-1 text-2xl font-black">
+                          {formatEuro(prizeSummary.thirdPrize)}
+                        </p>
+                        <p className="mt-1 text-[11px] font-semibold text-white/85">
+                          10% do prémio final
+                        </p>
                       </div>
                     </div>
                   )}
@@ -840,10 +868,10 @@ export default function RankingPage() {
 
                   <div className="rounded-2xl bg-white/18 px-4 py-3 backdrop-blur-sm">
                     <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
-                      Valor pódio
+                      Prémio jornada
                     </p>
                     <p className="mt-1 text-xl font-black text-white">
-                      {formatEuro(prizeSummary.podiumPot)}
+                      {formatEuro(prizeSummary.stageWinnerPrize)}
                     </p>
                   </div>
 
