@@ -352,7 +352,7 @@ export const games: Game[] = [
     awayTeam: "República Checa",
     homeScore: 2,
     awayScore: 0,
-    status: "Por jogar",
+    status: "FT",
   },
   {
     id: 26,
