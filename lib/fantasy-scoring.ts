@@ -1,6 +1,5 @@
 import type { Game } from "@/data/games";
 import type { FantasyEntry, MatchPrediction } from "@/lib/fantasy-entry";
-import type { PlayerStageSnapshot } from "@/lib/player-stage-snapshots";
 
 export type PlayerTournamentStat = {
   playerId: number;
@@ -158,97 +157,13 @@ function getSelectedTeamStagePoints(teamName: string, games: Game[]) {
   return points;
 }
 
-function getOrderedRoundLabels(games: Game[]) {
-  const roundMap = new Map<string, number>();
-
-  games.forEach((game) => {
-    const current = roundMap.get(game.round);
-    const gameTime = new Date(`${game.date}T${game.time}:00`).getTime();
-
-    if (current === undefined || gameTime < current) {
-      roundMap.set(game.round, gameTime);
-    }
-  });
-
-  return [...roundMap.entries()]
-    .sort((a, b) => a[1] - b[1])
-    .map(([round]) => round);
-}
-
-function getSnapshotValue(
-  snapshots: PlayerStageSnapshot[],
-  stage: string,
-  playerId: number,
-  field: "goals" | "assists"
-) {
-  const snapshot = snapshots.find(
-    (item) => item.stage === stage && item.playerId === playerId
-  );
-
-  return snapshot ? Number(snapshot[field] ?? 0) : 0;
-}
-
-function getBoostTokenPoints(params: {
-  entry: FantasyEntry;
-  games: Game[];
-  playerStageSnapshots: PlayerStageSnapshot[];
-}) {
-  const { entry, games, playerStageSnapshots } = params;
-
-  if (!entry.boostToken) return 0;
-
-  const { stage, target } = entry.boostToken;
-
-  const playerId =
-    target === "topScorer"
-      ? entry.topScorerPick?.playerId
-      : entry.topAssistPick?.playerId;
-
-  if (!playerId) return 0;
-
-  const orderedRounds = getOrderedRoundLabels(games);
-  const currentStageIndex = orderedRounds.indexOf(stage);
-
-  if (currentStageIndex === -1) return 0;
-
-  const previousStage =
-    currentStageIndex > 0 ? orderedRounds[currentStageIndex - 1] : null;
-
-  if (target === "topScorer") {
-    const currentGoals = getSnapshotValue(
-      playerStageSnapshots,
-      stage,
-      playerId,
-      "goals"
-    );
-    const previousGoals = previousStage
-      ? getSnapshotValue(playerStageSnapshots, previousStage, playerId, "goals")
-      : 0;
-
-    return Math.max(0, currentGoals - previousGoals);
-  }
-
-  const currentAssists = getSnapshotValue(
-    playerStageSnapshots,
-    stage,
-    playerId,
-    "assists"
-  );
-  const previousAssists = previousStage
-    ? getSnapshotValue(playerStageSnapshots, previousStage, playerId, "assists")
-    : 0;
-
-  return Math.max(0, currentAssists - previousAssists);
-}
-
 export function calculateFantasyEntryPoints(params: {
   entry: FantasyEntry;
   predictions: MatchPrediction[];
   games: Game[];
   playerStats: PlayerTournamentStat[];
-  playerStageSnapshots: PlayerStageSnapshot[];
 }) {
-  const { entry, predictions, games, playerStats, playerStageSnapshots } = params;
+  const { entry, predictions, games, playerStats } = params;
 
   let predictionPoints = 0;
 
@@ -267,25 +182,17 @@ export function calculateFantasyEntryPoints(params: {
       getSelectedTeamStagePoints(entry.championPick.teamName, games)
     : 0;
 
-  const boostTokenPoints = getBoostTokenPoints({
-    entry,
-    games,
-    playerStageSnapshots,
-  });
-
   const totalPoints =
     predictionPoints +
     topScorerPoints +
     topAssistPoints +
-    selectedTeamPoints +
-    boostTokenPoints;
+    selectedTeamPoints;
 
   return {
     predictionPoints,
     topScorerPoints,
     topAssistPoints,
     selectedTeamPoints,
-    boostTokenPoints,
     totalPoints,
   };
 }

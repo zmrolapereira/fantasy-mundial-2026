@@ -13,9 +13,6 @@ import {
   getPredictionsByUserId,
   saveFantasyEntry,
   saveMatchPredictions,
-  saveBoostTokenForUser,
-  type BoostToken,
-  type BoostTokenTarget,
   type MatchPredictionInput,
 } from "@/lib/fantasy-entry";
 import {
@@ -49,7 +46,6 @@ export default function TeamPage() {
 
   const [savingPicks, setSavingPicks] = useState(false);
   const [savingRoundLabel, setSavingRoundLabel] = useState<string | null>(null);
-  const [savingToken, setSavingToken] = useState(false);
 
   const [livePlayers, setLivePlayers] = useState<Player[]>([]);
   const [teamName, setTeamName] = useState("");
@@ -64,22 +60,15 @@ export default function TeamPage() {
   const [submittingPayment, setSubmittingPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"mbway" | "revolut" | "">("");
 
-  // filtros melhor marcador
   const [topScorerTeamFilter, setTopScorerTeamFilter] = useState("ALL");
   const [topScorerPositionFilter, setTopScorerPositionFilter] =
     useState<PositionFilter>("ALL");
   const [topScorerSearch, setTopScorerSearch] = useState("");
 
-  // filtros melhor assistente
   const [topAssistTeamFilter, setTopAssistTeamFilter] = useState("ALL");
   const [topAssistPositionFilter, setTopAssistPositionFilter] =
     useState<PositionFilter>("ALL");
   const [topAssistSearch, setTopAssistSearch] = useState("");
-
-  // token única
-  const [boostTokenTarget, setBoostTokenTarget] = useState<BoostTokenTarget | "">("");
-  const [boostTokenStage, setBoostTokenStage] = useState("");
-  const [savedBoostToken, setSavedBoostToken] = useState<BoostToken | null>(null);
 
   useEffect(() => {
     const unsubscribe = listenToAuth((authUser) => {
@@ -134,9 +123,6 @@ export default function TeamPage() {
           setTopScorerId(entry.topScorerPick ? String(entry.topScorerPick.playerId) : "");
           setTopAssistId(entry.topAssistPick ? String(entry.topAssistPick.playerId) : "");
           setChampionTeam(entry.championPick?.teamName ?? "");
-          setSavedBoostToken(entry.boostToken ?? null);
-          setBoostTokenTarget(entry.boostToken?.target ?? "");
-          setBoostTokenStage(entry.boostToken?.stage ?? "");
         }
 
         const mergedPredictions: PredictionMap = { ...initialPredictions };
@@ -211,47 +197,6 @@ export default function TeamPage() {
       return ia - ib;
     });
   }, []);
-
-  const availableTokenStages = useMemo(() => {
-  const allowedStages = new Set([
-    "Jornada 1",
-    "Jornada 2",
-    "Jornada 3",
-    "Oitavos",
-    "Quartos",
-    "Meia-final 1",
-    "Meia-final 2",
-    "3º lugar",
-    "Final",
-  ]);
-
-  return gamesByRound
-    .map(([roundLabel]) => roundLabel)
-    .filter((roundLabel) => allowedStages.has(roundLabel));
-}, [gamesByRound]);
-
-  const selectedTokenRoundGames = useMemo(() => {
-    return gamesByRound.find(([roundLabel]) => roundLabel === boostTokenStage)?.[1] ?? [];
-  }, [gamesByRound, boostTokenStage]);
-
-  const selectedTokenLocked = useMemo(() => {
-    if (!boostTokenStage || selectedTokenRoundGames.length === 0) return false;
-    const firstGame = getRoundFirstGame(selectedTokenRoundGames);
-    const lockDate = getLockDateFromGame(firstGame);
-    return nowTick >= lockDate.getTime();
-  }, [boostTokenStage, selectedTokenRoundGames, nowTick]);
-
-  const savedTokenRoundGames = useMemo(() => {
-    if (!savedBoostToken?.stage) return [];
-    return gamesByRound.find(([roundLabel]) => roundLabel === savedBoostToken.stage)?.[1] ?? [];
-  }, [gamesByRound, savedBoostToken]);
-
-  const savedTokenLocked = useMemo(() => {
-    if (!savedBoostToken?.stage || savedTokenRoundGames.length === 0) return false;
-    const firstGame = getRoundFirstGame(savedTokenRoundGames);
-    const lockDate = getLockDateFromGame(firstGame);
-    return nowTick >= lockDate.getTime();
-  }, [savedBoostToken, savedTokenRoundGames, nowTick]);
 
   const uniqueTeams = useMemo(() => {
     return ["ALL", ...Array.from(new Set(livePlayers.map((player) => player.team))).sort((a, b) =>
@@ -346,13 +291,6 @@ export default function TeamPage() {
       (prediction) => prediction.home !== "" && prediction.away !== ""
     ).length;
   }, [predictions]);
-
-  const canSaveToken = useMemo(() => {
-    if (blockedByPayment) return false;
-    if (!boostTokenTarget || !boostTokenStage.trim()) return false;
-    if (selectedTokenLocked) return false;
-    return true;
-  }, [blockedByPayment, boostTokenTarget, boostTokenStage, selectedTokenLocked]);
 
   const handlePredictionChange = (
     gameId: number,
@@ -498,13 +436,11 @@ export default function TeamPage() {
         championPick: {
           teamName: championTeam,
         },
-        boostToken: existingEntry?.boostToken ?? savedBoostToken ?? null,
         totalPoints: existingEntry?.totalPoints ?? 0,
         predictionPoints: existingEntry?.predictionPoints ?? 0,
         topScorerPoints: existingEntry?.topScorerPoints ?? 0,
         topAssistPoints: existingEntry?.topAssistPoints ?? 0,
         selectedTeamPoints: existingEntry?.selectedTeamPoints ?? 0,
-        boostTokenPoints: existingEntry?.boostTokenPoints ?? 0,
       });
 
       alert("Picks principais guardados com sucesso.");
@@ -513,114 +449,6 @@ export default function TeamPage() {
       alert("Erro ao guardar os picks principais.");
     } finally {
       setSavingPicks(false);
-    }
-  };
-
-  const handleSaveToken = async () => {
-    if (!user) {
-      alert("Tens de iniciar sessão primeiro.");
-      router.push("/login");
-      return;
-    }
-
-    if (blockedByPayment) {
-      openPaymentModal();
-      return;
-    }
-
-    const existingEntry = await getFantasyEntryByUserId(user.uid);
-
-    if (!existingEntry) {
-      alert("Primeiro tens de guardar os picks principais.");
-      return;
-    }
-
-    if (!boostTokenTarget || !boostTokenStage.trim()) {
-      alert("Escolhe o tipo da token e a jornada/fase.");
-      return;
-    }
-
-    const roundGames =
-      gamesByRound.find(([roundLabel]) => roundLabel === boostTokenStage)?.[1] ?? [];
-
-    if (!roundGames.length) {
-      alert("A jornada/fase da token não é válida.");
-      return;
-    }
-
-    const firstGame = getRoundFirstGame(roundGames);
-    const lockDate = getLockDateFromGame(firstGame);
-
-    if (Date.now() >= lockDate.getTime()) {
-      alert("Já não podes ativar a token para essa jornada/fase.");
-      return;
-    }
-
-    if (savedBoostToken && savedTokenLocked) {
-      alert("A tua token já ficou bloqueada e não pode ser alterada.");
-      return;
-    }
-
-    try {
-      setSavingToken(true);
-
-      const finalToken: BoostToken = {
-        target: boostTokenTarget,
-        stage: boostTokenStage.trim(),
-      };
-
-      await saveBoostTokenForUser(user.uid, finalToken);
-      setSavedBoostToken(finalToken);
-
-      alert("Token guardada com sucesso.");
-    } catch (error) {
-      console.error(error);
-      alert("Erro ao guardar a token.");
-    } finally {
-      setSavingToken(false);
-    }
-  };
-
-  const handleClearToken = async () => {
-    if (!user) {
-      alert("Tens de iniciar sessão primeiro.");
-      router.push("/login");
-      return;
-    }
-
-    if (blockedByPayment) {
-      openPaymentModal();
-      return;
-    }
-
-    const existingEntry = await getFantasyEntryByUserId(user.uid);
-
-    if (!existingEntry) {
-      setBoostTokenTarget("");
-      setBoostTokenStage("");
-      setSavedBoostToken(null);
-      return;
-    }
-
-    if (savedBoostToken && savedTokenLocked) {
-      alert("A tua token já ficou bloqueada e não pode ser removida.");
-      return;
-    }
-
-    try {
-      setSavingToken(true);
-
-      await saveBoostTokenForUser(user.uid, null);
-      setSavedBoostToken(null);
-      setBoostTokenTarget("");
-      setBoostTokenStage("");
-
-      alert("Token removida com sucesso.");
-    } catch (error) {
-      console.error(error);
-      alert("Erro ao remover a token.");
-    } finally {
-      setSavingToken(false);
     }
   };
 
@@ -1025,19 +853,6 @@ export default function TeamPage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-amber-50 p-4">
-                <p className="text-sm text-gray-500">Token ativa</p>
-                <p className="mt-2 text-base font-bold text-gray-900 sm:text-lg">
-                  {savedBoostToken
-                    ? `${
-                        savedBoostToken.target === "topScorer"
-                          ? "Melhor marcador"
-                          : "Melhor assistente"
-                      } • ${savedBoostToken.stage}`
-                    : "Não usada"}
-                </p>
-              </div>
-
               <div className="rounded-2xl bg-gradient-to-r from-cyan-400 to-indigo-500 p-4 text-white">
                 <p className="text-xs uppercase tracking-wide text-white/80">Palpites preenchidos</p>
                 <p className="mt-2 text-3xl font-extrabold">
@@ -1046,131 +861,6 @@ export default function TeamPage() {
               </div>
             </div>
           </div>
-        </section>
-
-        <section className="mb-6 rounded-3xl border border-amber-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-3xl">
-              <p className="text-xs font-bold uppercase tracking-wide text-amber-700">
-                Token única
-              </p>
-              <h2 className="mt-2 text-2xl font-extrabold text-gray-900 sm:text-3xl">
-                Boost de jornada / fase
-              </h2>
-              <p className="mt-3 text-sm leading-7 text-gray-700 sm:text-base">
-                Esta token pode ser usada apenas uma vez na época. Escolhes uma jornada
-                ou fase e decides se queres dobrar os pontos do teu{" "}
-                <strong>melhor marcador</strong> ou do teu{" "}
-                <strong>melhor assistente</strong> nessa etapa.
-              </p>
-              <p className="mt-2 text-sm leading-7 text-gray-700 sm:text-base">
-                A token pode ser guardada até ao início da jornada/fase escolhida,
-                mesmo depois de os picks principais já terem fechado.
-              </p>
-            </div>
-
-            {savedBoostToken && (
-              <div className="rounded-2xl bg-amber-50 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
-                  Guardada
-                </p>
-                <p className="mt-1 text-sm font-bold text-gray-900">
-                  {savedBoostToken.target === "topScorer"
-                    ? "Melhor marcador"
-                    : "Melhor assistente"}{" "}
-                  • {savedBoostToken.stage}
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div>
-              <label className="block text-sm font-bold text-gray-700">
-                Aplicar a
-              </label>
-              <select
-                value={boostTokenTarget}
-                onChange={(e) =>
-                  setBoostTokenTarget(e.target.value as BoostTokenTarget | "")
-                }
-                disabled={blockedByPayment || (savedBoostToken !== null && savedTokenLocked)}
-                className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
-              >
-                <option value="">Não usar token</option>
-                <option value="topScorer">Melhor marcador</option>
-                <option value="topAssist">Melhor assistente</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700">
-                Jornada / fase
-              </label>
-              <select
-                value={boostTokenStage}
-                onChange={(e) => setBoostTokenStage(e.target.value)}
-                disabled={blockedByPayment || (savedBoostToken !== null && savedTokenLocked)}
-                className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
-              >
-                <option value="">Escolher jornada/fase</option>
-                {availableTokenStages.map((roundLabel) => (
-                  <option key={roundLabel} value={roundLabel}>
-                    {roundLabel}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            {boostTokenStage && (
-              <span
-                className={`inline-flex rounded-xl px-4 py-2 text-sm font-semibold ${
-                  selectedTokenLocked
-                    ? "bg-red-100 text-red-700"
-                    : "bg-green-100 text-green-700"
-                }`}
-              >
-                {selectedTokenLocked
-                  ? "Essa jornada/fase já fechou"
-                  : "Ainda podes usar esta token"}
-              </span>
-            )}
-
-            {savedBoostToken && savedTokenLocked && (
-              <span className="inline-flex rounded-xl bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700">
-                Token bloqueada
-              </span>
-            )}
-          </div>
-
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <button
-              type="button"
-              onClick={handleSaveToken}
-              disabled={savingToken || !canSaveToken || (savedBoostToken !== null && savedTokenLocked)}
-              className="rounded-2xl bg-amber-500 px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {savingToken ? "A guardar token..." : "Guardar token"}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleClearToken}
-              disabled={savingToken || (savedBoostToken !== null && savedTokenLocked)}
-              className="rounded-2xl border border-gray-300 bg-white px-5 py-3 text-sm font-bold text-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Remover token
-            </button>
-          </div>
-
-          {!savedBoostToken && (
-            <p className="mt-3 text-sm text-gray-500">
-              Primeiro guarda os picks principais e depois podes guardar a token
-              quando quiseres, até ao início da etapa escolhida.
-            </p>
-          )}
         </section>
 
         <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">

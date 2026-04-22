@@ -22,14 +22,6 @@ export type ChampionPick = {
   teamName: string;
 };
 
-export type BoostTokenTarget = "topScorer" | "topAssist";
-
-export type BoostToken = {
-  target: BoostTokenTarget;
-  stage: string;
-  activatedAt?: unknown;
-};
-
 export type FantasyEntry = {
   userId: string;
   teamName: string;
@@ -38,15 +30,12 @@ export type FantasyEntry = {
   topAssistPick: PlayerPick | null;
   championPick: ChampionPick | null;
 
-  boostToken?: BoostToken | null;
-
   totalPoints: number;
 
   predictionPoints?: number;
   topScorerPoints?: number;
   topAssistPoints?: number;
   selectedTeamPoints?: number;
-  boostTokenPoints?: number;
 
   createdAt?: unknown;
   updatedAt?: unknown;
@@ -80,32 +69,6 @@ export const saveFantasyEntry = async (entry: FantasyEntry) => {
       createdAt: existingDoc.exists()
         ? existingDoc.data().createdAt
         : serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
-};
-
-export const saveBoostTokenForUser = async (
-  userId: string,
-  boostToken: BoostToken | null
-) => {
-  const entryRef = doc(db, "fantasyEntries", userId);
-  const existingDoc = await getDoc(entryRef);
-
-  if (!existingDoc.exists()) {
-    throw new Error("Primeiro tens de guardar os picks principais.");
-  }
-
-  await setDoc(
-    entryRef,
-    {
-      boostToken: boostToken
-        ? {
-            ...boostToken,
-            activatedAt: serverTimestamp(),
-          }
-        : null,
       updatedAt: serverTimestamp(),
     },
     { merge: true }
@@ -178,7 +141,6 @@ export const updateFantasyEntryPoints = async (
     topScorerPoints: number;
     topAssistPoints: number;
     selectedTeamPoints: number;
-    boostTokenPoints: number;
   }
 ) => {
   const entryRef = doc(db, "fantasyEntries", userId);
@@ -189,7 +151,6 @@ export const updateFantasyEntryPoints = async (
     topScorerPoints: points.topScorerPoints,
     topAssistPoints: points.topAssistPoints,
     selectedTeamPoints: points.selectedTeamPoints,
-    boostTokenPoints: points.boostTokenPoints,
     updatedAt: serverTimestamp(),
   });
 };
