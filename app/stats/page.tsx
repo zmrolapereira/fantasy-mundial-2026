@@ -54,7 +54,7 @@ export default function StatsPage() {
           </p>
         </div>
 
-        <div className="mb-6 grid gap-4 md:grid-cols-3">
+        <div className="mb-6 grid gap-4 md:grid-cols-2">
           <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
             <p className="text-sm text-gray-500">Total de golos</p>
             <p className="mt-2 text-3xl font-extrabold text-blue-600">{totalGoals}</p>
@@ -63,11 +63,6 @@ export default function StatsPage() {
           <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
             <p className="text-sm text-gray-500">Total de assistências</p>
             <p className="mt-2 text-3xl font-extrabold text-purple-600">{totalAssists}</p>
-          </div>
-
-          <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
-            <p className="text-sm text-gray-500">Total de pontos</p>
-            <p className="mt-2 text-3xl font-extrabold text-emerald-600">{totalPoints}</p>
           </div>
         </div>
 
