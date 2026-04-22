@@ -8,14 +8,15 @@ import SiteHeader from "@/components/SiteHeader";
 type PhaseFilter =
   | "ALL"
   | "Fase de Grupos"
+  | "Jornada 1"
+  | "Jornada 2"
+  | "Jornada 3"
   | "16 avos"
   | "Oitavos"
   | "Quartos"
   | "Meias-finais"
   | "3º lugar"
   | "Final";
-
-type RoundFilter = "ALL" | string;
 
 function getTeamByName(name: string) {
   return teams.find((team) => team.name === name);
@@ -40,51 +41,33 @@ function renderScore(homeScore: number | null, awayScore: number | null) {
   return `${homeScore} - ${awayScore}`;
 }
 
-function getPhaseLabel(phase: GamePhase) {
+function getPhaseLabel(phase: string) {
+  if (phase === "ALL") return "Todas as fases";
   if (phase === "Oitavos") return "8avos";
   if (phase === "Meias-finais") return "Meias";
   return phase;
 }
 
-function getPhaseOrder(phase: PhaseFilter) {
+function getPhaseOrder(phase: string) {
   const order: Record<string, number> = {
     "Fase de Grupos": 1,
-    "16 avos": 2,
-    Oitavos: 3,
-    Quartos: 4,
-    "Meias-finais": 5,
-    "3º lugar": 6,
-    Final: 7,
+    "Jornada 1": 2,
+    "Jornada 2": 3,
+    "Jornada 3": 4,
+    "16 avos": 5,
+    Oitavos: 6,
+    Quartos: 7,
+    "Meias-finais": 8,
+    "3º lugar": 9,
+    Final: 10,
   };
 
   return order[phase] ?? 999;
 }
 
-function getRoundOrder(round: string) {
-  if (round === "Jornada 1") return 1;
-  if (round === "Jornada 2") return 2;
-  if (round === "Jornada 3") return 3;
-
-  const jogoMatch = round.match(/^Jogo\s+(\d+)$/i);
-  if (jogoMatch) return 100 + Number(jogoMatch[1]);
-
-  if (round === "Oitavos") return 200;
-  if (round === "Quartos") return 300;
-  if (round === "Meias-finais") return 400;
-  if (round === "3º lugar") return 500;
-  if (round === "Final") return 600;
-
-  return 999;
-}
-
 export default function GamesPage() {
   const [selectedTeam, setSelectedTeam] = useState<string>("ALL");
   const [selectedPhase, setSelectedPhase] = useState<PhaseFilter>("ALL");
-  const [selectedRound, setSelectedRound] = useState<RoundFilter>("ALL");
-
-  const validTeamNames = useMemo(() => {
-    return new Set(teams.map((team) => team.name));
-  }, []);
 
   const uniqueTeams = useMemo(() => {
     return ["ALL", ...teams.map((team) => team.name).sort((a, b) => a.localeCompare(b))];
@@ -93,6 +76,9 @@ export default function GamesPage() {
   const phaseOptions: PhaseFilter[] = [
     "ALL",
     "Fase de Grupos",
+    "Jornada 1",
+    "Jornada 2",
+    "Jornada 3",
     "16 avos",
     "Oitavos",
     "Quartos",
@@ -101,26 +87,6 @@ export default function GamesPage() {
     "Final",
   ];
 
-  const availableRounds = useMemo(() => {
-    const roundsSet = new Set<string>();
-
-    games.forEach((game) => {
-      const matchesSelectedPhase =
-        selectedPhase === "ALL" || game.phase === selectedPhase;
-
-      const matchesSelectedTeam =
-        selectedTeam === "ALL" ||
-        game.homeTeam === selectedTeam ||
-        game.awayTeam === selectedTeam;
-
-      if (matchesSelectedPhase && matchesSelectedTeam) {
-        roundsSet.add(game.round);
-      }
-    });
-
-    return ["ALL", ...Array.from(roundsSet).sort((a, b) => getRoundOrder(a) - getRoundOrder(b))];
-  }, [selectedPhase, selectedTeam]);
-
   const filteredGames = useMemo(() => {
     return games.filter((game) => {
       const matchesTeam =
@@ -128,24 +94,41 @@ export default function GamesPage() {
         game.homeTeam === selectedTeam ||
         game.awayTeam === selectedTeam;
 
-      const matchesPhase = selectedPhase === "ALL" || game.phase === selectedPhase;
-      const matchesRound = selectedRound === "ALL" || game.round === selectedRound;
+      const matchesPhase =
+        selectedPhase === "ALL" ||
+        game.phase === selectedPhase ||
+        (selectedPhase === "Jornada 1" &&
+          game.phase === "Fase de Grupos" &&
+          game.round === "Jornada 1") ||
+        (selectedPhase === "Jornada 2" &&
+          game.phase === "Fase de Grupos" &&
+          game.round === "Jornada 2") ||
+        (selectedPhase === "Jornada 3" &&
+          game.phase === "Fase de Grupos" &&
+          game.round === "Jornada 3");
 
-      return matchesTeam && matchesPhase && matchesRound;
+      return matchesTeam && matchesPhase;
     });
-  }, [selectedTeam, selectedPhase, selectedRound]);
+  }, [selectedTeam, selectedPhase]);
 
   const groupedByPhase = useMemo(() => {
     const groups: Record<string, Game[]> = {};
 
     filteredGames.forEach((game) => {
-      if (!groups[game.phase]) groups[game.phase] = [];
-      groups[game.phase].push(game);
+      const groupKey =
+        game.phase === "Fase de Grupos" &&
+        (selectedPhase === "Jornada 1" ||
+          selectedPhase === "Jornada 2" ||
+          selectedPhase === "Jornada 3")
+          ? selectedPhase
+          : game.phase;
+
+      if (!groups[groupKey]) groups[groupKey] = [];
+      groups[groupKey].push(game);
     });
 
     const sortedEntries = Object.entries(groups).sort(
-      ([phaseA], [phaseB]) =>
-        getPhaseOrder(phaseA as PhaseFilter) - getPhaseOrder(phaseB as PhaseFilter)
+      ([phaseA], [phaseB]) => getPhaseOrder(phaseA) - getPhaseOrder(phaseB)
     );
 
     return sortedEntries.map(([phase, phaseGames]) => ({
@@ -154,7 +137,7 @@ export default function GamesPage() {
         (a, b) => getGameDateTime(a).getTime() - getGameDateTime(b).getTime()
       ),
     }));
-  }, [filteredGames]);
+  }, [filteredGames, selectedPhase]);
 
   return (
     <main className="min-h-screen bg-[#f4f5f7] text-gray-900">
@@ -164,46 +147,28 @@ export default function GamesPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-extrabold sm:text-3xl">Jogos</h1>
           <p className="text-sm text-gray-500 sm:text-base">
-            Calendário completo do Mundial 2026 com filtros por fase, jornada e seleção.
+            Calendário completo do Mundial 2026 com filtros por fase e seleção.
           </p>
         </div>
 
         <div className="mb-6 rounded-3xl bg-white p-4 shadow-sm sm:p-5">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <select
               value={selectedPhase}
-              onChange={(e) => {
-                setSelectedPhase(e.target.value as PhaseFilter);
-                setSelectedRound("ALL");
-              }}
-              className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium outline-none focus:border-blue-500"
+              onChange={(e) => setSelectedPhase(e.target.value as PhaseFilter)}
+              className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
             >
               {phaseOptions.map((phase) => (
                 <option key={phase} value={phase}>
-                  {phase === "ALL" ? "Todas as fases" : getPhaseLabel(phase as GamePhase)}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={selectedRound}
-              onChange={(e) => setSelectedRound(e.target.value)}
-              className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium outline-none focus:border-blue-500"
-            >
-              {availableRounds.map((round) => (
-                <option key={round} value={round}>
-                  {round === "ALL" ? "Todas as jornadas / rondas" : round}
+                  {getPhaseLabel(phase)}
                 </option>
               ))}
             </select>
 
             <select
               value={selectedTeam}
-              onChange={(e) => {
-                setSelectedTeam(e.target.value);
-                setSelectedRound("ALL");
-              }}
-              className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium outline-none focus:border-blue-500"
+              onChange={(e) => setSelectedTeam(e.target.value)}
+              className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
             >
               {uniqueTeams.map((team) => (
                 <option key={team} value={team}>
@@ -215,10 +180,9 @@ export default function GamesPage() {
             <button
               onClick={() => {
                 setSelectedPhase("ALL");
-                setSelectedRound("ALL");
                 setSelectedTeam("ALL");
               }}
-              className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium hover:bg-gray-50"
+              className="rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:scale-[1.01] hover:from-purple-700 hover:to-fuchsia-700 hover:shadow-lg active:scale-[0.99]"
             >
               Reset
             </button>
@@ -234,7 +198,7 @@ export default function GamesPage() {
                     Mundial 2026
                   </p>
                   <h2 className="mt-1 text-xl font-extrabold text-[#3a0d57] sm:text-2xl">
-                    {getPhaseLabel(phase as GamePhase)}
+                    {getPhaseLabel(phase)}
                   </h2>
                 </div>
 
@@ -245,12 +209,8 @@ export default function GamesPage() {
 
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {phaseGames.map((game) => {
-                  const homeTeam = validTeamNames.has(game.homeTeam)
-                    ? getTeamByName(game.homeTeam)
-                    : undefined;
-                  const awayTeam = validTeamNames.has(game.awayTeam)
-                    ? getTeamByName(game.awayTeam)
-                    : undefined;
+                  const homeTeam = getTeamByName(game.homeTeam);
+                  const awayTeam = getTeamByName(game.awayTeam);
                   const hasResult = game.homeScore !== null && game.awayScore !== null;
 
                   return (
