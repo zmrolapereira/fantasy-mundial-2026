@@ -213,8 +213,22 @@ export default function TeamPage() {
   }, []);
 
   const availableTokenStages = useMemo(() => {
-    return gamesByRound.map(([roundLabel]) => roundLabel);
-  }, [gamesByRound]);
+  const allowedStages = new Set([
+    "Jornada 1",
+    "Jornada 2",
+    "Jornada 3",
+    "Oitavos",
+    "Quartos",
+    "Meia-final 1",
+    "Meia-final 2",
+    "3º lugar",
+    "Final",
+  ]);
+
+  return gamesByRound
+    .map(([roundLabel]) => roundLabel)
+    .filter((roundLabel) => allowedStages.has(roundLabel));
+}, [gamesByRound]);
 
   const selectedTokenRoundGames = useMemo(() => {
     return gamesByRound.find(([roundLabel]) => roundLabel === boostTokenStage)?.[1] ?? [];
