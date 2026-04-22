@@ -822,7 +822,7 @@ export default function RankingPage() {
                           {formatEuro(prizeSummary.firstPrize)}
                         </p>
                         <p className="mt-1 text-[11px] font-semibold text-slate-800/80">
-                          60% do prémio final
+                          60% do prémio
                         </p>
                       </div>
 
@@ -834,7 +834,7 @@ export default function RankingPage() {
                           {formatEuro(prizeSummary.secondPrize)}
                         </p>
                         <p className="mt-1 text-[11px] font-semibold text-slate-800/80">
-                          30% do prémio final
+                          30% do prémio
                         </p>
                       </div>
 
@@ -846,7 +846,7 @@ export default function RankingPage() {
                           {formatEuro(prizeSummary.thirdPrize)}
                         </p>
                         <p className="mt-1 text-[11px] font-semibold text-white/85">
-                          10% do prémio final
+                          10% do prémio
                         </p>
                       </div>
                     </div>
