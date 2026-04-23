@@ -27,7 +27,7 @@ export const games: Game[] = [
   // =========================
   {
     id: 1,
-    date: "2026-04-22",
+    date: "2026-06-11",
     time: "19:00",
     round: "Jornada 1",
     phase: "Fase de Grupos",
@@ -343,7 +343,7 @@ export const games: Game[] = [
   // =========================
   {
     id: 25,
-    date: "2026-04-22",
+    date: "2026-06-18",
     time: "19:00",
     round: "Jornada 2",
     phase: "Fase de Grupos",
