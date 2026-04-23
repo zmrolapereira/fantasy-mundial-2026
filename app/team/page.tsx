@@ -535,7 +535,7 @@ export default function TeamPage() {
             <p className="mt-3 max-w-4xl text-sm leading-7 text-gray-700 sm:text-base">
               Para participar, tens de pagar{" "}
               <strong>10€ por MB Way ou Revolut para o número 918 888 416</strong> e
-              mandar mensagem para esse número para confirmar. Depois da confirmação
+              mandar mensagem para esse número para confirmar o pagamento. Depois da confirmação
               manual do pagamento, o acesso é desbloqueado.
             </p>
 
