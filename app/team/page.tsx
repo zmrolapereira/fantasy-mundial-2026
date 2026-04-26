@@ -156,47 +156,42 @@ export default function TeamPage() {
 
   const blockedByPayment = !hasPaidAccess;
 
-  const gamesByRound = useMemo<[string, Game[]][]>(() => {
-    const grouped = getRoundGroups(games);
+const gamesByRound = useMemo<[string, Game[]][]>(() => {
+  const grouped: Record<string, Game[]> = {};
 
-    const order = [
-      "Jornada 1",
-      "Jornada 2",
-      "Jornada 3",
-      "Jogo 1",
-      "Jogo 2",
-      "Jogo 3",
-      "Jogo 4",
-      "Jogo 5",
-      "Jogo 6",
-      "Jogo 7",
-      "Jogo 8",
-      "Jogo 9",
-      "Jogo 10",
-      "Jogo 11",
-      "Jogo 12",
-      "Jogo 13",
-      "Jogo 14",
-      "Jogo 15",
-      "Jogo 16",
-      "Oitavos",
-      "Quartos",
-      "Meia-final 1",
-      "Meia-final 2",
-      "3º lugar",
-      "Final",
-    ];
+  games.forEach((game) => {
+    const label = game.phase === "16 avos" ? "16 avos" : game.round;
 
-    return (Object.entries(grouped) as [string, Game[]][]).sort(([a], [b]) => {
-      const ia = order.indexOf(a);
-      const ib = order.indexOf(b);
+    if (!grouped[label]) {
+      grouped[label] = [];
+    }
 
-      if (ia === -1 && ib === -1) return a.localeCompare(b);
-      if (ia === -1) return 1;
-      if (ib === -1) return -1;
-      return ia - ib;
-    });
-  }, []);
+    grouped[label].push(game);
+  });
+
+  const order = [
+    "Jornada 1",
+    "Jornada 2",
+    "Jornada 3",
+    "16 avos",
+    "Oitavos",
+    "Quartos",
+    "Meia-final 1",
+    "Meia-final 2",
+    "3º lugar",
+    "Final",
+  ];
+
+  return (Object.entries(grouped) as [string, Game[]][]).sort(([a], [b]) => {
+    const ia = order.indexOf(a);
+    const ib = order.indexOf(b);
+
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+}, []);
 
   const uniqueTeams = useMemo(() => {
     return ["ALL", ...Array.from(new Set(livePlayers.map((player) => player.team))).sort((a, b) =>
@@ -887,7 +882,7 @@ export default function TeamPage() {
                         {roundLabel}
                       </h3>
                       <p className="text-sm text-gray-500">
-                        Fecha 1 hora antes do primeiro jogo da ronda
+                        Fecha exatamente à hora do primeiro jogo da ronda
                       </p>
                     </div>
 
