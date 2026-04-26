@@ -21,7 +21,7 @@ export type Game = {
   status: "FT" | "Por jogar";
 };
 
-export const games: Game[] = [
+const baseGames: Game[] = [
   // =========================
   // JORNADA 1
   // =========================
@@ -1378,3 +1378,59 @@ export const games: Game[] = [
     status: "Por jogar",
   },
 ];
+
+const testScheduleById = (id: number) => {
+  // Jornada 1
+  if (id >= 1 && id <= 24) {
+    return { date: "2026-04-27", time: "12:00" };
+  }
+
+  // Jornada 2
+  if (id >= 25 && id <= 48) {
+    return { date: "2026-04-28", time: "00:00" };
+  }
+
+  // Jornada 3
+  if (id >= 49 && id <= 72) {
+    return { date: "2026-04-28", time: "12:00" };
+  }
+
+  // 16 avos
+  if (id >= 73 && id <= 88) {
+    return { date: "2026-04-29", time: "00:00" };
+  }
+
+  // Oitavos
+  if (id >= 89 && id <= 96) {
+    return { date: "2026-04-29", time: "12:00" };
+  }
+
+  // Quartos
+  if (id >= 97 && id <= 100) {
+    return { date: "2026-04-30", time: "00:00" };
+  }
+
+  // Meias
+  if (id >= 101 && id <= 102) {
+    return { date: "2026-04-30", time: "12:00" };
+  }
+
+  // 3º lugar + Final
+  if (id >= 103 && id <= 104) {
+    return { date: "2026-05-01", time: "00:00" };
+  }
+
+  return null;
+};
+
+export const games: Game[] = baseGames.map((game) => {
+  const testDate = testScheduleById(game.id);
+
+  if (!testDate) return game;
+
+  return {
+    ...game,
+    date: testDate.date,
+    time: testDate.time,
+  };
+});

@@ -1,7 +1,5 @@
 import { Game } from "@/data/games";
 
-const ONE_HOUR_MS = 60 * 60 * 1000;
-
 export function getGameDateTime(game: Game) {
   const time = game.time?.trim() || "00:00";
   return new Date(`${game.date}T${time}:00`);
@@ -18,7 +16,8 @@ export function getFirstTournamentGame(games: Game[]) {
 }
 
 export function getLockDateFromGame(game: Game) {
-  return new Date(getGameDateTime(game).getTime() - ONE_HOUR_MS);
+  // Fecha exatamente à hora do primeiro jogo
+  return getGameDateTime(game);
 }
 
 export function isLocked(lockDate: Date) {
