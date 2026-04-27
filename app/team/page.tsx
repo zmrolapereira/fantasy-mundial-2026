@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { User } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { listenToAuth } from "@/lib/auth";
+import { db } from "@/lib/firebase";
 import { type Player } from "@/data/players";
 import { subscribeToLivePlayers } from "@/lib/player-stats";
 import { games, type Game } from "@/data/games";
@@ -20,7 +22,6 @@ import {
   getFirstTournamentGame,
   getLockDateFromGame,
   getRoundFirstGame,
-  getRoundGroups,
 } from "@/lib/fantasy-deadlines";
 import { getUserProfile, submitPaymentRequest } from "@/lib/users";
 import SiteHeader from "@/components/SiteHeader";
@@ -55,10 +56,19 @@ export default function TeamPage() {
   const [predictions, setPredictions] = useState<PredictionMap>({});
 
   const [hasPaidAccess, setHasPaidAccess] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<"pending" | "approved" | "rejected">("pending");
+  const [paymentStatus, setPaymentStatus] = useState<
+    "pending" | "approved" | "rejected"
+  >("pending");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [submittingPayment, setSubmittingPayment] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"mbway" | "revolut" | "">("");
+  const [paymentMethod, setPaymentMethod] = useState<"mbway" | "revolut" | "">(
+    ""
+  );
+
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [prizePaymentMethod, setPrizePaymentMethod] = useState<
+    "mbway" | "revolut" | ""
+  >("");
 
   const [topScorerTeamFilter, setTopScorerTeamFilter] = useState("ALL");
   const [topScorerPositionFilter, setTopScorerPositionFilter] =
@@ -115,13 +125,23 @@ export default function TeamPage() {
 
         setHasPaidAccess(profile?.hasPaidAccess ?? false);
         setPaymentStatus(
-          (profile?.paymentStatus as "pending" | "approved" | "rejected") ?? "pending"
+          (profile?.paymentStatus as "pending" | "approved" | "rejected") ??
+            "pending"
+        );
+
+        setPhoneNumber(profile?.phoneNumber ?? "");
+        setPrizePaymentMethod(
+          (profile?.prizePaymentMethod as "mbway" | "revolut" | "") ?? ""
         );
 
         if (entry) {
           setTeamName(entry.teamName ?? "");
-          setTopScorerId(entry.topScorerPick ? String(entry.topScorerPick.playerId) : "");
-          setTopAssistId(entry.topAssistPick ? String(entry.topAssistPick.playerId) : "");
+          setTopScorerId(
+            entry.topScorerPick ? String(entry.topScorerPick.playerId) : ""
+          );
+          setTopAssistId(
+            entry.topAssistPick ? String(entry.topAssistPick.playerId) : ""
+          );
           setChampionTeam(entry.championPick?.teamName ?? "");
         }
 
@@ -156,47 +176,50 @@ export default function TeamPage() {
 
   const blockedByPayment = !hasPaidAccess;
 
-const gamesByRound = useMemo<[string, Game[]][]>(() => {
-  const grouped: Record<string, Game[]> = {};
+  const gamesByRound = useMemo<[string, Game[]][]>(() => {
+    const grouped: Record<string, Game[]> = {};
 
-  games.forEach((game) => {
-    const label = game.phase === "16 avos" ? "16 avos" : game.round;
+    games.forEach((game) => {
+      const label = game.phase === "16 avos" ? "16 avos" : game.round;
 
-    if (!grouped[label]) {
-      grouped[label] = [];
-    }
+      if (!grouped[label]) {
+        grouped[label] = [];
+      }
 
-    grouped[label].push(game);
-  });
+      grouped[label].push(game);
+    });
 
-  const order = [
-    "Jornada 1",
-    "Jornada 2",
-    "Jornada 3",
-    "16 avos",
-    "Oitavos",
-    "Quartos",
-    "Meia-final 1",
-    "Meia-final 2",
-    "3º lugar",
-    "Final",
-  ];
+    const order = [
+      "Jornada 1",
+      "Jornada 2",
+      "Jornada 3",
+      "16 avos",
+      "Oitavos",
+      "Quartos",
+      "Meia-final 1",
+      "Meia-final 2",
+      "3º lugar",
+      "Final",
+    ];
 
-  return (Object.entries(grouped) as [string, Game[]][]).sort(([a], [b]) => {
-    const ia = order.indexOf(a);
-    const ib = order.indexOf(b);
+    return (Object.entries(grouped) as [string, Game[]][]).sort(([a], [b]) => {
+      const ia = order.indexOf(a);
+      const ib = order.indexOf(b);
 
-    if (ia === -1 && ib === -1) return a.localeCompare(b);
-    if (ia === -1) return 1;
-    if (ib === -1) return -1;
-    return ia - ib;
-  });
-}, []);
+      if (ia === -1 && ib === -1) return a.localeCompare(b);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
+  }, []);
 
   const uniqueTeams = useMemo(() => {
-    return ["ALL", ...Array.from(new Set(livePlayers.map((player) => player.team))).sort((a, b) =>
-      a.localeCompare(b)
-    )];
+    return [
+      "ALL",
+      ...Array.from(new Set(livePlayers.map((player) => player.team))).sort(
+        (a, b) => a.localeCompare(b)
+      ),
+    ];
   }, [livePlayers]);
 
   const topScorerFilteredPlayers = useMemo(() => {
@@ -220,7 +243,12 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
         if (a.team !== b.team) return a.team.localeCompare(b.team);
         return a.name.localeCompare(b.name);
       });
-  }, [livePlayers, topScorerTeamFilter, topScorerPositionFilter, topScorerSearch]);
+  }, [
+    livePlayers,
+    topScorerTeamFilter,
+    topScorerPositionFilter,
+    topScorerSearch,
+  ]);
 
   const topAssistFilteredPlayers = useMemo(() => {
     const search = topAssistSearch.trim().toLowerCase();
@@ -243,7 +271,12 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
         if (a.team !== b.team) return a.team.localeCompare(b.team);
         return a.name.localeCompare(b.name);
       });
-  }, [livePlayers, topAssistTeamFilter, topAssistPositionFilter, topAssistSearch]);
+  }, [
+    livePlayers,
+    topAssistTeamFilter,
+    topAssistPositionFilter,
+    topAssistSearch,
+  ]);
 
   useEffect(() => {
     if (!topScorerId && topScorerFilteredPlayers.length > 0) return;
@@ -277,8 +310,12 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
     }
   }, [topAssistFilteredPlayers, topAssistId]);
 
-  const topScorerPlayer = livePlayers.find((player) => String(player.id) === topScorerId);
-  const topAssistPlayer = livePlayers.find((player) => String(player.id) === topAssistId);
+  const topScorerPlayer = livePlayers.find(
+    (player) => String(player.id) === topScorerId
+  );
+  const topAssistPlayer = livePlayers.find(
+    (player) => String(player.id) === topAssistId
+  );
   const champion = teams.find((team) => team.name === championTeam);
 
   const totalPredictionsFilled = useMemo(() => {
@@ -327,8 +364,33 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
       return;
     }
 
+    if (!phoneNumber.trim()) {
+      alert("Indica o teu número de telemóvel para receber prémios.");
+      return;
+    }
+
+    if (!/^\d{9}$/.test(phoneNumber.trim())) {
+      alert("O número de telemóvel deve ter 9 dígitos.");
+      return;
+    }
+
+    if (!prizePaymentMethod) {
+      alert("Escolhe como preferes receber prémios: MB Way ou Revolut.");
+      return;
+    }
+
     try {
       setSubmittingPayment(true);
+
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          phoneNumber: phoneNumber.trim(),
+          prizePaymentMethod,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
 
       const result = await submitPaymentRequest({
         userId: user.uid,
@@ -342,14 +404,18 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
       if (result.status === "created") {
         setPaymentStatus("pending");
         setHasPaidAccess(false);
-        alert("Pedido enviado com sucesso. Agora tens de aguardar pela aprovação do admin.");
+        alert(
+          "Pedido enviado com sucesso. Agora tens de aguardar pela aprovação do admin."
+        );
         return;
       }
 
       if (result.status === "already_pending") {
         setPaymentStatus("pending");
         setHasPaidAccess(false);
-        alert("O teu pedido já foi enviado. Agora tens de aguardar pela aprovação do admin.");
+        alert(
+          "O teu pedido já foi enviado. Agora tens de aguardar pela aprovação do admin."
+        );
         return;
       }
 
@@ -363,7 +429,9 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
       if (result.status === "resent_after_rejected") {
         setPaymentStatus("pending");
         setHasPaidAccess(false);
-        alert("Pedido reenviado com sucesso. Agora tens de aguardar pela aprovação do admin.");
+        alert(
+          "Pedido reenviado com sucesso. Agora tens de aguardar pela aprovação do admin."
+        );
         return;
       }
     } catch (error: any) {
@@ -481,12 +549,14 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
     try {
       setSavingRoundLabel(roundLabel);
 
-      const predictionPayload: MatchPredictionInput[] = roundGames.map((game) => ({
-        userId: user.uid,
-        gameId: game.id,
-        predictedHomeScore: Number(predictions[game.id].home),
-        predictedAwayScore: Number(predictions[game.id].away),
-      }));
+      const predictionPayload: MatchPredictionInput[] = roundGames.map(
+        (game) => ({
+          userId: user.uid,
+          gameId: game.id,
+          predictedHomeScore: Number(predictions[game.id].home),
+          predictedAwayScore: Number(predictions[game.id].away),
+        })
+      );
 
       await saveMatchPredictions(user.uid, predictionPayload);
 
@@ -529,9 +599,9 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
 
             <p className="mt-3 max-w-4xl text-sm leading-7 text-gray-700 sm:text-base">
               Para participar, tens de pagar{" "}
-              <strong>10€ por MB Way ou Revolut para o número 918 888 416</strong> e
-              mandar mensagem para esse número para confirmar o pagamento. Depois da confirmação
-              manual do pagamento, o acesso é desbloqueado.
+              <strong>10€ por MB Way ou Revolut para o número 918 888 416</strong>{" "}
+              e mandar mensagem para esse número para confirmar o pagamento.
+              Depois da confirmação manual do pagamento, o acesso é desbloqueado.
             </p>
 
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -567,8 +637,9 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
             Cria a tua entrada para o Mundial 2026
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-white/95 sm:text-lg">
-            Escolhe os teus picks principais antes do arranque do torneio e faz os
-            teus palpites por jornada até 1 hora antes do primeiro jogo de cada ronda.
+            Escolhe os teus picks principais antes do arranque do torneio e faz
+            os teus palpites por jornada até à hora do primeiro jogo de cada
+            ronda.
           </p>
         </section>
 
@@ -586,15 +657,21 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
 
               <div
                 className={`inline-flex rounded-full px-4 py-2 text-sm font-bold ${
-                  picksLocked ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+                  picksLocked
+                    ? "bg-red-100 text-red-700"
+                    : "bg-green-100 text-green-700"
                 }`}
               >
-                {picksLocked ? "Picks fechados" : `Fecha em ${formatCountdown(picksLockDate)}`}
+                {picksLocked
+                  ? "Picks fechados"
+                  : `Fecha em ${formatCountdown(picksLockDate)}`}
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-600">Nome da equipa</label>
+              <label className="block text-sm font-bold text-gray-600">
+                Nome da equipa
+              </label>
               <input
                 type="text"
                 placeholder="Ex: Os Visionários"
@@ -628,7 +705,9 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
                   <select
                     value={topScorerPositionFilter}
                     onChange={(e) =>
-                      setTopScorerPositionFilter(e.target.value as PositionFilter)
+                      setTopScorerPositionFilter(
+                        e.target.value as PositionFilter
+                      )
                     }
                     disabled={picksLocked || blockedByPayment}
                     className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
@@ -706,7 +785,9 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
                   <select
                     value={topAssistPositionFilter}
                     onChange={(e) =>
-                      setTopAssistPositionFilter(e.target.value as PositionFilter)
+                      setTopAssistPositionFilter(
+                        e.target.value as PositionFilter
+                      )
                     }
                     disabled={picksLocked || blockedByPayment}
                     className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
@@ -763,7 +844,9 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-600">Seleção campeã</label>
+                <label className="block text-sm font-bold text-gray-600">
+                  Seleção campeã
+                </label>
                 <select
                   value={championTeam}
                   onChange={(e) => setChampionTeam(e.target.value)}
@@ -799,7 +882,9 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
           </div>
 
           <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
-            <p className="text-xs font-bold uppercase tracking-wide text-violet-600">Resumo</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-violet-600">
+              Resumo
+            </p>
             <h2 className="mt-2 text-2xl font-extrabold text-gray-900 sm:text-3xl">
               A tua entrada
             </h2>
@@ -849,7 +934,9 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
               </div>
 
               <div className="rounded-2xl bg-gradient-to-r from-cyan-400 to-indigo-500 p-4 text-white">
-                <p className="text-xs uppercase tracking-wide text-white/80">Palpites preenchidos</p>
+                <p className="text-xs uppercase tracking-wide text-white/80">
+                  Palpites preenchidos
+                </p>
                 <p className="mt-2 text-3xl font-extrabold">
                   {totalPredictionsFilled}/{games.length}
                 </p>
@@ -889,7 +976,9 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
                     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                       <span
                         className={`inline-flex rounded-full px-4 py-2 text-sm font-bold ${
-                          roundLocked ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+                          roundLocked
+                            ? "bg-red-100 text-red-700"
+                            : "bg-green-100 text-green-700"
                         }`}
                       >
                         {roundLocked
@@ -914,9 +1003,16 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
 
                   <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                     {roundGames.map((game) => {
-                      const homeTeam = teams.find((team) => team.name === game.homeTeam);
-                      const awayTeam = teams.find((team) => team.name === game.awayTeam);
-                      const prediction = predictions[game.id] || { home: "", away: "" };
+                      const homeTeam = teams.find(
+                        (team) => team.name === game.homeTeam
+                      );
+                      const awayTeam = teams.find(
+                        (team) => team.name === game.awayTeam
+                      );
+                      const prediction = predictions[game.id] || {
+                        home: "",
+                        away: "",
+                      };
 
                       return (
                         <article
@@ -974,14 +1070,21 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
                                 value={prediction.home}
                                 disabled={roundLocked || blockedByPayment}
                                 onChange={(e) =>
-                                  handlePredictionChange(game.id, "home", e.target.value, roundLocked)
+                                  handlePredictionChange(
+                                    game.id,
+                                    "home",
+                                    e.target.value,
+                                    roundLocked
+                                  )
                                 }
                                 className="h-12 w-14 rounded-xl border border-gray-200 bg-white text-center text-lg font-bold text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                               />
                             </div>
 
                             <div className="flex items-center justify-center">
-                              <span className="text-xl font-extrabold text-violet-900">-</span>
+                              <span className="text-xl font-extrabold text-violet-900">
+                                -
+                              </span>
                             </div>
 
                             <div className="flex items-center justify-between gap-3">
@@ -1006,7 +1109,12 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
                                 value={prediction.away}
                                 disabled={roundLocked || blockedByPayment}
                                 onChange={(e) =>
-                                  handlePredictionChange(game.id, "away", e.target.value, roundLocked)
+                                  handlePredictionChange(
+                                    game.id,
+                                    "away",
+                                    e.target.value,
+                                    roundLocked
+                                  )
                                 }
                                 className="h-12 w-14 rounded-xl border border-gray-200 bg-white text-center text-lg font-bold text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                               />
@@ -1041,16 +1149,78 @@ const gamesByRound = useMemo<[string, Game[]][]>(() => {
             </p>
 
             <div className="mt-4 rounded-2xl bg-violet-50 p-4">
-              <p className="text-sm text-gray-500">Pagamento por MB Way ou Revolut</p>
-              <p className="mt-2 text-2xl font-extrabold text-gray-900">918 888 416</p>
+              <p className="text-sm text-gray-500">
+                Pagamento por MB Way ou Revolut
+              </p>
+              <p className="mt-2 text-2xl font-extrabold text-gray-900">
+                918 888 416
+              </p>
               <p className="mt-3 text-sm leading-6 text-gray-600">
-                Faz o pagamento e manda mensagem para esse número. Depois escolhe o
-                método utilizado e carrega em “Já paguei” para eu validar manualmente.
+                Faz o pagamento e manda mensagem para esse número. Depois escolhe
+                o método utilizado e carrega em “Já paguei” para eu validar
+                manualmente.
               </p>
             </div>
 
             <div className="mt-5">
-              <p className="mb-3 text-sm font-bold text-gray-700">Método de pagamento</p>
+              <label className="block text-sm font-bold text-gray-700">
+                Número de telemóvel para prémios
+              </label>
+
+              <input
+                type="tel"
+                inputMode="numeric"
+                maxLength={9}
+                value={phoneNumber}
+                onChange={(e) =>
+                  setPhoneNumber(e.target.value.replace(/\D/g, ""))
+                }
+                placeholder="Ex: 918888416"
+                className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none"
+              />
+
+              <p className="mt-2 text-xs text-gray-500">
+                Este número será usado apenas para pagamento de prémios e não
+                será visível para outros participantes.
+              </p>
+            </div>
+
+            <div className="mt-5">
+              <p className="mb-3 text-sm font-bold text-gray-700">
+                Como preferes receber prémios?
+              </p>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setPrizePaymentMethod("mbway")}
+                  className={`rounded-2xl px-4 py-3 text-sm font-bold ${
+                    prizePaymentMethod === "mbway"
+                      ? "border-2 border-violet-900 bg-violet-50 text-gray-900"
+                      : "border border-gray-300 bg-white text-gray-900"
+                  }`}
+                >
+                  MB Way
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPrizePaymentMethod("revolut")}
+                  className={`rounded-2xl px-4 py-3 text-sm font-bold ${
+                    prizePaymentMethod === "revolut"
+                      ? "border-2 border-violet-900 bg-violet-50 text-gray-900"
+                      : "border border-gray-300 bg-white text-gray-900"
+                  }`}
+                >
+                  Revolut
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <p className="mb-3 text-sm font-bold text-gray-700">
+                Método de pagamento da inscrição
+              </p>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <button

@@ -1353,12 +1353,7 @@ export default function AdminPage() {
                   {savingSnapshot ? "A guardar..." : "Guardar snapshot"}
                 </button>
               </div>
-            </section>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-6 flex justify-end">
+              <div className="mt-6 flex justify-end">
         <button
           type="button"
           onClick={handleRecalculatePoints}
@@ -1375,6 +1370,10 @@ export default function AdminPage() {
          {loadingSave ? "A recalcular..." : "Recalcular pontos"}
       </button>
     </div>
+            </section>
+          )}
+        </div>
+      </div>
 
       {historyOpen && (
         <div

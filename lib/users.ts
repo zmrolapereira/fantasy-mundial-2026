@@ -11,6 +11,8 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 
+export type PrizePaymentMethod = "mbway" | "revolut" | "";
+
 export type AppUserProfile = {
   uid: string;
   email: string;
@@ -18,6 +20,10 @@ export type AppUserProfile = {
   hasPaidAccess?: boolean;
   paymentStatus?: "pending" | "approved" | "rejected";
   paidAt?: unknown | null;
+
+  phoneNumber?: string;
+  prizePaymentMethod?: PrizePaymentMethod;
+
   createdAt?: unknown;
   updatedAt?: unknown;
 };
