@@ -36,6 +36,10 @@ export type PaymentRequest = {
   method: "mbway" | "revolut";
   paymentMethod?: "mbway" | "revolut";
   mbwayNumber?: string;
+
+  phoneNumber?: string;
+  prizePaymentMethod?: PrizePaymentMethod;
+
   status: "pending" | "approved" | "rejected";
   submittedAt?: unknown;
   updatedAt?: unknown;
