@@ -13,14 +13,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = "https://www.fantasymundial2026.com";
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.fantasymundial2026.com"),
+  metadataBase: new URL(siteUrl),
   title: {
     default: "Fantasy Mundial 2026",
     template: "%s | Fantasy Mundial 2026",
   },
   description:
-    "Cria a tua equipa, faz previsões e compete com amigos durante o Mundial 2026.",
+    "Cria a tua equipa, faz previsões dos jogos e compete com amigos no ranking global durante o Mundial 2026.",
   keywords: [
     "Fantasy Mundial 2026",
     "Fantasy Football",
@@ -30,15 +32,18 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Fantasy Mundial 2026" }],
   creator: "Fantasy Mundial 2026",
+  alternates: {
+    canonical: siteUrl,
+  },
   openGraph: {
     title: "Fantasy Mundial 2026",
     description:
-      "Cria a tua equipa, faz previsões e compete com amigos durante o Mundial 2026.",
-    url: "https://www.fantasymundial2026.com",
+      "Cria a tua equipa, faz previsões dos jogos e compete com amigos no ranking global durante o Mundial 2026.",
+    url: siteUrl,
     siteName: "Fantasy Mundial 2026",
     images: [
       {
-        url: "/Mundial.png",
+        url: `${siteUrl}/Mundial.png`,
         width: 1200,
         height: 630,
         alt: "Fantasy Mundial 2026",
@@ -51,8 +56,8 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Fantasy Mundial 2026",
     description:
-      "Cria a tua equipa, faz previsões e compete com amigos durante o Mundial 2026.",
-    images: ["/Mundial.png"],
+      "Cria a tua equipa, faz previsões dos jogos e compete com amigos no ranking global durante o Mundial 2026.",
+    images: [`${siteUrl}/Mundial.png`],
   },
   icons: {
     icon: "/icon.png",
