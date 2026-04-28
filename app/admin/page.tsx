@@ -73,12 +73,7 @@ function getRoundLabel(game: any) {
       ""
   ).trim();
 
-  const round = String(
-    game.round ||
-      game.jornada ||
-      game.roundName ||
-      ""
-  ).trim();
+  const round = String(game.round || game.jornada || game.roundName || "").trim();
 
   const normalizedPhase = phase.toLowerCase();
   const normalizedRound = round.toLowerCase();
@@ -105,7 +100,6 @@ function getRoundLabel(game: any) {
   }
 
   if (phase) return phase;
-
   if (round) return round;
 
   return "Sem fase";
@@ -123,10 +117,17 @@ function hasValidPrediction(data: PredictionDoc) {
 }
 
 async function getPredictionStatsByRound(): Promise<PredictionRoundStat[]> {
-  const usersSnapshot = await getDocs(collection(db, "users"));
+  const teamsSnapshot = await getDocs(collection(db, "fantasyEntries"));
   const predictionsSnapshot = await getDocs(collection(db, "predictions"));
 
-  const totalUsers = usersSnapshot.size;
+  const registeredTeamUserIds = new Set<string>();
+
+  teamsSnapshot.forEach((doc) => {
+    const data = doc.data() as { userId?: string };
+    registeredTeamUserIds.add(String(data.userId || doc.id));
+  });
+
+  const totalUsers = registeredTeamUserIds.size;
   const roundsMap = new Map<string, string[]>();
   const answeredGamesByUser = new Map<string, Set<string>>();
 
@@ -147,6 +148,8 @@ async function getPredictionStatsByRound(): Promise<PredictionRoundStat[]> {
     if (!hasValidPrediction(data)) return;
 
     const userId = String(data.userId);
+
+    if (!registeredTeamUserIds.has(userId)) return;
     const gameId = String(data.gameId);
 
     if (!answeredGamesByUser.has(userId)) {
