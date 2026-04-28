@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { User } from "firebase/auth";
+import { collection, getDocs } from "firebase/firestore";
 import { players } from "@/data/players";
+import { games } from "@/data/games";
+import { db } from "@/lib/firebase";
 import {
   getAllPlayerTournamentStats,
   getPlayerStatHistory,
@@ -32,7 +35,7 @@ type TimestampLike =
   | undefined;
 
 type PaymentMethodFilter = "all" | "mbway" | "revolut";
-type AdminTab = "payments" | "stats";
+type AdminTab = "payments" | "stats" | "predictions";
 type PositionFilter = "ALL" | "GR" | "DEF" | "MED" | "ATA";
 
 type HistoryItemWithDiff = PlayerStatHistoryItem & {
@@ -40,6 +43,107 @@ type HistoryItemWithDiff = PlayerStatHistoryItem & {
   goalsDiff: number | null;
   assistsDiff: number | null;
 };
+
+type PredictionValue = {
+  home?: string | number;
+  away?: string | number;
+  homeScore?: string | number;
+  awayScore?: string | number;
+};
+
+type PredictionRoundStat = {
+  round: string;
+  totalGames: number;
+  usersAnswered: number;
+  totalUsers: number;
+  percentage: number;
+};
+
+function getGameId(game: any) {
+  return String(game.id);
+}
+
+function getRoundLabel(game: any) {
+  return (
+    game.round ||
+    game.jornada ||
+    game.stage ||
+    game.phase ||
+    game.phaseName ||
+    "Sem fase"
+  );
+}
+
+function getPredictionsObject(data: any): Record<string, PredictionValue> {
+  return data.predictions || data.matchPredictions || data.match_predictions || {};
+}
+
+function hasPrediction(value?: PredictionValue) {
+  if (!value) return false;
+
+  const hasHomeAway =
+    value.home !== undefined &&
+    value.home !== "" &&
+    value.away !== undefined &&
+    value.away !== "";
+
+  const hasScores =
+    value.homeScore !== undefined &&
+    value.homeScore !== "" &&
+    value.awayScore !== undefined &&
+    value.awayScore !== "";
+
+  return hasHomeAway || hasScores;
+}
+
+async function getPredictionStatsByRound(): Promise<PredictionRoundStat[]> {
+  const usersSnapshot = await getDocs(collection(db, "users"));
+  const entriesSnapshot = await getDocs(collection(db, "predictions"));
+
+  const totalUsers = usersSnapshot.size;
+  const roundsMap = new Map<string, string[]>();
+
+  games.forEach((game: any) => {
+    const round = getRoundLabel(game);
+    const gameId = getGameId(game);
+
+    if (!roundsMap.has(round)) {
+      roundsMap.set(round, []);
+    }
+
+    roundsMap.get(round)?.push(gameId);
+  });
+
+  const stats: PredictionRoundStat[] = [];
+
+  roundsMap.forEach((gameIds, round) => {
+    let usersAnswered = 0;
+
+    entriesSnapshot.forEach((doc) => {
+      const data = doc.data();
+      const predictions = getPredictionsObject(data);
+
+      const answeredAllRound = gameIds.every((gameId) =>
+        hasPrediction(predictions[gameId])
+      );
+
+      if (answeredAllRound) {
+        usersAnswered++;
+      }
+    });
+
+    stats.push({
+      round,
+      totalGames: gameIds.length,
+      usersAnswered,
+      totalUsers,
+      percentage:
+        totalUsers > 0 ? Math.round((usersAnswered / totalUsers) * 100) : 0,
+    });
+  });
+
+  return stats;
+}
 
 export default function AdminPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -71,7 +175,11 @@ export default function AdminPage() {
   const [snapshotLabel, setSnapshotLabel] = useState("Jornada 1");
   const [savingSnapshot, setSavingSnapshot] = useState(false);
 
-  // filtros stats
+  const [predictionStats, setPredictionStats] = useState<PredictionRoundStat[]>(
+    []
+  );
+  const [loadingPredictionStats, setLoadingPredictionStats] = useState(true);
+
   const [playerTeamFilter, setPlayerTeamFilter] = useState<string>("ALL");
   const [playerPositionFilter, setPlayerPositionFilter] =
     useState<PositionFilter>("ALL");
@@ -85,9 +193,12 @@ export default function AdminPage() {
   const isAdmin = user?.email === ADMIN_EMAIL;
 
   const uniqueTeams = useMemo(() => {
-    return ["ALL", ...Array.from(new Set(players.map((player) => player.team))).sort((a, b) =>
-      a.localeCompare(b)
-    )];
+    return [
+      "ALL",
+      ...Array.from(new Set(players.map((player) => player.team))).sort((a, b) =>
+        a.localeCompare(b)
+      ),
+    ];
   }, []);
 
   const filteredPlayers = useMemo(() => {
@@ -175,10 +286,24 @@ export default function AdminPage() {
     }
   };
 
+  const loadPredictionStats = async () => {
+    try {
+      setLoadingPredictionStats(true);
+      const data = await getPredictionStatsByRound();
+      setPredictionStats(data);
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao carregar estatísticas das predictions.");
+    } finally {
+      setLoadingPredictionStats(false);
+    }
+  };
+
   useEffect(() => {
     if (isAdmin) {
       loadPayments();
       loadPlayerStats();
+      loadPredictionStats();
     }
   }, [isAdmin]);
 
@@ -240,54 +365,52 @@ export default function AdminPage() {
   };
 
   const handleSaveStats = async () => {
-  if (!selectedPlayerId || !selectedPlayer) {
-    alert("Escolhe um jogador.");
-    return;
-  }
+    if (!selectedPlayerId || !selectedPlayer) {
+      alert("Escolhe um jogador.");
+      return;
+    }
 
-  try {
-    setLoadingSave(true);
+    try {
+      setLoadingSave(true);
 
-    console.log("1. savePlayerTournamentStat");
-    await savePlayerTournamentStat(
-      Number(selectedPlayerId),
-      selectedPlayer.name,
-      Number(goals || 0),
-      Number(assists || 0)
-    );
+      await savePlayerTournamentStat(
+        Number(selectedPlayerId),
+        selectedPlayer.name,
+        Number(goals || 0),
+        Number(assists || 0)
+      );
 
-    console.log("2. loadPlayerStats");
-    await loadPlayerStats();
+      await loadPlayerStats();
+      await recalculateAllFantasyPoints();
 
-    console.log("3. recalculateAllFantasyPoints");
-    await recalculateAllFantasyPoints();
+      alert("Stats guardadas com sucesso e pontos recalculados.");
+    } catch (error: any) {
+      console.error("SAVE STATS ERROR:", error);
+      alert(error?.message || "Erro ao guardar as stats.");
+    } finally {
+      setLoadingSave(false);
+    }
+  };
 
-    alert("Stats guardadas com sucesso e pontos recalculados.");
-  } catch (error: any) {
-    console.error("SAVE STATS ERROR:", error);
-    alert(error?.message || "Erro ao guardar as stats.");
-  } finally {
-    setLoadingSave(false);
-  }
-};
   const handleRecalculatePoints = async () => {
-  try {
-    setLoadingSave(true);
-    await recalculateAllFantasyPoints();
-    alert("Pontos recalculados com sucesso.");
-  } catch (error: any) {
-    console.error("RECALCULATE POINTS ERROR:", error);
-    alert(error?.message || "Erro ao recalcular os pontos.");
-  } finally {
-    setLoadingSave(false);
-  }
-};
+    try {
+      setLoadingSave(true);
+      await recalculateAllFantasyPoints();
+      alert("Pontos recalculados com sucesso.");
+    } catch (error: any) {
+      console.error("RECALCULATE POINTS ERROR:", error);
+      alert(error?.message || "Erro ao recalcular os pontos.");
+    } finally {
+      setLoadingSave(false);
+    }
+  };
 
   const handleApprove = async (userId: string) => {
     try {
       setActionUserId(userId);
       await approvePayment(userId);
       await loadPayments();
+      await loadPredictionStats();
       alert("Pagamento aprovado com sucesso.");
     } catch (error) {
       console.error(error);
@@ -435,6 +558,15 @@ export default function AdminPage() {
   const totalPending = pendingPayments.length;
   const totalApproved = approvedPayments.length;
   const totalRejected = rejectedPayments.length;
+
+  const totalPredictionRounds = predictionStats.length;
+  const averagePredictionCompletion =
+    predictionStats.length > 0
+      ? Math.round(
+          predictionStats.reduce((sum, item) => sum + item.percentage, 0) /
+            predictionStats.length
+        )
+      : 0;
 
   if (!user) {
     return (
@@ -772,8 +904,8 @@ export default function AdminPage() {
                     color: "rgba(255,255,255,0.92)",
                   }}
                 >
-                  Aprova pagamentos, atualiza estatísticas e guarda snapshots da
-                  leaderboard por jornada/fase.
+                  Aprova pagamentos, atualiza estatísticas, acompanha a participação
+                  nas predictions e guarda snapshots da leaderboard por jornada/fase.
                 </p>
 
                 <div
@@ -797,7 +929,7 @@ export default function AdminPage() {
                 <StatBox label="Registos" value={totalPayments} />
                 <StatBox label="Pendentes" value={totalPending} />
                 <StatBox label="Aprovados" value={totalApproved} />
-                <StatBox label="Rejeitados" value={totalRejected} />
+                <StatBox label="Predictions" value={averagePredictionCompletion} />
               </div>
             </div>
           </section>
@@ -813,6 +945,7 @@ export default function AdminPage() {
             <div className="flex flex-wrap gap-2">
               <TabButton value="payments" label="Pagamentos" />
               <TabButton value="stats" label="Atualizar stats" />
+              <TabButton value="predictions" label="Predictions" />
             </div>
           </section>
 
@@ -901,9 +1034,7 @@ export default function AdminPage() {
                     <select
                       value={paymentMethodFilter}
                       onChange={(e) =>
-                        setPaymentMethodFilter(
-                          e.target.value as PaymentMethodFilter
-                        )
+                        setPaymentMethodFilter(e.target.value as PaymentMethodFilter)
                       }
                       className="mt-1.5 h-11 w-full rounded-xl px-3 text-sm outline-none"
                       style={{
@@ -992,6 +1123,262 @@ export default function AdminPage() {
                       </div>
                     )}
                   </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {activeTab === "predictions" && (
+            <section
+              className="rounded-2xl p-5 shadow-sm"
+              style={{
+                backgroundColor: "#ffffff",
+                border: "1px solid #e5e7eb",
+                color: "#111827",
+              }}
+            >
+              <div style={{ borderBottom: "1px solid #e5e7eb", paddingBottom: 16 }}>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.16em",
+                        color: "#7c3aed",
+                      }}
+                    >
+                      Participação
+                    </p>
+
+                    <h2
+                      style={{
+                        marginTop: 8,
+                        marginBottom: 0,
+                        fontSize: 34,
+                        fontWeight: 800,
+                        color: "#111827",
+                      }}
+                    >
+                      Estatísticas das Predictions
+                    </h2>
+
+                    <p
+                      style={{
+                        marginTop: 8,
+                        fontSize: 15,
+                        color: "#6b7280",
+                      }}
+                    >
+                      Vê quantos utilizadores já responderam a todas as previsões de cada
+                      jornada ou fase.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={loadPredictionStats}
+                    disabled={loadingPredictionStats}
+                    className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{
+                      backgroundColor: "#2f2140",
+                      color: "#ffffff",
+                      border: "1px solid #2f2140",
+                      minWidth: 150,
+                    }}
+                  >
+                    {loadingPredictionStats ? "A atualizar..." : "Atualizar"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <div
+                  className="rounded-2xl p-4"
+                  style={{ backgroundColor: "#f8fafc", border: "1px solid #e5e7eb" }}
+                >
+                  <p style={{ margin: 0, fontSize: 12, color: "#6b7280", fontWeight: 700 }}>
+                    Fases/Jornadas
+                  </p>
+                  <p style={{ marginTop: 5, marginBottom: 0, fontSize: 30, fontWeight: 900 }}>
+                    {totalPredictionRounds}
+                  </p>
+                </div>
+
+                <div
+                  className="rounded-2xl p-4"
+                  style={{ backgroundColor: "#f8fafc", border: "1px solid #e5e7eb" }}
+                >
+                  <p style={{ margin: 0, fontSize: 12, color: "#6b7280", fontWeight: 700 }}>
+                    Média de resposta
+                  </p>
+                  <p style={{ marginTop: 5, marginBottom: 0, fontSize: 30, fontWeight: 900 }}>
+                    {averagePredictionCompletion}%
+                  </p>
+                </div>
+
+                <div
+                  className="rounded-2xl p-4"
+                  style={{ backgroundColor: "#f8fafc", border: "1px solid #e5e7eb" }}
+                >
+                  <p style={{ margin: 0, fontSize: 12, color: "#6b7280", fontWeight: 700 }}>
+                    Utilizadores totais
+                  </p>
+                  <p style={{ marginTop: 5, marginBottom: 0, fontSize: 30, fontWeight: 900 }}>
+                    {predictionStats[0]?.totalUsers ?? 0}
+                  </p>
+                </div>
+              </div>
+
+              {loadingPredictionStats ? (
+                <p className="mt-4" style={{ fontSize: 14, color: "#6b7280" }}>
+                  A carregar estatísticas das predictions...
+                </p>
+              ) : predictionStats.length === 0 ? (
+                <p className="mt-4" style={{ fontSize: 14, color: "#6b7280" }}>
+                  Ainda não existem estatísticas disponíveis.
+                </p>
+              ) : (
+                <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {predictionStats.map((item) => (
+                    <div
+                      key={item.round}
+                      className="rounded-2xl p-5"
+                      style={{
+                        backgroundColor: "#f8fafc",
+                        border: "1px solid #e5e7eb",
+                        color: "#111827",
+                      }}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p
+                            style={{
+                              margin: 0,
+                              fontSize: 12,
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.12em",
+                              color: "#7c3aed",
+                            }}
+                          >
+                            {item.round}
+                          </p>
+
+                          <p
+                            style={{
+                              marginTop: 8,
+                              marginBottom: 0,
+                              fontSize: 36,
+                              fontWeight: 900,
+                              color: "#111827",
+                              lineHeight: 1,
+                            }}
+                          >
+                            {item.usersAnswered}
+                            <span
+                              style={{
+                                fontSize: 16,
+                                fontWeight: 700,
+                                color: "#6b7280",
+                              }}
+                            >
+                              /{item.totalUsers}
+                            </span>
+                          </p>
+
+                          <p
+                            style={{
+                              marginTop: 8,
+                              marginBottom: 0,
+                              fontSize: 14,
+                              color: "#6b7280",
+                            }}
+                          >
+                            utilizadores responderam
+                          </p>
+                        </div>
+
+                        <div
+                          className="rounded-full px-3 py-1"
+                          style={{
+                            backgroundColor:
+                              item.percentage >= 75
+                                ? "#dcfce7"
+                                : item.percentage >= 40
+                                ? "#fef3c7"
+                                : "#fee2e2",
+                            color:
+                              item.percentage >= 75
+                                ? "#166534"
+                                : item.percentage >= 40
+                                ? "#92400e"
+                                : "#991b1b",
+                            fontSize: 12,
+                            fontWeight: 800,
+                          }}
+                        >
+                          {item.percentage}%
+                        </div>
+                      </div>
+
+                      <div
+                        className="mt-4 h-3 overflow-hidden rounded-full"
+                        style={{ backgroundColor: "#e5e7eb" }}
+                      >
+                        <div
+                          style={{
+                            width: `${item.percentage}%`,
+                            height: "100%",
+                            backgroundColor:
+                              item.percentage >= 75
+                                ? "#16a34a"
+                                : item.percentage >= 40
+                                ? "#f59e0b"
+                                : "#dc2626",
+                            borderRadius: 9999,
+                          }}
+                        />
+                      </div>
+
+                      <div
+                        className="mt-4 rounded-xl p-3"
+                        style={{
+                          backgroundColor: "#ffffff",
+                          border: "1px solid #e5e7eb",
+                        }}
+                      >
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: 13,
+                            color: "#4b5563",
+                          }}
+                        >
+                          Jogos nesta jornada/fase:{" "}
+                          <span style={{ fontWeight: 800, color: "#111827" }}>
+                            {item.totalGames}
+                          </span>
+                        </p>
+
+                        <p
+                          style={{
+                            marginTop: 4,
+                            marginBottom: 0,
+                            fontSize: 13,
+                            color: "#4b5563",
+                          }}
+                        >
+                          Por responder:{" "}
+                          <span style={{ fontWeight: 800, color: "#111827" }}>
+                            {Math.max(item.totalUsers - item.usersAnswered, 0)}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </section>
@@ -1255,9 +1642,7 @@ export default function AdminPage() {
                   <button
                     type="button"
                     onClick={handleSaveStats}
-                    disabled={
-                      loadingSave || loadingPlayerStats || !selectedPlayerId
-                    }
+                    disabled={loadingSave || loadingPlayerStats || !selectedPlayerId}
                     className="inline-flex h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                     style={{
                       backgroundColor: "#2f2140",
@@ -1292,12 +1677,10 @@ export default function AdminPage() {
                       color: "#111827",
                     }}
                   >
-                    {selectedPlayer.name} • {selectedPlayer.team} •{" "}
-                    {selectedPlayer.position}
+                    {selectedPlayer.name} • {selectedPlayer.team} • {selectedPlayer.position}
                   </p>
                   <p style={{ marginTop: 8, fontSize: 14, color: "#374151" }}>
-                    Valores atuais:{" "}
-                    <span style={{ fontWeight: 700 }}>{goals}</span> golos •{" "}
+                    Valores atuais: <span style={{ fontWeight: 700 }}>{goals}</span> golos •{" "}
                     <span style={{ fontWeight: 700 }}>{assists}</span> assistências
                   </p>
                 </div>
@@ -1353,23 +1736,24 @@ export default function AdminPage() {
                   {savingSnapshot ? "A guardar..." : "Guardar snapshot"}
                 </button>
               </div>
+
               <div className="mt-6 flex justify-end">
-        <button
-          type="button"
-          onClick={handleRecalculatePoints}
-          disabled={loadingSave}
-          className="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
-          style={{
-            backgroundColor: "#111827",
-            color: "#ffffff",
-            border: "1px solid #111827",
-            boxShadow: "0 2px 6px rgba(17,24,39,0.18)",
-            minWidth: 220,
-          }}
-        >
-         {loadingSave ? "A recalcular..." : "Recalcular pontos"}
-      </button>
-    </div>
+                <button
+                  type="button"
+                  onClick={handleRecalculatePoints}
+                  disabled={loadingSave}
+                  className="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{
+                    backgroundColor: "#111827",
+                    color: "#ffffff",
+                    border: "1px solid #111827",
+                    boxShadow: "0 2px 6px rgba(17,24,39,0.18)",
+                    minWidth: 220,
+                  }}
+                >
+                  {loadingSave ? "A recalcular..." : "Recalcular pontos"}
+                </button>
+              </div>
             </section>
           )}
         </div>
