@@ -59,6 +59,12 @@ type PredictionRoundStat = {
   percentage: number;
 };
 
+type ParticipationStats = {
+  totalUsers: number;
+  totalTeams: number;
+  percentage: number;
+};
+
 function getGameId(game: any) {
   return String(game.id);
 }
@@ -114,6 +120,20 @@ function hasValidPrediction(data: PredictionDoc) {
     data.predictedAwayScore !== undefined &&
     data.predictedAwayScore !== ""
   );
+}
+
+async function getParticipationStats(): Promise<ParticipationStats> {
+  const usersSnapshot = await getDocs(collection(db, "users"));
+  const teamsSnapshot = await getDocs(collection(db, "fantasyEntries"));
+
+  const totalUsers = usersSnapshot.size;
+  const totalTeams = teamsSnapshot.size;
+
+  return {
+    totalUsers,
+    totalTeams,
+    percentage: totalUsers > 0 ? Math.round((totalTeams / totalUsers) * 100) : 0,
+  };
 }
 
 async function getPredictionStatsByRound(): Promise<PredictionRoundStat[]> {
@@ -221,6 +241,13 @@ export default function AdminPage() {
     []
   );
   const [loadingPredictionStats, setLoadingPredictionStats] = useState(true);
+
+  const [participationStats, setParticipationStats] = useState<ParticipationStats>({
+    totalUsers: 0,
+    totalTeams: 0,
+    percentage: 0,
+  });
+  const [loadingParticipationStats, setLoadingParticipationStats] = useState(true);
 
   const [playerTeamFilter, setPlayerTeamFilter] = useState<string>("ALL");
   const [playerPositionFilter, setPlayerPositionFilter] =
@@ -341,11 +368,25 @@ export default function AdminPage() {
     }
   };
 
+  const loadParticipationStats = async () => {
+    try {
+      setLoadingParticipationStats(true);
+      const data = await getParticipationStats();
+      setParticipationStats(data);
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao carregar taxa de participação.");
+    } finally {
+      setLoadingParticipationStats(false);
+    }
+  };
+
   useEffect(() => {
     if (isAdmin) {
       loadPayments();
       loadPlayerStats();
       loadPredictionStats();
+      loadParticipationStats();
     }
   }, [isAdmin]);
 
@@ -453,6 +494,7 @@ export default function AdminPage() {
       await approvePayment(userId);
       await loadPayments();
       await loadPredictionStats();
+      await loadParticipationStats();
       alert("Pagamento aprovado com sucesso.");
     } catch (error) {
       console.error(error);
@@ -610,6 +652,10 @@ export default function AdminPage() {
         )
       : 0;
 
+  const participationDisplayValue = loadingParticipationStats
+    ? "..."
+    : `${participationStats.percentage}%`;
+
   if (!user) {
     return (
       <main
@@ -692,7 +738,7 @@ export default function AdminPage() {
     value,
   }: {
     label: string;
-    value: number;
+    value: number | string;
   }) => {
     return (
       <div
@@ -971,7 +1017,7 @@ export default function AdminPage() {
                 <StatBox label="Registos" value={totalPayments} />
                 <StatBox label="Pendentes" value={totalPending} />
                 <StatBox label="Aprovados" value={totalApproved} />
-                <StatBox label="Predictions" value={averagePredictionCompletion} />
+                <StatBox label="Participação" value={participationDisplayValue} />
               </div>
             </div>
           </section>
