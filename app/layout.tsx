@@ -15,9 +15,21 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.fantasymundial2026.com"),
-  title: "Fantasy Mundial 2026",
+  title: {
+    default: "Fantasy Mundial 2026",
+    template: "%s | Fantasy Mundial 2026",
+  },
   description:
     "Cria a tua equipa, faz previsões e compete com amigos durante o Mundial 2026.",
+  keywords: [
+    "Fantasy Mundial 2026",
+    "Fantasy Football",
+    "Mundial 2026",
+    "World Cup Fantasy",
+    "Fantasy Futebol",
+  ],
+  authors: [{ name: "Fantasy Mundial 2026" }],
+  creator: "Fantasy Mundial 2026",
   openGraph: {
     title: "Fantasy Mundial 2026",
     description:
@@ -26,7 +38,7 @@ export const metadata: Metadata = {
     siteName: "Fantasy Mundial 2026",
     images: [
       {
-        url: "/og-image.png",
+        url: "/Mundial.png",
         width: 1200,
         height: 630,
         alt: "Fantasy Mundial 2026",
@@ -40,18 +52,26 @@ export const metadata: Metadata = {
     title: "Fantasy Mundial 2026",
     description:
       "Cria a tua equipa, faz previsões e compete com amigos durante o Mundial 2026.",
-    images: ["/og-image.png"],
+    images: ["/Mundial.png"],
+  },
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
   },
 };
 
-type RootLayoutProps = {
+export default function RootLayout({
+  children,
+}: Readonly<{
   children: React.ReactNode;
-};
-
-export default function RootLayout({ children }: RootLayoutProps) {
+}>) {
   return (
-    <html lang="pt" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="min-h-screen bg-slate-950 text-slate-50 antialiased">
+    <html
+      lang="pt"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+    >
+      <body className="min-h-full bg-slate-950 text-slate-50">
         {children}
         <Analytics />
       </body>
