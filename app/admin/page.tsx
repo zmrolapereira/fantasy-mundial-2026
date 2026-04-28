@@ -44,11 +44,11 @@ type HistoryItemWithDiff = PlayerStatHistoryItem & {
   assistsDiff: number | null;
 };
 
-type PredictionValue = {
-  home?: string | number;
-  away?: string | number;
-  homeScore?: string | number;
-  awayScore?: string | number;
+type PredictionDoc = {
+  gameId?: string | number;
+  userId?: string;
+  predictedHomeScore?: string | number;
+  predictedAwayScore?: string | number;
 };
 
 type PredictionRoundStat = {
@@ -64,44 +64,39 @@ function getGameId(game: any) {
 }
 
 function getRoundLabel(game: any) {
-  return (
-    game.round ||
-    game.jornada ||
-    game.stage ||
+  const phase =
     game.phase ||
+    game.stage ||
     game.phaseName ||
-    "Sem fase"
+    game.fase ||
+    game.stageName;
+
+  const round = game.round || game.jornada || game.roundName;
+
+  if (phase) return String(phase);
+  if (round) return String(round);
+
+  return "Sem fase";
+}
+
+function hasValidPrediction(data: PredictionDoc) {
+  return (
+    data.userId &&
+    data.gameId !== undefined &&
+    data.predictedHomeScore !== undefined &&
+    data.predictedHomeScore !== "" &&
+    data.predictedAwayScore !== undefined &&
+    data.predictedAwayScore !== ""
   );
-}
-
-function getPredictionsObject(data: any): Record<string, PredictionValue> {
-  return data.predictions || data.matchPredictions || data.match_predictions || {};
-}
-
-function hasPrediction(value?: PredictionValue) {
-  if (!value) return false;
-
-  const hasHomeAway =
-    value.home !== undefined &&
-    value.home !== "" &&
-    value.away !== undefined &&
-    value.away !== "";
-
-  const hasScores =
-    value.homeScore !== undefined &&
-    value.homeScore !== "" &&
-    value.awayScore !== undefined &&
-    value.awayScore !== "";
-
-  return hasHomeAway || hasScores;
 }
 
 async function getPredictionStatsByRound(): Promise<PredictionRoundStat[]> {
   const usersSnapshot = await getDocs(collection(db, "users"));
-  const entriesSnapshot = await getDocs(collection(db, "predictions"));
+  const predictionsSnapshot = await getDocs(collection(db, "predictions"));
 
   const totalUsers = usersSnapshot.size;
   const roundsMap = new Map<string, string[]>();
+  const answeredGamesByUser = new Map<string, Set<string>>();
 
   games.forEach((game: any) => {
     const round = getRoundLabel(game);
@@ -114,17 +109,29 @@ async function getPredictionStatsByRound(): Promise<PredictionRoundStat[]> {
     roundsMap.get(round)?.push(gameId);
   });
 
+  predictionsSnapshot.forEach((doc) => {
+    const data = doc.data() as PredictionDoc;
+
+    if (!hasValidPrediction(data)) return;
+
+    const userId = String(data.userId);
+    const gameId = String(data.gameId);
+
+    if (!answeredGamesByUser.has(userId)) {
+      answeredGamesByUser.set(userId, new Set<string>());
+    }
+
+    answeredGamesByUser.get(userId)?.add(gameId);
+  });
+
   const stats: PredictionRoundStat[] = [];
 
   roundsMap.forEach((gameIds, round) => {
     let usersAnswered = 0;
 
-    entriesSnapshot.forEach((doc) => {
-      const data = doc.data();
-      const predictions = getPredictionsObject(data);
-
+    answeredGamesByUser.forEach((answeredGameIds) => {
       const answeredAllRound = gameIds.every((gameId) =>
-        hasPrediction(predictions[gameId])
+        answeredGameIds.has(String(gameId))
       );
 
       if (answeredAllRound) {
