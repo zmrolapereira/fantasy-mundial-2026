@@ -64,17 +64,49 @@ function getGameId(game: any) {
 }
 
 function getRoundLabel(game: any) {
-  const phase =
+  const phase = String(
     game.phase ||
-    game.stage ||
-    game.phaseName ||
-    game.fase ||
-    game.stageName;
+      game.fase ||
+      game.stage ||
+      game.phaseName ||
+      game.stageName ||
+      ""
+  ).trim();
 
-  const round = game.round || game.jornada || game.roundName;
+  const round = String(
+    game.round ||
+      game.jornada ||
+      game.roundName ||
+      ""
+  ).trim();
 
-  if (phase) return String(phase);
-  if (round) return String(round);
+  const normalizedPhase = phase.toLowerCase();
+  const normalizedRound = round.toLowerCase();
+
+  const isGroupStage =
+    normalizedPhase.includes("fase de grupos") ||
+    normalizedPhase.includes("grupos") ||
+    normalizedPhase.includes("group");
+
+  if (isGroupStage) {
+    if (normalizedRound.includes("jornada 1") || normalizedRound === "1") {
+      return "Fase de Grupos - Jornada 1";
+    }
+
+    if (normalizedRound.includes("jornada 2") || normalizedRound === "2") {
+      return "Fase de Grupos - Jornada 2";
+    }
+
+    if (normalizedRound.includes("jornada 3") || normalizedRound === "3") {
+      return "Fase de Grupos - Jornada 3";
+    }
+
+    return round ? `Fase de Grupos - ${round}` : "Fase de Grupos";
+  }
+
+  if (phase) return phase;
+
+  if (round) return round;
 
   return "Sem fase";
 }
