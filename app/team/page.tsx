@@ -181,7 +181,14 @@ export default function TeamPage() {
     const grouped: Record<string, Game[]> = {};
 
     games.forEach((game) => {
-      const label = game.phase === "16 avos" ? "16 avos" : game.round;
+      const label =
+        game.phase === "16 avos"
+          ? "16 avos"
+          : game.phase === "Meias-finais"
+          ? "Meias-finais"
+          : game.phase === "3º lugar" || game.phase === "Final"
+          ? "Final e 3º Lugar"
+          : game.round;
 
       if (!grouped[label]) {
         grouped[label] = [];
@@ -197,10 +204,8 @@ export default function TeamPage() {
       "16 avos",
       "Oitavos",
       "Quartos",
-      "Meia-final 1",
-      "Meia-final 2",
-      "3º lugar",
-      "Final",
+      "Meias-finais",
+      "Final e 3º Lugar",
     ];
 
     return (Object.entries(grouped) as [string, Game[]][]).sort(([a], [b]) => {
