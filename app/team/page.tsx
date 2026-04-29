@@ -54,6 +54,7 @@ export default function TeamPage() {
   const [topAssistId, setTopAssistId] = useState("");
   const [championTeam, setChampionTeam] = useState("");
   const [predictions, setPredictions] = useState<PredictionMap>({});
+  const [activePredictionRound, setActivePredictionRound] = useState("");
 
   const [hasPaidAccess, setHasPaidAccess] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<
@@ -211,7 +212,21 @@ export default function TeamPage() {
       if (ib === -1) return -1;
       return ia - ib;
     });
+    
   }, []);
+
+  useEffect(() => {
+  if (!activePredictionRound && gamesByRound.length > 0) {
+    setActivePredictionRound(gamesByRound[0][0]);
+  }
+}, [activePredictionRound, gamesByRound]);
+
+const activeRoundGames = useMemo(() => {
+  return (
+    gamesByRound.find(([roundLabel]) => roundLabel === activePredictionRound)?.[1] ??
+    []
+  );
+}, [gamesByRound, activePredictionRound]);
 
   const uniqueTeams = useMemo(() => {
     return [
@@ -946,189 +961,221 @@ export default function TeamPage() {
         </section>
 
         <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-6">
-            <p className="text-xs font-bold uppercase tracking-wide text-violet-600">
-              Palpites por jornada
+  <div className="mb-6">
+    <p className="text-xs font-bold uppercase tracking-wide text-violet-600">
+      Palpites por jornada
+    </p>
+
+    <h2 className="mt-2 text-2xl font-extrabold text-gray-900 sm:text-3xl">
+      Jornadas e eliminatórias
+    </h2>
+
+    <p className="mt-2 text-sm text-gray-500">
+      Escolhe a jornada/fase e submete os palpites antes do fecho.
+    </p>
+  </div>
+
+  <div className="mb-6 flex gap-2 overflow-x-auto rounded-2xl bg-gray-100 p-2">
+    {gamesByRound.map(([roundLabel]) => {
+      const active = activePredictionRound === roundLabel;
+
+      return (
+        <button
+          key={roundLabel}
+          type="button"
+          onClick={() => setActivePredictionRound(roundLabel)}
+          className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-bold transition ${
+            active
+              ? "bg-violet-900 text-white shadow-sm"
+              : "bg-white text-gray-700 hover:bg-violet-50"
+          }`}
+        >
+          {roundLabel}
+        </button>
+      );
+    })}
+  </div>
+
+  {activeRoundGames.length > 0 && (() => {
+    const roundLabel = activePredictionRound;
+    const roundGames = activeRoundGames;
+
+    const firstGame = getRoundFirstGame(roundGames);
+    const roundLockDate = getLockDateFromGame(firstGame);
+    const roundLocked = nowTick >= roundLockDate.getTime();
+
+    const filledInRound = roundGames.filter((game) => {
+      const prediction = predictions[game.id];
+      return prediction?.home !== "" && prediction?.away !== "";
+    }).length;
+
+    return (
+      <div>
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h3 className="text-xl font-extrabold text-gray-900 sm:text-2xl">
+              {roundLabel}
+            </h3>
+
+            <p className="text-sm text-gray-500">
+              {filledInRound}/{roundGames.length} jogos preenchidos
             </p>
-            <h2 className="mt-2 text-2xl font-extrabold text-gray-900 sm:text-3xl">
-              Jornadas e eliminatórias
-            </h2>
           </div>
 
-          <div className="space-y-8">
-            {gamesByRound.map(([roundLabel, roundGames]) => {
-              const firstGame = getRoundFirstGame(roundGames);
-              const roundLockDate = getLockDateFromGame(firstGame);
-              const roundLocked = nowTick >= roundLockDate.getTime();
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <span
+              className={`inline-flex rounded-full px-4 py-2 text-sm font-bold ${
+                roundLocked
+                  ? "bg-red-100 text-red-700"
+                  : "bg-green-100 text-green-700"
+              }`}
+            >
+              {roundLocked
+                ? "Submissões fechadas"
+                : `Fecha em ${formatCountdown(roundLockDate)}`}
+            </span>
 
-              return (
-                <div key={roundLabel}>
-                  <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                      <h3 className="text-xl font-extrabold text-gray-900 sm:text-2xl">
-                        {roundLabel}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        Fecha exatamente à hora do primeiro jogo da ronda
-                      </p>
-                    </div>
+            <button
+              type="button"
+              onClick={() => handleSaveRound(roundLabel, roundGames)}
+              disabled={roundLocked || savingRoundLabel === roundLabel}
+              className="rounded-2xl bg-violet-900 px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {savingRoundLabel === roundLabel
+                ? "A guardar..."
+                : blockedByPayment
+                ? "Bloqueado"
+                : `Guardar ${roundLabel}`}
+            </button>
+          </div>
+        </div>
 
-                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                      <span
-                        className={`inline-flex rounded-full px-4 py-2 text-sm font-bold ${
-                          roundLocked
-                            ? "bg-red-100 text-red-700"
-                            : "bg-green-100 text-green-700"
-                        }`}
-                      >
-                        {roundLocked
-                          ? "Submissões fechadas"
-                          : `Fecha em ${formatCountdown(roundLockDate)}`}
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {roundGames.map((game) => {
+            const homeTeam = teams.find((team) => team.name === game.homeTeam);
+            const awayTeam = teams.find((team) => team.name === game.awayTeam);
+
+            const prediction = predictions[game.id] || {
+              home: "",
+              away: "",
+            };
+
+            return (
+              <article
+                key={game.id}
+                className={`rounded-2xl border p-4 ${
+                  roundLocked || blockedByPayment
+                    ? "border-gray-200 bg-gray-50"
+                    : "border-gray-100 bg-[#fcfcfd]"
+                }`}
+              >
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-gray-400">
+                      {formatDate(game.date)} • {game.time}
+                    </p>
+
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {game.group && (
+                        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                          Grupo {game.group}
+                        </span>
+                      )}
+
+                      <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
+                        {game.phase}
                       </span>
-
-                      <button
-                        type="button"
-                        onClick={() => handleSaveRound(roundLabel, roundGames)}
-                        disabled={roundLocked || savingRoundLabel === roundLabel}
-                        className="rounded-2xl bg-violet-900 px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {savingRoundLabel === roundLabel
-                          ? "A guardar..."
-                          : blockedByPayment
-                          ? "Bloqueado"
-                          : `Guardar ${roundLabel}`}
-                      </button>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                    {roundGames.map((game) => {
-                      const homeTeam = teams.find(
-                        (team) => team.name === game.homeTeam
-                      );
-                      const awayTeam = teams.find(
-                        (team) => team.name === game.awayTeam
-                      );
-                      const prediction = predictions[game.id] || {
-                        home: "",
-                        away: "",
-                      };
+                  <span className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-600">
+                    {game.status}
+                  </span>
+                </div>
 
-                      return (
-                        <article
-                          key={game.id}
-                          className={`rounded-2xl border p-4 ${
-                            roundLocked || blockedByPayment
-                              ? "border-gray-200 bg-gray-50"
-                              : "border-gray-100 bg-[#fcfcfd]"
-                          }`}
-                        >
-                          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                            <div>
-                              <p className="text-xs font-bold uppercase tracking-wide text-gray-400">
-                                {formatDate(game.date)} • {game.time}
-                              </p>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      {homeTeam?.flag ? (
+                        <img
+                          src={homeTeam.flag}
+                          alt={game.homeTeam}
+                          className="h-6 w-9 rounded object-cover"
+                        />
+                      ) : (
+                        <div className="h-6 w-9 rounded bg-gray-200" />
+                      )}
 
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                {game.group && (
-                                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-                                    Grupo {game.group}
-                                  </span>
-                                )}
+                      <span className="truncate text-sm font-bold text-gray-900">
+                        {game.homeTeam}
+                      </span>
+                    </div>
 
-                                <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
-                                  {game.phase}
-                                </span>
-                              </div>
-                            </div>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={prediction.home}
+                      disabled={roundLocked || blockedByPayment}
+                      onChange={(e) =>
+                        handlePredictionChange(
+                          game.id,
+                          "home",
+                          e.target.value,
+                          roundLocked
+                        )
+                      }
+                      className="h-12 w-14 rounded-xl border border-gray-200 bg-white text-center text-lg font-bold text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                    />
+                  </div>
 
-                            <span className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-600">
-                              {game.status}
-                            </span>
-                          </div>
+                  <div className="flex items-center justify-center">
+                    <span className="text-xl font-extrabold text-violet-900">
+                      -
+                    </span>
+                  </div>
 
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="flex min-w-0 items-center gap-3">
-                                {homeTeam?.flag ? (
-                                  <img
-                                    src={homeTeam.flag}
-                                    alt={game.homeTeam}
-                                    className="h-6 w-9 rounded object-cover"
-                                  />
-                                ) : (
-                                  <div className="h-6 w-9 rounded bg-gray-200" />
-                                )}
-                                <span className="truncate text-sm font-bold text-gray-900">
-                                  {game.homeTeam}
-                                </span>
-                              </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      {awayTeam?.flag ? (
+                        <img
+                          src={awayTeam.flag}
+                          alt={game.awayTeam}
+                          className="h-6 w-9 rounded object-cover"
+                        />
+                      ) : (
+                        <div className="h-6 w-9 rounded bg-gray-200" />
+                      )}
 
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                value={prediction.home}
-                                disabled={roundLocked || blockedByPayment}
-                                onChange={(e) =>
-                                  handlePredictionChange(
-                                    game.id,
-                                    "home",
-                                    e.target.value,
-                                    roundLocked
-                                  )
-                                }
-                                className="h-12 w-14 rounded-xl border border-gray-200 bg-white text-center text-lg font-bold text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
-                              />
-                            </div>
+                      <span className="truncate text-sm font-bold text-gray-900">
+                        {game.awayTeam}
+                      </span>
+                    </div>
 
-                            <div className="flex items-center justify-center">
-                              <span className="text-xl font-extrabold text-violet-900">
-                                -
-                              </span>
-                            </div>
-
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="flex min-w-0 items-center gap-3">
-                                {awayTeam?.flag ? (
-                                  <img
-                                    src={awayTeam.flag}
-                                    alt={game.awayTeam}
-                                    className="h-6 w-9 rounded object-cover"
-                                  />
-                                ) : (
-                                  <div className="h-6 w-9 rounded bg-gray-200" />
-                                )}
-                                <span className="truncate text-sm font-bold text-gray-900">
-                                  {game.awayTeam}
-                                </span>
-                              </div>
-
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                value={prediction.away}
-                                disabled={roundLocked || blockedByPayment}
-                                onChange={(e) =>
-                                  handlePredictionChange(
-                                    game.id,
-                                    "away",
-                                    e.target.value,
-                                    roundLocked
-                                  )
-                                }
-                                className="h-12 w-14 rounded-xl border border-gray-200 bg-white text-center text-lg font-bold text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
-                              />
-                            </div>
-                          </div>
-                        </article>
-                      );
-                    })}
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={prediction.away}
+                      disabled={roundLocked || blockedByPayment}
+                      onChange={(e) =>
+                        handlePredictionChange(
+                          game.id,
+                          "away",
+                          e.target.value,
+                          roundLocked
+                        )
+                      }
+                      className="h-12 w-14 rounded-xl border border-gray-200 bg-white text-center text-lg font-bold text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                    />
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </section>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    );
+  })()}
+</section>
       </div>
 
       {showPaymentModal && (
@@ -1156,9 +1203,8 @@ export default function TeamPage() {
                 918 888 416
               </p>
               <p className="mt-3 text-sm leading-6 text-gray-600">
-                Faz o pagamento e manda mensagem para esse número. Depois escolhe
-                o método utilizado e carrega em “Já paguei” para eu validar
-                manualmente.
+                Faz o pagamento e e deixa na descrição algo que vos identifique (ex: email). Depois escolhe
+                o método que foi utilizado e carrega em “Já paguei”. Depois irá ser validado manualemnte.
               </p>
             </div>
 
@@ -1180,7 +1226,7 @@ export default function TeamPage() {
               />
 
               <p className="mt-2 text-xs text-gray-500">
-                Este número será usado apenas para pagamento de prémios e não
+                Este número será usado apenas para pagamento de prémios, para serem comunicados caso necessário e não
                 será visível para outros participantes.
               </p>
             </div>
