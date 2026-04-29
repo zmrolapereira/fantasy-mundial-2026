@@ -18,11 +18,11 @@ const siteUrl = "https://www.fantasymundial2026.com";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Fantasy Mundial 2026",
+    default: "Fantasy Mundial 2026 - Cria equipa e faz previsões",
     template: "%s | Fantasy Mundial 2026",
   },
   description:
-    "Cria a tua equipa, faz previsões dos jogos e compete com amigos no ranking global durante o Mundial 2026.",
+    "Joga o melhor Fantasy do Mundial 2026. Cria a tua equipa, faz previsões dos jogos e compete com amigos.",
   keywords: [
     "Fantasy Mundial 2026",
     "Fantasy Football",
