@@ -266,6 +266,53 @@ function buildPredictionHistory(predictions: PredictionWithGame[]) {
     });
 }
 
+function buildTotalHistoryFromSnapshots({
+  orderedStageIds,
+  snapshotsByStageId,
+  selectedUserId,
+  stageOptions,
+}: {
+  orderedStageIds: string[];
+  snapshotsByStageId: Map<string, LeaderboardSnapshot>;
+  selectedUserId: string;
+  stageOptions: StageOption[];
+}): HistoryRow[] {
+  return orderedStageIds
+    .map((stageId, index) => {
+      const currentSnapshot = snapshotsByStageId.get(stageId);
+      if (!currentSnapshot) return null;
+
+      const currentRow = currentSnapshot.entries?.find(
+        (entry) => entry.userId === selectedUserId
+      );
+
+      if (!currentRow) return null;
+
+      const previousStageId = index > 0 ? orderedStageIds[index - 1] : null;
+      const previousSnapshot = previousStageId
+        ? snapshotsByStageId.get(previousStageId)
+        : null;
+
+      const previousRow = previousSnapshot?.entries?.find(
+        (entry) => entry.userId === selectedUserId
+      );
+
+      const currentTotal = Number(currentRow.totalPointsAtThatMoment ?? 0);
+      const previousTotal = Number(previousRow?.totalPointsAtThatMoment ?? 0);
+
+      const label =
+        stageOptions.find((option) => option.id === stageId)?.label ??
+        currentSnapshot.label ??
+        stageId;
+
+      return {
+        label,
+        points: Math.max(0, currentTotal - previousTotal),
+      };
+    })
+    .filter(Boolean) as HistoryRow[];
+}
+
 export default function RankingPage() {
   const [user, setUser] = useState<User | null>(null);
   const [entries, setEntries] = useState<FantasyEntry[]>([]);
@@ -669,12 +716,25 @@ export default function RankingPage() {
   }, [finishedPredictionsWithGameData, leaderboardMode, selectedStageId]);
 
   const selectedHistory: HistoryRow[] = useMemo(() => {
-    if (leaderboardMode === "stage") {
-      return stageHistoryFromSnapshots;
-    }
+  const snapshotHistory = buildTotalHistoryFromSnapshots({
+    orderedStageIds,
+    snapshotsByStageId,
+    selectedUserId,
+    stageOptions,
+  });
 
-    return buildPredictionHistory(finishedPredictionsWithGameData);
-  }, [finishedPredictionsWithGameData, leaderboardMode, stageHistoryFromSnapshots]);
+  if (snapshotHistory.length > 0) {
+    return snapshotHistory;
+  }
+
+  return buildPredictionHistory(finishedPredictionsWithGameData);
+}, [
+  orderedStageIds,
+  snapshotsByStageId,
+  selectedUserId,
+  stageOptions,
+  finishedPredictionsWithGameData,
+]);
 
   const availableRounds = useMemo(() => {
     return [
