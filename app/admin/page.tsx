@@ -105,6 +105,10 @@ function getRoundLabel(game: any) {
     return round ? `Fase de Grupos - ${round}` : "Fase de Grupos";
   }
 
+  if (normalizedPhase.includes("3º lugar") || normalizedPhase.includes("final")) {
+    return "Final e 3º lugar";
+  }
+
   if (phase) return phase;
   if (round) return round;
 
