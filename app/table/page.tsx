@@ -128,54 +128,90 @@ function getThirdPlaceStandings(): StandingRow[] {
 
 function formatDate(dateString: string) {
   const date = new Date(dateString);
+
   return date.toLocaleDateString("pt-PT", {
     day: "2-digit",
     month: "short",
   });
 }
 
-function MatchCard({ game }: { game: Game }) {
-  const isFinished = game.status === "FT";
+function getTeamFlag(teamName: string) {
+  const team = teams.find((item) => item.name === teamName);
+  return team?.flag || "";
+}
+
+function TeamLine({
+  teamName,
+  score,
+  align = "left",
+}: {
+  teamName: string;
+  score: number | null;
+  align?: "left" | "right";
+}) {
+  const flag = getTeamFlag(teamName);
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-          {formatDate(game.date)}
-        </span>
-        <span
-          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-            isFinished
-              ? "bg-green-100 text-green-700"
-              : "bg-gray-100 text-gray-600"
-          }`}
-        >
-          {game.status}
+    <div className="flex min-h-[50px] items-center justify-between gap-3 rounded-xl bg-white px-3 py-2 shadow-sm">
+      <div
+        className={`flex min-w-0 flex-1 items-center gap-3 ${
+          align === "right" ? "order-2 flex-row-reverse text-right" : ""
+        }`}
+      >
+        {flag ? (
+          <img
+            src={flag}
+            alt={teamName}
+            className="h-7 w-10 shrink-0 rounded-md object-cover shadow-sm"
+          />
+        ) : (
+          <div className="h-7 w-10 shrink-0 rounded-md bg-gray-200" />
+        )}
+
+        <span className="truncate text-sm font-black leading-none text-[#5b1324]">
+          {teamName}
         </span>
       </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-3 rounded-xl bg-[#faf8fc] px-3 py-2">
-          <span className="text-sm font-semibold text-[#2f2140]">
-            {game.homeTeam}
-          </span>
-          <span className="text-sm font-extrabold text-[#4a145f]">
-            {game.homeScore ?? "-"}
-          </span>
-        </div>
+      <span
+        className={`inline-flex h-9 min-w-10 shrink-0 items-center justify-center rounded-xl bg-[#f7f1f3] px-2 text-base font-black text-[#5b1324] ${
+          align === "right" ? "order-1" : ""
+        }`}
+      >
+        {score ?? "-"}
+      </span>
+    </div>
+  );
+}
 
-        <div className="flex items-center justify-between gap-3 rounded-xl bg-[#faf8fc] px-3 py-2">
-          <span className="text-sm font-semibold text-[#2f2140]">
-            {game.awayTeam}
-          </span>
-          <span className="text-sm font-extrabold text-[#4a145f]">
-            {game.awayScore ?? "-"}
-          </span>
-        </div>
+function BracketMatch({
+  game,
+  align = "left",
+}: {
+  game?: Game;
+  align?: "left" | "right";
+}) {
+  return (
+    <div className="h-[158px] w-[280px] rounded-2xl border border-white/15 bg-[#743040] p-3 shadow-xl">
+      <div className="mb-3 flex items-center justify-between px-1 text-[11px] font-black uppercase tracking-wide text-white/75">
+        <span>
+          {game ? `${formatDate(game.date)} • ${game.time ?? "--:--"}` : "--/--"}
+        </span>
+        <span>{game?.status ?? "Por jogar"}</span>
       </div>
 
-      <div className="mt-3 text-center text-xs font-medium text-gray-400">
-        {game.round}
+      <TeamLine
+        teamName={game?.homeTeam ?? "A definir"}
+        score={game?.homeScore ?? null}
+        align={align}
+      />
+
+      <div className="mt-2">
+        <TeamLine
+          teamName={game?.awayTeam ?? "A definir"}
+          score={game?.awayScore ?? null}
+          align={align}
+        />
       </div>
     </div>
   );
@@ -197,6 +233,7 @@ function GroupTable({ selectedGroup }: { selectedGroup: string }) {
             <p className="text-sm font-semibold uppercase tracking-wide text-[#7b3aed]">
               Fase de grupos
             </p>
+
             <h2 className="text-2xl font-extrabold text-[#3a0d57]">
               {isThirdPlaces
                 ? "Melhores 3ºs lugares"
@@ -211,7 +248,7 @@ function GroupTable({ selectedGroup }: { selectedGroup: string }) {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-[760px] w-full">
+        <table className="w-full min-w-[760px]">
           <thead className="bg-[#faf7fc]">
             <tr className="border-b border-gray-100 text-left text-sm uppercase tracking-wide text-gray-500">
               <th className="px-4 py-4 font-semibold sm:px-6">#</th>
@@ -320,7 +357,9 @@ function GroupTable({ selectedGroup }: { selectedGroup: string }) {
         <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
           <div className="flex items-center gap-2">
             <span className="h-3 w-3 rounded-full bg-green-500" />
-            <span>{isThirdPlaces ? "Top 8 destacados" : "Top 2 destacados"}</span>
+            <span>
+              {isThirdPlaces ? "Top 8 destacados" : "Top 2 destacados"}
+            </span>
           </div>
           <div>J = Jogos</div>
           <div>V = Vitórias</div>
@@ -341,75 +380,211 @@ function PlayoffBracket() {
   const roundOf16 = games.filter((game) => game.phase === "Oitavos");
   const quarterFinals = games.filter((game) => game.phase === "Quartos");
   const semiFinals = games.filter((game) => game.phase === "Meias-finais");
-  const thirdPlace = games.filter((game) => game.phase === "3º lugar");
-  const final = games.filter((game) => game.phase === "Final");
+  const thirdPlace = games.find((game) => game.phase === "3º lugar");
+  const finalGame = games.find((game) => game.phase === "Final");
+
+  const leftR32 = roundOf32.slice(0, 8);
+  const rightR32 = roundOf32.slice(8, 16);
+
+  const leftR16 = roundOf16.slice(0, 4);
+  const rightR16 = roundOf16.slice(4, 8);
+
+  const leftQF = quarterFinals.slice(0, 2);
+  const rightQF = quarterFinals.slice(2, 4);
+
+  const leftSF = semiFinals[0];
+  const rightSF = semiFinals[1];
+
+  const cardW = 280;
+  const cardH = 158;
+
+  const x = {
+    left32: 40,
+    left16: 360,
+    leftQF: 680,
+    leftSF: 1000,
+    final: 1320,
+    rightSF: 1640,
+    rightQF: 1960,
+    right16: 2280,
+    right32: 2600,
+  };
+
+  const y32 = [70, 250, 430, 610, 790, 970, 1150, 1330];
+  const y16 = y32
+  .map((y, i) => (i % 2 === 0 ? (y + y32[i + 1]) / 2 : null))
+  .filter((v) => v !== null) as number[];
+  const yQF = y16
+  .map((y, i) => (i % 2 === 0 ? (y + y16[i + 1]) / 2 : null))
+  .filter((v) => v !== null) as number[];
+  const ySF = (yQF[0] + yQF[1]) / 2;
+  const yFinal = ySF;
+  const yThird = ySF + 220;
+
+  const centerY = (top: number) => top + cardH / 2;
+
+  const path = (
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number
+  ) => {
+    const midX = (fromX + toX) / 2;
+    return `M ${fromX} ${fromY} H ${midX} V ${toY} H ${toX}`;
+  };
+
+  const connectors: string[] = [];
+
+  for (let i = 0; i < 8; i++) {
+    connectors.push(
+      path(
+        x.left32 + cardW,
+        centerY(y32[i]),
+        x.left16,
+        centerY(y16[Math.floor(i / 2)])
+      )
+    );
+
+    connectors.push(
+      path(
+        x.right32,
+        centerY(y32[i]),
+        x.right16 + cardW,
+        centerY(y16[Math.floor(i / 2)])
+      )
+    );
+  }
+
+  for (let i = 0; i < 4; i++) {
+    connectors.push(
+      path(
+        x.left16 + cardW,
+        centerY(y16[i]),
+        x.leftQF,
+        centerY(yQF[Math.floor(i / 2)])
+      )
+    );
+
+    connectors.push(
+      path(
+        x.right16,
+        centerY(y16[i]),
+        x.rightQF + cardW,
+        centerY(yQF[Math.floor(i / 2)])
+      )
+    );
+  }
+
+  for (let i = 0; i < 2; i++) {
+    connectors.push(
+      path(x.leftQF + cardW, centerY(yQF[i]), x.leftSF, centerY(ySF))
+    );
+
+    connectors.push(
+      path(x.rightQF, centerY(yQF[i]), x.rightSF + cardW, centerY(ySF))
+    );
+  }
+
+  connectors.push(
+    path(x.leftSF + cardW, centerY(ySF), x.final, centerY(yFinal))
+  );
+
+  connectors.push(
+    path(x.rightSF, centerY(ySF), x.final + cardW, centerY(yFinal))
+  );
+
+  const renderMatch = (
+    game: Game | undefined,
+    left: number,
+    top: number,
+    align: "left" | "right" = "left"
+  ) => (
+    <div
+      key={`${left}-${top}-${game?.id ?? "empty"}`}
+      className="absolute z-10"
+      style={{ left, top }}
+    >
+      <BracketMatch game={game} align={align} />
+    </div>
+  );
 
   return (
-    <div className="overflow-x-auto rounded-3xl bg-[#f5f2f8] p-4 shadow-sm sm:p-6">
-      <div className="flex min-w-[1500px] items-start gap-4 sm:gap-6">
-        <div className="min-w-[220px] flex-1">
-          <h3 className="mb-4 text-center text-lg font-extrabold text-[#3a0d57]">
-            16 avos
-          </h3>
-          <div className="space-y-4">
-            {roundOf32.map((game) => (
-              <MatchCard key={game.id} game={game} />
-            ))}
-          </div>
+    <div className="overflow-x-auto rounded-3xl bg-[#4b1020] p-4 shadow-sm sm:p-6">
+      <div className="relative isolate h-[1550px] w-[3100px] overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#681828] via-[#4b1020] to-[#7a1b32] p-8">
+        <div className="pointer-events-none absolute inset-0 opacity-30">
+          <div className="absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute bottom-[-160px] right-40 h-[600px] w-[600px] rounded-full bg-black/20 blur-3xl" />
         </div>
 
-        <div className="min-w-[220px] flex-1">
-          <h3 className="mb-4 text-center text-lg font-extrabold text-[#3a0d57]">
-            Oitavos
-          </h3>
-          <div className="space-y-8 pt-8">
-            {roundOf16.map((game) => (
-              <MatchCard key={game.id} game={game} />
-            ))}
+        <svg
+          className="pointer-events-none absolute inset-0 z-0"
+          width="3100"
+          height="1550"
+        >
+          {connectors.map((d, index) => (
+            <path
+              key={index}
+              d={d}
+              fill="none"
+              stroke="rgba(255,255,255,0.32)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          ))}
+        </svg>
+
+        {[
+          ["16 avos", x.left32],
+          ["Oitavos", x.left16],
+          ["Quartos", x.leftQF],
+          ["Meias", x.leftSF],
+          ["Final", x.final],
+          ["Meias", x.rightSF],
+          ["Quartos", x.rightQF],
+          ["Oitavos", x.right16],
+          ["16 avos", x.right32],
+        ].map(([label, left]) => (
+          <div
+            key={`${label}-${left}`}
+            className="absolute top-8 text-center text-sm font-black uppercase tracking-wide text-white/80"
+            style={{ left: Number(left), width: cardW }}
+          >
+            {label}
           </div>
+        ))}
+
+        {y32.map((top, i) => renderMatch(leftR32[i], x.left32, top))}
+        {y16.map((top, i) => renderMatch(leftR16[i], x.left16, top))}
+        {yQF.map((top, i) => renderMatch(leftQF[i], x.leftQF, top))}
+        {renderMatch(leftSF, x.leftSF, ySF)}
+
+        {renderMatch(finalGame, x.final, yFinal)}
+
+        <div
+          className="absolute z-0 text-center text-6xl font-black uppercase tracking-widest text-white/10"
+          style={{ left: x.final - 20, top: 555, width: cardW + 40 }}
+        >
+          FINAL
         </div>
 
-        <div className="min-w-[220px] flex-1">
-          <h3 className="mb-4 text-center text-lg font-extrabold text-[#3a0d57]">
-            Quartos
-          </h3>
-          <div className="space-y-16 pt-24">
-            {quarterFinals.map((game) => (
-              <MatchCard key={game.id} game={game} />
-            ))}
-          </div>
+        <div
+          className="absolute z-10 text-center text-xs font-black uppercase tracking-wide text-white/70"
+          style={{ left: x.final, top: yThird - 28, width: cardW }}
+        >
+          3º lugar
         </div>
 
-        <div className="min-w-[220px] flex-1">
-          <h3 className="mb-4 text-center text-lg font-extrabold text-[#3a0d57]">
-            Meias-finais
-          </h3>
-          <div className="space-y-24 pt-44">
-            {semiFinals.map((game) => (
-              <MatchCard key={game.id} game={game} />
-            ))}
-          </div>
-        </div>
+        {renderMatch(thirdPlace, x.final, yThird)}
 
-        <div className="min-w-[240px] flex-1">
-          <h3 className="mb-4 text-center text-lg font-extrabold text-[#3a0d57]">
-            Final
-          </h3>
-          <div className="pt-[210px]">
-            {final.map((game) => (
-              <MatchCard key={game.id} game={game} />
-            ))}
-          </div>
-
-          <h3 className="mb-4 mt-12 text-center text-lg font-extrabold text-[#3a0d57]">
-            3º lugar
-          </h3>
-          <div>
-            {thirdPlace.map((game) => (
-              <MatchCard key={game.id} game={game} />
-            ))}
-          </div>
-        </div>
+        {renderMatch(rightSF, x.rightSF, ySF, "right")}
+        {yQF.map((top, i) => renderMatch(rightQF[i], x.rightQF, top, "right"))}
+        {y16.map((top, i) =>
+          renderMatch(rightR16[i], x.right16, top, "right")
+        )}
+        {y32.map((top, i) =>
+          renderMatch(rightR32[i], x.right32, top, "right")
+        )}
       </div>
     </div>
   );
