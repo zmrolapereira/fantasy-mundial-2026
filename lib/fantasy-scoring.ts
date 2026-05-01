@@ -17,6 +17,10 @@ function isFinished(game: Game) {
   );
 }
 
+function normalize(value?: string) {
+  return String(value || "").trim().toLowerCase();
+}
+
 function getOutcome(home: number, away: number): MatchOutcome {
   if (home > away) return "HOME";
   if (away > home) return "AWAY";
@@ -110,49 +114,73 @@ function getWinner(game: Game) {
   return game.homeScore! > game.awayScore! ? game.homeTeam : game.awayTeam;
 }
 
-function teamWonAnyGameInRound(teamName: string, games: Game[], round: string) {
-  const roundGames = games.filter((game) => game.round === round);
-  return roundGames.some((game) => getWinner(game) === teamName);
+function gameIsStage(game: Game, stage: string) {
+  const target = normalize(stage);
+  return normalize(game.phase) === target || normalize(game.round) === target;
+}
+
+function teamWonAnyGameInStage(teamName: string, games: Game[], stage: string) {
+  return games
+    .filter((game) => gameIsStage(game, stage))
+    .some((game) => getWinner(game) === teamName);
+}
+
+function teamAppearsInStage(teamName: string, games: Game[], stage: string) {
+  return games
+    .filter((game) => gameIsStage(game, stage))
+    .some((game) => game.homeTeam === teamName || game.awayTeam === teamName);
+}
+
+function teamPassedStageByNextRound(
+  teamName: string,
+  games: Game[],
+  currentStage: string,
+  nextStage: string
+) {
+  const wonCurrentStage = teamWonAnyGameInStage(teamName, games, currentStage);
+  const appearsInNextStage = teamAppearsInStage(teamName, games, nextStage);
+
+  return wonCurrentStage || appearsInNextStage;
 }
 
 function getSelectedTeamStagePoints(teamName: string, games: Game[]) {
   let points = 0;
 
-  if (
-    teamWonAnyGameInRound(teamName, games, "Jogo 1") ||
-    teamWonAnyGameInRound(teamName, games, "Jogo 2") ||
-    teamWonAnyGameInRound(teamName, games, "Jogo 3") ||
-    teamWonAnyGameInRound(teamName, games, "Jogo 4") ||
-    teamWonAnyGameInRound(teamName, games, "Jogo 5") ||
-    teamWonAnyGameInRound(teamName, games, "Jogo 6") ||
-    teamWonAnyGameInRound(teamName, games, "Jogo 7") ||
-    teamWonAnyGameInRound(teamName, games, "Jogo 8") ||
-    teamWonAnyGameInRound(teamName, games, "Jogo 9") ||
-    teamWonAnyGameInRound(teamName, games, "Jogo 10") ||
-    teamWonAnyGameInRound(teamName, games, "Jogo 11") ||
-    teamWonAnyGameInRound(teamName, games, "Jogo 12") ||
-    teamWonAnyGameInRound(teamName, games, "Jogo 13") ||
-    teamWonAnyGameInRound(teamName, games, "Jogo 14") ||
-    teamWonAnyGameInRound(teamName, games, "Jogo 15") ||
-    teamWonAnyGameInRound(teamName, games, "Jogo 16")
-  ) {
-    points += 2;
-  }
+  const passed16Avos = teamPassedStageByNextRound(
+    teamName,
+    games,
+    "16 avos",
+    "Oitavos"
+  );
 
-  if (teamWonAnyGameInRound(teamName, games, "Oitavos")) {
-    points += 2;
-  }
+  const passedOitavos = teamPassedStageByNextRound(
+    teamName,
+    games,
+    "Oitavos",
+    "Quartos"
+  );
 
-  if (
-    teamWonAnyGameInRound(teamName, games, "Meia-final 1") ||
-    teamWonAnyGameInRound(teamName, games, "Meia-final 2")
-  ) {
-    points += 2;
-  }
+  const passedQuartos = teamPassedStageByNextRound(
+    teamName,
+    games,
+    "Quartos",
+    "Meias-finais"
+  );
 
-  if (teamWonAnyGameInRound(teamName, games, "Final")) {
-    points += 4;
-  }
+  const passedMeias = teamPassedStageByNextRound(
+    teamName,
+    games,
+    "Meias-finais",
+    "Final"
+  );
+
+  const wonFinal = teamWonAnyGameInStage(teamName, games, "Final");
+
+  if (passed16Avos) points += 2;
+  if (passedOitavos) points += 2;
+  if (passedQuartos) points += 2;
+  if (passedMeias) points += 2;
+  if (wonFinal) points += 4;
 
   return points;
 }
