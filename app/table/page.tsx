@@ -212,6 +212,11 @@ function BracketMatch({
           score={game?.awayScore ?? null}
           align={align}
         />
+        {game?.penaltyWinner && (
+  <p className="mt-2 rounded-lg bg-white/10 px-2 py-1 text-center text-[10px] font-bold text-white/80">
+    {game.penaltyWinner} vence nos penáltis
+  </p>
+)}
       </div>
     </div>
   );

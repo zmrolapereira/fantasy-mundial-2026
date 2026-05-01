@@ -19,6 +19,8 @@ export type Game = {
   homeScore: number | null;
   awayScore: number | null;
   status: "FT" | "Por jogar";
+  penaltyWinner?: string;
+  note?: string;
 };
 
 const baseGames: Game[] = [
@@ -1043,6 +1045,8 @@ const baseGames: Game[] = [
   awayTeam: "Uruguai",
   homeScore: 1,
   awayScore: 1,
+  penaltyWinner: "Argentina",
+  note: "Argentina vence nos penáltis",
   status: "FT",
 },
 {
@@ -1079,6 +1083,8 @@ const baseGames: Game[] = [
   awayTeam: "Equador",
   homeScore: 1,
   awayScore: 1,
+  penaltyWinner: "Bélgica",
+  note: "Bélgica vence nos penáltis",
   status: "FT",
 },
 {
@@ -1127,6 +1133,8 @@ const baseGames: Game[] = [
   awayTeam: "Egito",
   homeScore: 1,
   awayScore: 1,
+  penaltyWinner: "Turquia",
+  note: "Turquia vence nos penáltis",
   status: "FT",
 },
 {
