@@ -168,7 +168,7 @@ function TeamLine({
           <div className="h-7 w-10 shrink-0 rounded-md bg-gray-200" />
         )}
 
-        <span className="truncate text-sm font-black leading-none text-[#5b1324]">
+        <span className="truncate text-sm font-black text-[#5b1324]">
           {teamName}
         </span>
       </div>
@@ -193,11 +193,12 @@ function BracketMatch({
 }) {
   return (
     <div className="h-[158px] w-[280px] rounded-2xl border border-white/15 bg-[#743040] p-3 shadow-xl">
-      <div className="mb-3 flex items-center justify-between px-1 text-[11px] font-black uppercase tracking-wide text-white/75">
-        <span>
+      <div className="mb-3 flex items-center justify-between gap-2 px-1 text-[11px] font-black uppercase tracking-wide text-white/75">
+        <span className="truncate">
           {game ? `${formatDate(game.date)} • ${game.time ?? "--:--"}` : "--/--"}
         </span>
-        <span>{game?.status ?? "Por jogar"}</span>
+
+        <span className="shrink-0">{game?.status ?? "Por jogar"}</span>
       </div>
 
       <TeamLine
@@ -212,12 +213,13 @@ function BracketMatch({
           score={game?.awayScore ?? null}
           align={align}
         />
-        {game?.penaltyWinner && (
-  <p className="mt-2 rounded-lg bg-white/10 px-2 py-1 text-center text-[10px] font-bold text-white/80">
-    {game.penaltyWinner} vence nos penáltis
-  </p>
-)}
       </div>
+
+      {game?.penaltyWinner && (
+        <p className="mt-2 truncate text-center text-[10px] font-bold uppercase tracking-wide text-white/75">
+          *{game.penaltyWinner} vence nos penáltis
+        </p>
+      )}
     </div>
   );
 }
