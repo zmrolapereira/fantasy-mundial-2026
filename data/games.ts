@@ -1337,9 +1337,9 @@ const baseGames: Game[] = [
     phase: "Meias-finais",
     homeTeam: "França",
     awayTeam: "Argentina",
-    homeScore: null,
-    awayScore: null,
-    status: "Por jogar",
+    homeScore: 2,
+    awayScore: 3,
+    status: "FT",
   },
   {
     id: 102,
@@ -1349,9 +1349,9 @@ const baseGames: Game[] = [
     phase: "Meias-finais",
     homeTeam: "Portugal",
     awayTeam: "Noruega",
-    homeScore: null,
-    awayScore: null,
-    status: "Por jogar",
+    homeScore: 3,
+    awayScore: 1,
+    status: "FT",
   },
 
   // =========================
