@@ -122,10 +122,10 @@ function getStageOrder(label: string) {
     "16 avos",
     "Oitavos",
     "Quartos",
-    "Meia-final 1",
-    "Meia-final 2",
+    "Meias-finais",
     "3º lugar",
     "Final",
+    "Final e 3º lugar",
   ];
 
   const index = order.indexOf(label);
@@ -306,9 +306,11 @@ function buildTotalHistoryFromSnapshots({
         stageId;
 
       return {
-        label,
-        points: Math.max(0, currentTotal - previousTotal),
-      };
+  label,
+  points: Number(
+    currentRow.stagePoints ?? Math.max(0, currentTotal - previousTotal)
+  ),
+};
     })
     .filter(Boolean) as HistoryRow[];
 }
@@ -589,7 +591,9 @@ export default function RankingPage() {
           const previousTotal = Number(
             previousEntriesMap.get(entry.userId)?.totalPointsAtThatMoment ?? 0
           );
-          const stagePoints = Math.max(0, currentTotal - previousTotal);
+          const stagePoints = Number(
+  entry.stagePoints ?? Math.max(0, currentTotal - previousTotal)
+);
 
           return {
             ...(fullEntry ?? {
