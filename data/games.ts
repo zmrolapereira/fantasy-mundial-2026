@@ -1365,9 +1365,9 @@ const baseGames: Game[] = [
     phase: "3º lugar",
     homeTeam: "França",
     awayTeam: "Noruega",
-    homeScore: null,
-    awayScore: null,
-    status: "Por jogar",
+    homeScore: 1,
+    awayScore: 2,
+    status: "FT",
   },
 
   // =========================
@@ -1381,9 +1381,9 @@ const baseGames: Game[] = [
     phase: "Final",
     homeTeam: "Argentina",
     awayTeam: "Portugal",
-    homeScore: null,
-    awayScore: null,
-    status: "Por jogar",
+    homeScore: 3,
+    awayScore: 4,
+    status: "FT",
   },
 ];
 

@@ -176,11 +176,11 @@ function getSelectedTeamStagePoints(teamName: string, games: Game[]) {
 
   const wonFinal = teamWonAnyGameInStage(teamName, games, "Final");
 
-  if (passed16Avos) points += 2;
-  if (passedOitavos) points += 2;
-  if (passedQuartos) points += 2;
-  if (passedMeias) points += 2;
-  if (wonFinal) points += 4;
+  if (passed16Avos) points += 1;
+  if (passedOitavos) points += 1;
+  if (passedQuartos) points += 1;
+  if (passedMeias) points += 1;
+  if (wonFinal) points += 2;
 
   return points;
 }
