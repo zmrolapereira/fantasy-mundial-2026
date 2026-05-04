@@ -1014,6 +1014,10 @@ const activeRoundGames = useMemo(() => {
       return prediction?.home !== "" && prediction?.away !== "";
     }).length;
 
+    const isKnockoutRound = roundGames.some(
+      (game) => game.phase !== "Fase de Grupos"
+    );
+
     return (
       <div>
         <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -1054,6 +1058,35 @@ const activeRoundGames = useMemo(() => {
             </button>
           </div>
         </div>
+
+        {isKnockoutRound && (
+  <div className="mb-5 rounded-3xl border border-blue-200 bg-blue-50 p-5">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 text-lg font-black text-white">
+        i
+      </div>
+
+      <div>
+        <p className="text-sm font-black text-blue-950">
+          Regra das predictions nas fases a eliminar
+        </p>
+
+        <p className="mt-2 text-sm leading-7 text-blue-900">
+          A partir dos 16 avos, a prediction conta para o resultado antes dos
+          penalties. Se o jogo ficar decidido nos 90 minutos, conta o resultado
+          aos 90 minutos. Se houver empate aos 90 minutos e o jogo for a
+          prolongamento, conta o resultado no final dos 120 minutos.
+        </p>
+
+        <p className="mt-2 text-sm leading-7 text-blue-900">
+          Se o jogo continuar empatado aos 120 minutos, esse empate é o
+          resultado contabilizado para a prediction. O vencedor dos penalties
+          conta apenas para os pontos extra de passagem da seleção escolhida.
+        </p>
+      </div>
+    </div>
+  </div>
+)}
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {roundGames.map((game) => {
@@ -1184,21 +1217,27 @@ const activeRoundGames = useMemo(() => {
       </div>
 
       {showPaymentModal && (
-        <div
-          onClick={closePaymentModal}
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-xl rounded-3xl bg-white p-5 shadow-2xl sm:p-6"
-          >
+  <div
+    onClick={closePaymentModal}
+    className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:items-center"
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      className="my-4 max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl sm:my-6 sm:p-6"
+    >
             <h3 className="text-2xl font-extrabold text-gray-900 sm:text-3xl">
               Desbloquear Fantasy Mundial 2026
             </h3>
 
-            <p className="mt-3 text-sm text-gray-600">
-              O acesso completo custa <strong>10€</strong>.
-            </p>
+            <div className="mt-4 rounded-2xl border border-violet-200 bg-violet-50 p-4">
+  <p className="text-sm font-semibold text-gray-600">
+    O acesso completo custa
+  </p>
+
+  <p className="mt-1 text-4xl font-black text-violet-900">
+    10€
+  </p>
+</div>
 
             <div className="mt-4 rounded-2xl bg-violet-50 p-4">
               <p className="text-sm text-gray-500">

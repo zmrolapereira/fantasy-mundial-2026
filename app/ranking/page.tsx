@@ -1123,6 +1123,12 @@ export default function RankingPage() {
                               bg="rgba(16,185,129,0.12)"
                               color="#047857"
                             />
+                            <TinyStat
+                              label="S"
+                              value={entry.selectedTeamPoints ?? 0}
+                              bg="rgba(244,63,94,0.12)"
+                              color="#be123c"
+                            />
                           </div>
                         ) : (
                           <TinyStat
@@ -1340,7 +1346,7 @@ export default function RankingPage() {
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <div className="rounded-2xl border border-gray-200 bg-white p-3">
                         <p className="text-[9px] uppercase tracking-wide text-gray-500">
-                          Marcador
+                          Melhor Marcador
                         </p>
                         <p className="mt-1 text-lg font-black text-amber-700">
                           {activeEntry.topScorerPoints ?? 0}
@@ -1349,7 +1355,7 @@ export default function RankingPage() {
 
                       <div className="rounded-2xl border border-gray-200 bg-white p-3">
                         <p className="text-[9px] uppercase tracking-wide text-gray-500">
-                          Assist.
+                          Melhor Assistente
                         </p>
                         <p className="mt-1 text-lg font-black text-blue-700">
                           {activeEntry.topAssistPoints ?? 0}
@@ -1358,7 +1364,7 @@ export default function RankingPage() {
 
                       <div className="rounded-2xl border border-gray-200 bg-white p-3">
                         <p className="text-[9px] uppercase tracking-wide text-gray-500">
-                          Campeã
+                          Seleção Campeã
                         </p>
                         <p className="mt-1 text-lg font-black text-rose-700">
                           {activeEntry.selectedTeamPoints ?? 0}
