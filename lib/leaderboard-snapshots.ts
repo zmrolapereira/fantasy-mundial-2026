@@ -41,20 +41,25 @@ function getWinner(game: any) {
 }
 
 function getPredictionPoints(prediction: any, game: any) {
-  if (!game || game.status !== "FT" || game.homeScore == null || game.awayScore == null) {
+  if (
+    !game ||
+    game.status !== "FT" ||
+    game.homeScore == null ||
+    game.awayScore == null
+  ) {
     return 0;
   }
 
   const predictedOutcome = getOutcome(
-    prediction.predictedHomeScore,
-    prediction.predictedAwayScore
+    Number(prediction.predictedHomeScore),
+    Number(prediction.predictedAwayScore)
   );
 
   const realOutcome = getOutcome(game.homeScore, game.awayScore);
 
   if (
-    prediction.predictedHomeScore === game.homeScore &&
-    prediction.predictedAwayScore === game.awayScore
+    Number(prediction.predictedHomeScore) === game.homeScore &&
+    Number(prediction.predictedAwayScore) === game.awayScore
   ) {
     return 2;
   }
@@ -70,9 +75,19 @@ function getStageIdFromGame(game: any) {
     : normalize(game.phase);
 }
 
+function gameMatchesStage(game: any, stageId: string) {
+  const stage = normalize(stageId);
+  const gameStage = getStageIdFromGame(game);
+
+  if (stage === "final e 3º lugar" || stage === "final e 3o lugar") {
+    return gameStage === "final" || gameStage === "3º lugar" || gameStage === "3o lugar";
+  }
+
+  return gameStage === stage;
+}
+
 function gameIsStage(game: any, stage: string) {
   const target = normalize(stage);
-
   return normalize(game.phase) === target || normalize(game.round) === target;
 }
 
@@ -124,7 +139,7 @@ function getSelectedTeamStageBonus(teamName?: string, stageId?: string) {
       : 0;
   }
 
-  if (stage === "final" || stage === "final e 3º lugar") {
+  if (stage === "final" || stage === "final e 3º lugar" || stage === "final e 3o lugar") {
     return teamWonAnyGameInStage(teamName, "Final") ? 2 : 0;
   }
 
@@ -145,8 +160,7 @@ export async function saveStageLeaderboardSnapshot(stageId: string, label: strin
         const game = games.find((g) => g.id === prediction.gameId);
         if (!game) return sum;
 
-        const gameStageId = getStageIdFromGame(game);
-        if (gameStageId !== cleanStageId) return sum;
+        if (!gameMatchesStage(game, cleanStageId)) return sum;
 
         return sum + getPredictionPoints(prediction, game);
       }, 0);
