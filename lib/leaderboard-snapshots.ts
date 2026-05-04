@@ -127,26 +127,28 @@ function getSelectedTeamMatchPointsForStage(
       }
 
       const involvesTeam =
-        sameTeam(game.homeTeam, teamName) || sameTeam(game.awayTeam, teamName);
+        sameTeam(game.homeTeam, teamName) ||
+        sameTeam(game.awayTeam, teamName);
 
       if (!involvesTeam) return sum;
 
       const isDraw = game.homeScore === game.awayScore;
-      const winner = getWinner(game);
 
-      let points = 0;
-
-      // Empate no resultado do jogo.
+      // 👉 Empate = +0.5
       if (isDraw) {
-        points += 0.5;
+        return sum + 0.5;
       }
 
-      // Vitória normal ou nos penáltis.
-      if (sameTeam(winner ?? "", teamName)) {
-        points += 1;
+      // 👉 Vitória NORMAL (não inclui penáltis)
+      const teamWonInScore =
+        (sameTeam(game.homeTeam, teamName) && game.homeScore > game.awayScore) ||
+        (sameTeam(game.awayTeam, teamName) && game.awayScore > game.homeScore);
+
+      if (teamWonInScore) {
+        return sum + 1;
       }
 
-      return sum + points;
+      return sum;
     }, 0);
 }
 
@@ -251,7 +253,7 @@ export async function saveStageLeaderboardSnapshot(
   "oitavos",
   "quartos",
   "meias-finais",
-  "final e 3o lugar",
+  "final e 3º lugar",
 ];
 
 const currentStageIndex = previousStageOrder.indexOf(cleanStageId);
