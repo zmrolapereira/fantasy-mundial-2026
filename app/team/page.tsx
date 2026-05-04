@@ -338,6 +338,10 @@ const activeRoundGames = useMemo(() => {
   );
   const champion = teams.find((team) => team.name === championTeam);
 
+  const sortedTeams = useMemo(() => {
+  return [...teams].sort((a, b) => a.name.localeCompare(b.name));
+}, []);
+
   const totalPredictionsFilled = useMemo(() => {
     return Object.values(predictions).filter(
       (prediction) => prediction.home !== "" && prediction.away !== ""
@@ -663,6 +667,32 @@ const activeRoundGames = useMemo(() => {
           </p>
         </section>
 
+                <section className="mb-6 rounded-3xl border border-blue-200 bg-blue-50 p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 text-lg font-black text-white">
+              !
+            </div>
+
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">
+                Atenção importante
+              </p>
+
+              <h2 className="mt-2 text-xl font-black text-gray-900 sm:text-2xl">
+                Tens de carregar em guardar para registar as escolhas
+              </h2>
+
+              <p className="mt-2 max-w-4xl text-sm leading-7 text-gray-700 sm:text-base">
+                Preencher os campos não chega para guardar automaticamente. Para
+                as escolhas ficarem registadas, tens sempre de carregar no botão
+                correspondente: <strong>“Guardar picks principais”</strong> para
+                os picks principais e <strong>“Guardar jornada/fase”</strong> para
+                as predictions dessa etapa.
+              </p>
+            </div>
+          </div>
+        </section>
+
         <section className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
             <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -873,12 +903,12 @@ const activeRoundGames = useMemo(() => {
                   disabled={picksLocked || blockedByPayment}
                   className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                 >
-                  <option value="">Escolher seleção</option>
-                  {teams.map((team) => (
-                    <option key={team.id} value={team.name}>
-                      {team.name}
-                    </option>
-                  ))}
+                  <option value="">Escolher seleção vencedora do mundial</option>
+                  {sortedTeams.map((team) => (
+  <option key={team.id} value={team.name}>
+    {team.name}
+  </option>
+))}
                 </select>
               </div>
             </div>

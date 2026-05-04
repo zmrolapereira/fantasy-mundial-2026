@@ -3,6 +3,8 @@
 import type { ReactNode } from "react";
 import SiteHeader from "@/components/SiteHeader";
 
+const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/BvpEfhFjAJi3FiXozlMDRx";
+
 const keyMetrics = [
   {
     label: "Inscrição",
@@ -318,6 +320,42 @@ export default function InfoPage() {
                 />
               ))}
             </div>
+          </div>
+        </section>
+
+         <section className="mt-8 overflow-hidden rounded-[30px] border border-green-200 bg-white shadow-sm">
+          <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#25D366] text-2xl text-white shadow-sm">
+                💬
+              </div>
+
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-green-700">
+                  Grupo oficial WhatsApp
+                </p>
+
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-gray-900">
+                  Junta-te ao grupo da Fantasy Mundial 2026
+                </h2>
+
+                <p className="mt-2 max-w-3xl text-sm leading-7 text-gray-600">
+                  Entra no grupo oficial para receberes avisos importantes,
+                  atualizações de deadlines, informação sobre pagamentos,
+                  esclarecimentos de regras e comunicações da organização durante
+                  o torneio.
+                </p>
+              </div>
+            </div>
+
+            <a
+              href={WHATSAPP_GROUP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-full bg-[#25D366] px-6 py-3 text-sm font-black text-white shadow transition hover:scale-[1.02] hover:bg-[#1ebe5d]"
+            >
+              Entrar no grupo
+            </a>
           </div>
         </section>
 

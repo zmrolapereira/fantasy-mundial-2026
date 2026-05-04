@@ -92,7 +92,7 @@ const faqCategories: FAQCategory[] = [
       },
       {
         q: "Tenho de preencher todos os jogos da etapa?",
-        a: "Sim. Para guardar uma jornada ou fase com sucesso, deves preencher todos os jogos disponíveis dessa etapa.",
+        a: "Sim. Para guardar uma jornada ou fase com sucesso, deves preencher todos os jogos disponíveis dessa etapa e carregar no respetivo botão para guardar.",
       },
       {
         q: "Posso editar uma prediction depois de a guardar?",

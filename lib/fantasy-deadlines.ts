@@ -48,16 +48,29 @@ export function getRoundFirstGame(roundGames: Game[]) {
   )[0];
 }
 
+function padSeconds(seconds: number) {
+  return String(seconds).padStart(2, "0");
+}
+
 export function formatCountdown(targetDate: Date) {
   const distance = targetDate.getTime() - Date.now();
 
   if (distance <= 0) return "Fechado";
 
-  const totalMinutes = Math.floor(distance / (1000 * 60));
-  const days = Math.floor(totalMinutes / (60 * 24));
-  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
-  const minutes = totalMinutes % 60;
+  const totalSeconds = Math.floor(distance / 1000);
 
-  if (days > 0) return `${days}d ${hours}h ${minutes}m`;
-  return `${hours}h ${minutes}m`;
+  const days = Math.floor(totalSeconds / (60 * 60 * 24));
+  const hours = Math.floor((totalSeconds % (60 * 60 * 24)) / (60 * 60));
+  const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (days > 0) {
+    return `${days}d ${hours}h ${minutes}m`;
+  }
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  return `${minutes}m ${padSeconds(seconds)}s`;
 }

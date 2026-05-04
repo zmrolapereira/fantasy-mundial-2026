@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { User } from "firebase/auth";
 import { listenToAuth } from "@/lib/auth";
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
+import { games } from "@/data/games";
+import { getFirstTournamentGame, getGameDateTime } from "@/lib/fantasy-deadlines";
 
 const heroStats = [
   {
@@ -67,13 +69,88 @@ const quickSteps = [
   },
 ];
 
+function pad(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+function getCountdownParts(targetDate: Date, now: number) {
+  const distance = Math.max(targetDate.getTime() - now, 0);
+  const totalSeconds = Math.floor(distance / 1000);
+
+  const days = Math.floor(totalSeconds / (60 * 60 * 24));
+  const hours = Math.floor((totalSeconds % (60 * 60 * 24)) / (60 * 60));
+  const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
+  const seconds = totalSeconds % 60;
+
+  return {
+    days,
+    hours,
+    minutes,
+    seconds,
+    isStarted: distance <= 0,
+  };
+}
+
+function formatGameDate(date: Date) {
+  return date.toLocaleDateString("pt-PT", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
+  const [nowTick, setNowTick] = useState<number | null>(null);
 
   useEffect(() => {
     const unsubscribe = listenToAuth(setUser);
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+  setNowTick(Date.now());
+
+  const interval = setInterval(() => {
+    setNowTick(Date.now());
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, []);
+
+  const firstGame = useMemo(() => getFirstTournamentGame(games), []);
+  const firstGameDate = useMemo(() => getGameDateTime(firstGame), [firstGame]);
+
+  const countdown = useMemo(() => {
+  if (nowTick === null) return null;
+  return getCountdownParts(firstGameDate, nowTick);
+}, [firstGameDate, nowTick]);
+
+const countdownItems = countdown
+  ? [
+      {
+        label: "Dias",
+        value: countdown.days,
+        pad: false,
+      },
+      {
+        label: "Horas",
+        value: countdown.hours,
+        pad: true,
+      },
+      {
+        label: "Min",
+        value: countdown.minutes,
+        pad: true,
+      },
+      {
+        label: "Seg",
+        value: countdown.seconds,
+        pad: true,
+      },
+    ]
+  : [];
 
   return (
     <main className="min-h-screen bg-gray-100 text-gray-900">
@@ -98,6 +175,60 @@ export default function HomePage() {
                 resultados dos jogos e compete pelo ranking geral e pelos prémios
                 por fase.
               </p>
+
+              <div className="mt-7 max-w-3xl rounded-[28px] border border-white/25 bg-white/15 p-4 shadow-sm backdrop-blur-md sm:p-5">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-white/75">
+                      Início do Mundial
+                    </p>
+
+                    <p className="mt-2 text-sm font-semibold text-white/90">
+  {countdown
+    ? countdown.isStarted
+      ? "O Mundial já começou"
+      : `${formatGameDate(firstGameDate)} • ${firstGame.time}`
+    : "A carregar contador..."}
+</p>
+
+{countdown && !countdown.isStarted && (
+  <p className="mt-1 text-xs text-white/70">
+    {firstGame.homeTeam} vs {firstGame.awayTeam}
+  </p>
+)}
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-2">
+                    {countdown
+  ? countdownItems.map((item) => (
+      <div
+        key={item.label}
+        className="rounded-2xl border border-white/20 bg-white/20 px-3 py-3 text-center"
+      >
+        <p className="text-2xl font-black leading-none text-white sm:text-3xl">
+          {item.pad ? pad(item.value) : item.value}
+        </p>
+        <p className="mt-1 text-[10px] font-black uppercase tracking-wide text-white/70">
+          {item.label}
+        </p>
+      </div>
+    ))
+  : ["Dias", "Horas", "Min", "Seg"].map((label) => (
+      <div
+        key={label}
+        className="rounded-2xl border border-white/20 bg-white/20 px-3 py-3 text-center"
+      >
+        <p className="text-2xl font-black leading-none text-white sm:text-3xl">
+          --
+        </p>
+        <p className="mt-1 text-[10px] font-black uppercase tracking-wide text-white/70">
+          {label}
+        </p>
+      </div>
+    ))}
+                  </div>
+                </div>
+              </div>
 
               <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 {user ? (
