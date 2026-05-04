@@ -117,16 +117,21 @@ function getSelectedTeamMatchPoints(teamName: string, games: Game[]) {
     if (!involvesTeam) continue;
 
     const isDraw = game.homeScore === game.awayScore;
-    const winner = getWinner(game);
 
-    // Se o jogo ficou empatado, a seleção recebe +0.5.
-    // Isto acontece mesmo que depois ganhe ou perca nos penáltis.
+    // Empate no resultado do jogo = +0.5
+    // Mesmo que depois ganhe nos penáltis.
     if (isDraw) {
       points += 0.5;
+      continue;
     }
 
-    // Se ganhou no tempo normal/prolongamento ou nos penáltis, recebe +1.
-    if (sameTeam(winner ?? "", teamName)) {
+    // Vitória no resultado do jogo = +1
+    // Aqui NÃO entram penáltis.
+    const teamWonInScore =
+      (sameTeam(game.homeTeam, teamName) && game.homeScore! > game.awayScore!) ||
+      (sameTeam(game.awayTeam, teamName) && game.awayScore! > game.homeScore!);
+
+    if (teamWonInScore) {
       points += 1;
     }
   }
