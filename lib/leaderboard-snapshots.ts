@@ -131,17 +131,22 @@ function getSelectedTeamMatchPointsForStage(
 
       if (!involvesTeam) return sum;
 
-      if (game.homeScore === game.awayScore) {
-        return sum + 0.5;
-      }
-
+      const isDraw = game.homeScore === game.awayScore;
       const winner = getWinner(game);
 
-      if (sameTeam(winner ?? "", teamName)) {
-        return sum + 1;
+      let points = 0;
+
+      // Empate no resultado do jogo.
+      if (isDraw) {
+        points += 0.5;
       }
 
-      return sum;
+      // Vitória normal ou nos penáltis.
+      if (sameTeam(winner ?? "", teamName)) {
+        points += 1;
+      }
+
+      return sum + points;
     }, 0);
 }
 
@@ -238,26 +243,56 @@ export async function saveStageLeaderboardSnapshot(
         cleanStageId
       );
 
-      const stagePoints =
-        predictionStagePoints +
-        selectedTeamStageMatchPoints +
-        selectedTeamStageBonus +
-        extraPlayerStagePoints;
+      const previousStageOrder = [
+  "jornada 1",
+  "jornada 2",
+  "jornada 3",
+  "16 avos",
+  "oitavos",
+  "quartos",
+  "meias-finais",
+  "final e 3o lugar",
+];
+
+const currentStageIndex = previousStageOrder.indexOf(cleanStageId);
+const previousStageId =
+  currentStageIndex > 0 ? previousStageOrder[currentStageIndex - 1] : null;
+
+let previousTotalPoints = 0;
+
+if (previousStageId) {
+  const previousSnapshotRef = doc(db, "leaderboardSnapshots", previousStageId);
+  const previousSnapshot = await getDoc(previousSnapshotRef);
+
+  if (previousSnapshot.exists()) {
+    const previousData = previousSnapshot.data();
+    const previousEntry = previousData.entries?.find(
+      (item: any) => item.userId === entry.userId
+    );
+
+    previousTotalPoints = Number(previousEntry?.totalPointsAtThatMoment ?? 0);
+  }
+}
+
+const currentTotalPoints = Number(entry.totalPoints ?? 0);
+
+const stagePoints = Math.max(0, currentTotalPoints - previousTotalPoints);
 
       return {
-        userId: entry.userId,
-        teamName: entry.teamName ?? "Sem nome",
-        managerName: entry.managerName ?? "",
-        championPick: entry.championPick ?? null,
+  userId: entry.userId,
+  teamName: entry.teamName ?? "Sem nome",
+  managerName: entry.managerName ?? "",
+  championPick: entry.championPick ?? null,
 
-        stagePoints,
-        predictionStagePoints,
-        selectedTeamStageMatchPoints,
-        selectedTeamStageBonus,
-        extraPlayerStagePoints,
+  stagePoints,
+  predictionStagePoints,
+  selectedTeamStageMatchPoints,
+  selectedTeamStageBonus,
+  extraPlayerStagePoints,
 
-        totalPointsAtThatMoment: Number(entry.totalPoints ?? 0),
-      };
+  previousTotalPoints,
+  totalPointsAtThatMoment: currentTotalPoints,
+};
     })
   );
 

@@ -22,6 +22,10 @@ function normalize(value?: string) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
+function sameTeam(a?: string, b?: string) {
+  return normalize(a) === normalize(b);
+}
+
 function isFinished(game: Game) {
   return (
     game.status === "FT" &&
@@ -43,6 +47,7 @@ function getPenaltyWinner(game: Game) {
 function getWinner(game: Game) {
   if (!isFinished(game)) return null;
 
+  // Para saber quem passa, usamos penaltyWinner se o jogo acabou empatado.
   if (game.homeScore === game.awayScore) {
     return getPenaltyWinner(game);
   }
@@ -56,20 +61,21 @@ function getPredictionPoints(prediction: MatchPrediction, game: Game) {
   const realHome = game.homeScore!;
   const realAway = game.awayScore!;
 
-  const predictedOutcome = getOutcome(
-    prediction.predictedHomeScore,
-    prediction.predictedAwayScore
-  );
+  const predictedHome = Number(prediction.predictedHomeScore);
+  const predictedAway = Number(prediction.predictedAwayScore);
 
+  const predictedOutcome = getOutcome(predictedHome, predictedAway);
   const realOutcome = getOutcome(realHome, realAway);
 
-  if (
-    prediction.predictedHomeScore === realHome &&
-    prediction.predictedAwayScore === realAway
-  ) {
+  // Resultado exato.
+  // Exemplo: apostou 1-1 e ficou 1-1 = 2 pontos.
+  if (predictedHome === realHome && predictedAway === realAway) {
     return 2;
   }
 
+  // Resultado certo.
+  // IMPORTANTE: penáltis NÃO transformam empate em vitória para os palpites.
+  // Se ficou 1-1 e Portugal ganhou nos penáltis, o palpite correto é empate.
   if (predictedOutcome === realOutcome) {
     return 1;
   }
@@ -85,7 +91,7 @@ function getTopScorerPoints(
   if (!pick) return 0;
 
   const stat = playerStats.find((player) => player.playerId === pick.playerId);
-  return stat?.goals ?? 0;
+  return Number(stat?.goals ?? 0);
 }
 
 function getTopAssistPoints(
@@ -96,7 +102,7 @@ function getTopAssistPoints(
   if (!pick) return 0;
 
   const stat = playerStats.find((player) => player.playerId === pick.playerId);
-  return stat?.assists ?? 0;
+  return Number(stat?.assists ?? 0);
 }
 
 function getSelectedTeamMatchPoints(teamName: string, games: Game[]) {
@@ -106,19 +112,22 @@ function getSelectedTeamMatchPoints(teamName: string, games: Game[]) {
     if (!isFinished(game)) continue;
 
     const involvesTeam =
-      game.homeTeam === teamName || game.awayTeam === teamName;
+      sameTeam(game.homeTeam, teamName) || sameTeam(game.awayTeam, teamName);
 
     if (!involvesTeam) continue;
 
+    const isDraw = game.homeScore === game.awayScore;
     const winner = getWinner(game);
 
-    if (winner === teamName) {
-      points += 1;
-      continue;
+    // Se o jogo ficou empatado, a seleção recebe +0.5.
+    // Isto acontece mesmo que depois ganhe ou perca nos penáltis.
+    if (isDraw) {
+      points += 0.5;
     }
 
-    if (game.homeScore === game.awayScore && !winner) {
-      points += 0.5;
+    // Se ganhou no tempo normal/prolongamento ou nos penáltis, recebe +1.
+    if (sameTeam(winner ?? "", teamName)) {
+      points += 1;
     }
   }
 
@@ -128,10 +137,7 @@ function getSelectedTeamMatchPoints(teamName: string, games: Game[]) {
 function gameIsStage(game: Game, stage: string) {
   const target = normalize(stage);
 
-  return (
-    normalize(game.phase) === target ||
-    normalize(game.round) === target
-  );
+  return normalize(game.phase) === target || normalize(game.round) === target;
 }
 
 function teamWonAnyGameInStage(
@@ -141,7 +147,7 @@ function teamWonAnyGameInStage(
 ) {
   return games
     .filter((game) => gameIsStage(game, stage))
-    .some((game) => getWinner(game) === teamName);
+    .some((game) => sameTeam(getWinner(game) ?? "", teamName));
 }
 
 function teamAppearsInStage(
@@ -153,8 +159,7 @@ function teamAppearsInStage(
     .filter((game) => gameIsStage(game, stage))
     .some(
       (game) =>
-        game.homeTeam === teamName ||
-        game.awayTeam === teamName
+        sameTeam(game.homeTeam, teamName) || sameTeam(game.awayTeam, teamName)
     );
 }
 
@@ -172,11 +177,7 @@ function teamPassedStageByNextRound(params: {
     currentStage
   );
 
-  const appearsInNextStage = teamAppearsInStage(
-    teamName,
-    games,
-    nextStage
-  );
+  const appearsInNextStage = teamAppearsInStage(teamName, games, nextStage);
 
   return wonCurrentStage || appearsInNextStage;
 }
@@ -234,7 +235,7 @@ export function calculateFantasyEntryPoints(params: {
   let predictionPoints = 0;
 
   for (const prediction of predictions) {
-    const game = games.find((g) => g.id === prediction.gameId);
+    const game = games.find((g) => Number(g.id) === Number(prediction.gameId));
     if (!game) continue;
 
     predictionPoints += getPredictionPoints(prediction, game);
@@ -249,16 +250,16 @@ export function calculateFantasyEntryPoints(params: {
     : 0;
 
   const totalPoints =
-  predictionPoints +
-  topScorerPoints +
-  topAssistPoints +
-  selectedTeamPoints;
+    predictionPoints +
+    topScorerPoints +
+    topAssistPoints +
+    selectedTeamPoints;
 
   return {
-  totalPoints,
-  predictionPoints,
-  topScorerPoints,
-  topAssistPoints,
-  selectedTeamPoints,
-};
+    totalPoints,
+    predictionPoints,
+    topScorerPoints,
+    topAssistPoints,
+    selectedTeamPoints,
+  };
 }
