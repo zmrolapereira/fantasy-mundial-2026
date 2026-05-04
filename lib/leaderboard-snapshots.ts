@@ -50,21 +50,19 @@ function getPredictionPoints(prediction: any, game: any) {
     return 0;
   }
 
-  const predictedOutcome = getOutcome(
-    Number(prediction.predictedHomeScore),
-    Number(prediction.predictedAwayScore)
-  );
+  const predictedHome = Number(prediction.predictedHomeScore);
+  const predictedAway = Number(prediction.predictedAwayScore);
 
+  const predictedOutcome = getOutcome(predictedHome, predictedAway);
   const realOutcome = getOutcome(game.homeScore, game.awayScore);
 
-  if (
-    Number(prediction.predictedHomeScore) === game.homeScore &&
-    Number(prediction.predictedAwayScore) === game.awayScore
-  ) {
+  if (predictedHome === game.homeScore && predictedAway === game.awayScore) {
     return 2;
   }
 
-  if (predictedOutcome === realOutcome) return 1;
+  if (predictedOutcome === realOutcome) {
+    return 1;
+  }
 
   return 0;
 }
@@ -80,7 +78,11 @@ function gameMatchesStage(game: any, stageId: string) {
   const gameStage = getStageIdFromGame(game);
 
   if (stage === "final e 3º lugar" || stage === "final e 3o lugar") {
-    return gameStage === "final" || gameStage === "3º lugar" || gameStage === "3o lugar";
+    return (
+      gameStage === "final" ||
+      gameStage === "3º lugar" ||
+      gameStage === "3o lugar"
+    );
   }
 
   return gameStage === stage;
@@ -88,6 +90,7 @@ function gameMatchesStage(game: any, stageId: string) {
 
 function gameIsStage(game: any, stage: string) {
   const target = normalize(stage);
+
   return normalize(game.phase) === target || normalize(game.round) === target;
 }
 
@@ -104,6 +107,42 @@ function teamWonAnyGameInStage(teamName: string, stage: string) {
   return games
     .filter((game) => gameIsStage(game, stage))
     .some((game) => sameTeam(getWinner(game) ?? "", teamName));
+}
+
+function getSelectedTeamMatchPointsForStage(
+  teamName?: string,
+  stageId?: string
+) {
+  if (!teamName || !stageId) return 0;
+
+  return games
+    .filter((game) => gameMatchesStage(game, stageId))
+    .reduce((sum, game) => {
+      if (
+        game.status !== "FT" ||
+        game.homeScore == null ||
+        game.awayScore == null
+      ) {
+        return sum;
+      }
+
+      const involvesTeam =
+        sameTeam(game.homeTeam, teamName) || sameTeam(game.awayTeam, teamName);
+
+      if (!involvesTeam) return sum;
+
+      if (game.homeScore === game.awayScore) {
+        return sum + 0.5;
+      }
+
+      const winner = getWinner(game);
+
+      if (sameTeam(winner ?? "", teamName)) {
+        return sum + 1;
+      }
+
+      return sum;
+    }, 0);
 }
 
 function getSelectedTeamStageBonus(teamName?: string, stageId?: string) {
@@ -139,14 +178,33 @@ function getSelectedTeamStageBonus(teamName?: string, stageId?: string) {
       : 0;
   }
 
-  if (stage === "final" || stage === "final e 3º lugar" || stage === "final e 3o lugar") {
+  if (
+    stage === "final" ||
+    stage === "final e 3º lugar" ||
+    stage === "final e 3o lugar"
+  ) {
     return teamWonAnyGameInStage(teamName, "Final") ? 2 : 0;
   }
 
   return 0;
 }
 
-export async function saveStageLeaderboardSnapshot(stageId: string, label: string) {
+function getStageExtraPlayerPoints(entry: any, cleanStageId: string) {
+  const stage = normalize(cleanStageId);
+
+  // Para já, para o teu teste, conta marcador/assistente só na Jornada 1.
+  // Assim evita somar os mesmos pontos em todas as fases.
+  if (stage !== "jornada 1") return 0;
+
+  return (
+    Number(entry.topScorerPoints ?? 0) + Number(entry.topAssistPoints ?? 0)
+  );
+}
+
+export async function saveStageLeaderboardSnapshot(
+  stageId: string,
+  label: string
+) {
   const cleanStageId = normalize(stageId);
   const snapshotRef = doc(db, "leaderboardSnapshots", cleanStageId);
 
@@ -165,22 +223,40 @@ export async function saveStageLeaderboardSnapshot(stageId: string, label: strin
         return sum + getPredictionPoints(prediction, game);
       }, 0);
 
+      const selectedTeamStageMatchPoints = getSelectedTeamMatchPointsForStage(
+        entry.championPick?.teamName,
+        cleanStageId
+      );
+
       const selectedTeamStageBonus = getSelectedTeamStageBonus(
         entry.championPick?.teamName,
         cleanStageId
       );
 
-      const stagePoints = predictionStagePoints + selectedTeamStageBonus;
+      const extraPlayerStagePoints = getStageExtraPlayerPoints(
+        entry,
+        cleanStageId
+      );
+
+      const stagePoints =
+        predictionStagePoints +
+        selectedTeamStageMatchPoints +
+        selectedTeamStageBonus +
+        extraPlayerStagePoints;
 
       return {
         userId: entry.userId,
         teamName: entry.teamName ?? "Sem nome",
         managerName: entry.managerName ?? "",
         championPick: entry.championPick ?? null,
+
         stagePoints,
         predictionStagePoints,
+        selectedTeamStageMatchPoints,
         selectedTeamStageBonus,
-        totalPointsAtThatMoment: entry.totalPoints ?? 0,
+        extraPlayerStagePoints,
+
+        totalPointsAtThatMoment: Number(entry.totalPoints ?? 0),
       };
     })
   );

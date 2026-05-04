@@ -249,16 +249,16 @@ export function calculateFantasyEntryPoints(params: {
     : 0;
 
   const totalPoints =
-    predictionPoints +
-    topScorerPoints +
-    topAssistPoints +
-    selectedTeamPoints;
+  predictionPoints +
+  topScorerPoints +
+  topAssistPoints +
+  selectedTeamPoints;
 
   return {
-    predictionPoints,
-    topScorerPoints,
-    topAssistPoints,
-    selectedTeamPoints,
-    totalPoints,
-  };
+  totalPoints,
+  predictionPoints,
+  topScorerPoints,
+  topAssistPoints,
+  selectedTeamPoints,
+};
 }

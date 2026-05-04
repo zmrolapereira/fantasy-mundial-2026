@@ -442,7 +442,7 @@ export default function RankingPage() {
 
     return sorted.map((entry, index) => {
       const entryTotal =
-        snapshotTotalsByUserId.get(entry.userId) ?? entry.totalPoints ?? 0;
+        entry.totalPoints ?? 0
 
       if (index > 0) {
         const prev = sorted[index - 1];
@@ -1328,8 +1328,11 @@ export default function RankingPage() {
                     </p>
                     <p className="mt-1 text-2xl font-black text-gray-900">
                       {leaderboardMode === "overall"
-                        ? selectedHistoryTotal
-                        : (activeEntry as StageRankedEntry).stagePoints ?? 0}
+  ? Number(activeEntry.predictionPoints ?? 0) +
+    Number(activeEntry.topScorerPoints ?? 0) +
+    Number(activeEntry.topAssistPoints ?? 0) +
+    Number(activeEntry.selectedTeamPoints ?? 0)
+  : (activeEntry as StageRankedEntry).stagePoints ?? 0}
                     </p>
                   </div>
 
