@@ -2,14 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { User } from "firebase/auth";
-import { collection, getDocs, query, where } from "firebase/firestore";
 import { listenToAuth } from "@/lib/auth";
-import { db } from "@/lib/firebase";
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
 import { games } from "@/data/games";
-import { getFirstTournamentGame, getGameDateTime } from "@/lib/fantasy-deadlines";
+import {
+  getFirstTournamentGame,
+  getGameDateTime,
+} from "@/lib/fantasy-deadlines";
+
+const APPROVED_PARTICIPANTS_COUNT = 8;
 
 const heroStats = [
   {
@@ -105,30 +108,10 @@ function formatGameDate(date: Date) {
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
   const [nowTick, setNowTick] = useState<number | null>(null);
-  const [paidUsersCount, setPaidUsersCount] = useState<number | null>(null);
 
   useEffect(() => {
     const unsubscribe = listenToAuth(setUser);
     return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    const loadPaidUsersCount = async () => {
-      try {
-        const paidUsersQuery = query(
-          collection(db, "users"),
-          where("hasPaidAccess", "==", true)
-        );
-
-        const snapshot = await getDocs(paidUsersQuery);
-        setPaidUsersCount(snapshot.size);
-      } catch (error) {
-        console.error("Erro ao carregar número de participantes aprovados:", error);
-        setPaidUsersCount(null);
-      }
-    };
-
-    loadPaidUsersCount();
   }, []);
 
   useEffect(() => {
@@ -209,7 +192,9 @@ export default function HomePage() {
                       {countdown
                         ? countdown.isStarted
                           ? "O Mundial já começou"
-                          : `${formatGameDate(firstGameDate)} • ${firstGame.time}`
+                          : `${formatGameDate(firstGameDate)} • ${
+                              firstGame.time
+                            }`
                         : "A carregar contador..."}
                     </p>
 
@@ -331,8 +316,8 @@ export default function HomePage() {
               </h2>
 
               <p className="mt-2 max-w-3xl text-sm leading-7 text-gray-600">
-                As entradas são validadas manualmente após o pagamento. Assim que
-                o acesso é aprovado, cada participante pode guardar os picks
+                As entradas são validadas manualmente após o pagamento. Assim
+                que o acesso é aprovado, cada participante pode guardar os picks
                 principais e as predictions no site.
               </p>
             </div>
@@ -344,7 +329,7 @@ export default function HomePage() {
                 </p>
 
                 <p className="mt-2 text-5xl font-black tracking-tight text-gray-900">
-                  {paidUsersCount === null ? "—" : paidUsersCount}
+                  {APPROVED_PARTICIPANTS_COUNT}
                 </p>
 
                 <p className="mt-1 text-sm font-semibold text-gray-500">
