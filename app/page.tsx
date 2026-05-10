@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { User } from "firebase/auth";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { listenToAuth } from "@/lib/auth";
+import { db } from "@/lib/firebase";
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
@@ -103,6 +105,7 @@ function formatGameDate(date: Date) {
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
   const [nowTick, setNowTick] = useState<number | null>(null);
+  const [paidUsersCount, setPaidUsersCount] = useState<number | null>(null);
 
   useEffect(() => {
     const unsubscribe = listenToAuth(setUser);
@@ -110,47 +113,66 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-  setNowTick(Date.now());
+    const loadPaidUsersCount = async () => {
+      try {
+        const paidUsersQuery = query(
+          collection(db, "users"),
+          where("hasPaidAccess", "==", true)
+        );
 
-  const interval = setInterval(() => {
+        const snapshot = await getDocs(paidUsersQuery);
+        setPaidUsersCount(snapshot.size);
+      } catch (error) {
+        console.error("Erro ao carregar número de participantes aprovados:", error);
+        setPaidUsersCount(null);
+      }
+    };
+
+    loadPaidUsersCount();
+  }, []);
+
+  useEffect(() => {
     setNowTick(Date.now());
-  }, 1000);
 
-  return () => clearInterval(interval);
-}, []);
+    const interval = setInterval(() => {
+      setNowTick(Date.now());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const firstGame = useMemo(() => getFirstTournamentGame(games), []);
   const firstGameDate = useMemo(() => getGameDateTime(firstGame), [firstGame]);
 
   const countdown = useMemo(() => {
-  if (nowTick === null) return null;
-  return getCountdownParts(firstGameDate, nowTick);
-}, [firstGameDate, nowTick]);
+    if (nowTick === null) return null;
+    return getCountdownParts(firstGameDate, nowTick);
+  }, [firstGameDate, nowTick]);
 
-const countdownItems = countdown
-  ? [
-      {
-        label: "Dias",
-        value: countdown.days,
-        pad: false,
-      },
-      {
-        label: "Horas",
-        value: countdown.hours,
-        pad: true,
-      },
-      {
-        label: "Min",
-        value: countdown.minutes,
-        pad: true,
-      },
-      {
-        label: "Seg",
-        value: countdown.seconds,
-        pad: true,
-      },
-    ]
-  : [];
+  const countdownItems = countdown
+    ? [
+        {
+          label: "Dias",
+          value: countdown.days,
+          pad: false,
+        },
+        {
+          label: "Horas",
+          value: countdown.hours,
+          pad: true,
+        },
+        {
+          label: "Min",
+          value: countdown.minutes,
+          pad: true,
+        },
+        {
+          label: "Seg",
+          value: countdown.seconds,
+          pad: true,
+        },
+      ]
+    : [];
 
   return (
     <main className="min-h-screen bg-gray-100 text-gray-900">
@@ -184,48 +206,48 @@ const countdownItems = countdown
                     </p>
 
                     <p className="mt-2 text-sm font-semibold text-white/90">
-  {countdown
-    ? countdown.isStarted
-      ? "O Mundial já começou"
-      : `${formatGameDate(firstGameDate)} • ${firstGame.time}`
-    : "A carregar contador..."}
-</p>
+                      {countdown
+                        ? countdown.isStarted
+                          ? "O Mundial já começou"
+                          : `${formatGameDate(firstGameDate)} • ${firstGame.time}`
+                        : "A carregar contador..."}
+                    </p>
 
-{countdown && !countdown.isStarted && (
-  <p className="mt-1 text-xs text-white/70">
-    {firstGame.homeTeam} vs {firstGame.awayTeam}
-  </p>
-)}
+                    {countdown && !countdown.isStarted && (
+                      <p className="mt-1 text-xs text-white/70">
+                        {firstGame.homeTeam} vs {firstGame.awayTeam}
+                      </p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-4 gap-2">
                     {countdown
-  ? countdownItems.map((item) => (
-      <div
-        key={item.label}
-        className="rounded-2xl border border-white/20 bg-white/20 px-3 py-3 text-center"
-      >
-        <p className="text-2xl font-black leading-none text-white sm:text-3xl">
-          {item.pad ? pad(item.value) : item.value}
-        </p>
-        <p className="mt-1 text-[10px] font-black uppercase tracking-wide text-white/70">
-          {item.label}
-        </p>
-      </div>
-    ))
-  : ["Dias", "Horas", "Min", "Seg"].map((label) => (
-      <div
-        key={label}
-        className="rounded-2xl border border-white/20 bg-white/20 px-3 py-3 text-center"
-      >
-        <p className="text-2xl font-black leading-none text-white sm:text-3xl">
-          --
-        </p>
-        <p className="mt-1 text-[10px] font-black uppercase tracking-wide text-white/70">
-          {label}
-        </p>
-      </div>
-    ))}
+                      ? countdownItems.map((item) => (
+                          <div
+                            key={item.label}
+                            className="rounded-2xl border border-white/20 bg-white/20 px-3 py-3 text-center"
+                          >
+                            <p className="text-2xl font-black leading-none text-white sm:text-3xl">
+                              {item.pad ? pad(item.value) : item.value}
+                            </p>
+                            <p className="mt-1 text-[10px] font-black uppercase tracking-wide text-white/70">
+                              {item.label}
+                            </p>
+                          </div>
+                        ))
+                      : ["Dias", "Horas", "Min", "Seg"].map((label) => (
+                          <div
+                            key={label}
+                            className="rounded-2xl border border-white/20 bg-white/20 px-3 py-3 text-center"
+                          >
+                            <p className="text-2xl font-black leading-none text-white sm:text-3xl">
+                              --
+                            </p>
+                            <p className="mt-1 text-[10px] font-black uppercase tracking-wide text-white/70">
+                              {label}
+                            </p>
+                          </div>
+                        ))}
                   </div>
                 </div>
               </div>
@@ -291,6 +313,44 @@ const countdownItems = countdown
                   </p>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 pb-4 sm:px-6">
+        <div className="overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-sm">
+          <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-600">
+                Participação confirmada
+              </p>
+
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-gray-900 sm:text-3xl">
+                Já há participantes com acesso desbloqueado
+              </h2>
+
+              <p className="mt-2 max-w-3xl text-sm leading-7 text-gray-600">
+                As entradas são validadas manualmente após o pagamento. Assim que
+                o acesso é aprovado, cada participante pode guardar os picks
+                principais e as predictions no site.
+              </p>
+            </div>
+
+            <div className="rounded-[28px] bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 p-[2px] shadow-sm">
+              <div className="rounded-[26px] bg-white px-6 py-5 text-center sm:min-w-[210px]">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-gray-500">
+                  Acessos ativos
+                </p>
+
+                <p className="mt-2 text-5xl font-black tracking-tight text-gray-900">
+                  {paidUsersCount === null ? "—" : paidUsersCount}
+                </p>
+
+                <p className="mt-1 text-sm font-semibold text-gray-500">
+                  participantes aprovados
+                </p>
+              </div>
             </div>
           </div>
         </div>
