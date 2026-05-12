@@ -705,32 +705,53 @@ const activeRoundGames = useMemo(() => {
                 </h2>
               </div>
 
-              <div
-                className={`inline-flex rounded-full px-4 py-2 text-sm font-bold ${
-                  picksLocked
-                    ? "bg-red-100 text-red-700"
-                    : "bg-green-100 text-green-700"
-                }`}
-              >
-                {picksLocked
-                  ? "Picks fechados"
-                  : `Fecha em ${formatCountdown(picksLockDate)}`}
-              </div>
+              <div className="flex flex-col gap-1 lg:items-end">
+  <div
+    className={`inline-flex rounded-full px-4 py-2 text-sm font-bold ${
+      picksLocked
+        ? "bg-red-100 text-red-700"
+        : "bg-green-100 text-green-700"
+    }`}
+  >
+    {picksLocked
+      ? "Picks fechados"
+      : `Fecha em ${formatCountdown(picksLockDate)}`}
+  </div>
+
+  {!picksLocked && (
+    <p className="text-xs font-semibold text-gray-500">
+      Podes alterar os picks até ao fim do deadline.
+    </p>
+  )}
+</div>
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-600">
-                Nome da equipa
-              </label>
-              <input
-                type="text"
-                placeholder="Ex: Os Visionários"
-                value={teamName}
-                onChange={(e) => setTeamName(e.target.value)}
-                disabled={blockedByPayment}
-                className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
-              />
-            </div>
+  <label className="block text-sm font-bold text-gray-600">
+    Nome da equipa
+  </label>
+
+  <input
+    type="text"
+    placeholder="Ex: Os Visionários"
+    value={teamName}
+    onChange={(e) => setTeamName(e.target.value)}
+    disabled={blockedByPayment}
+    className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+  />
+
+  <p className="mt-2 text-xs leading-5 text-gray-500">
+    O nome da equipa deve respeitar as regras indicadas na aba de{" "}
+    <a
+      href="/rules"
+      className="font-bold text-violet-700 underline decoration-violet-300 underline-offset-2 hover:text-violet-900"
+    >
+      Info
+    </a>
+    . Nomes ofensivos, abusivos ou inadequados podem ser alterados ou removidos
+    pela organização.
+  </p>
+</div>
 
             <div className="mt-5 grid grid-cols-1 gap-6">
               <div className="rounded-2xl border border-gray-200 bg-[#fafafa] p-4">
@@ -1062,17 +1083,25 @@ const activeRoundGames = useMemo(() => {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <span
-              className={`inline-flex rounded-full px-4 py-2 text-sm font-bold ${
-                roundLocked
-                  ? "bg-red-100 text-red-700"
-                  : "bg-green-100 text-green-700"
-              }`}
-            >
-              {roundLocked
-                ? "Submissões fechadas"
-                : `Fecha em ${formatCountdown(roundLockDate)}`}
-            </span>
+            <div className="flex flex-col gap-1 sm:items-end">
+  <span
+    className={`inline-flex rounded-full px-4 py-2 text-sm font-bold ${
+      roundLocked
+        ? "bg-red-100 text-red-700"
+        : "bg-green-100 text-green-700"
+    }`}
+  >
+    {roundLocked
+      ? "Submissões fechadas"
+      : `Fecha em ${formatCountdown(roundLockDate)}`}
+  </span>
+
+  {!roundLocked && (
+    <p className="max-w-[260px] text-xs font-semibold leading-5 text-gray-500 sm:text-right">
+      Podes alterar e voltar a guardar os palpites até ao deadline terminar.
+    </p>
+  )}
+</div>
 
             <button
               type="button"
