@@ -159,7 +159,9 @@ const regulationGroups = [
     rules: [
       "Cada participante pode ter apenas uma entrada ativa na competição.",
       "A participação só é considerada válida após aprovação do pagamento pela organização.",
-      "A organização reserva-se o direito de invalidar entradas duplicadas, incompletas ou irregulares.",
+      "O nome da equipa deve respeitar os restantes participantes e a organização.",
+      "Não são permitidos nomes ofensivos, tóxicos, discriminatórios, insultuosos, provocatórios ou desrespeitadores.",
+      "A organização reserva-se o direito de alterar, remover ou invalidar nomes de equipa que não respeitem o regulamento.",
     ],
   },
   {
@@ -713,6 +715,64 @@ export default function InfoPage() {
             </div>
           </PremiumCard>
         </section>
+
+        <section className="mt-12">
+  <PremiumCard className="overflow-hidden">
+    <div className="grid gap-0 lg:grid-cols-[0.9fr_1.1fr]">
+      <div className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 p-6 text-white sm:p-8">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-white/75">
+          Nome da equipa
+        </p>
+
+        <h2 className="mt-3 text-3xl font-black tracking-tight md:text-4xl">
+          Respeito entre participantes
+        </h2>
+
+        <p className="mt-4 text-sm leading-7 text-white/85">
+          O nome da equipa faz parte da identidade de cada participante dentro da
+          fantasy, mas deve respeitar sempre os restantes jogadores, a organização
+          e o ambiente da competição.
+        </p>
+      </div>
+
+      <div className="p-6 sm:p-8">
+        <div className="grid gap-4">
+          <div className="rounded-3xl border border-gray-200 bg-gray-50 p-5">
+            <p className="text-sm font-black text-gray-900">
+              Nomes permitidos
+            </p>
+            <p className="mt-2 text-sm leading-7 text-gray-600">
+              São permitidos nomes criativos, engraçados e competitivos, desde
+              que não sejam ofensivos, abusivos ou desrespeitadores.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-red-200 bg-red-50 p-5">
+            <p className="text-sm font-black text-red-950">
+              Nomes não permitidos
+            </p>
+            <p className="mt-2 text-sm leading-7 text-red-900">
+              Não são permitidos nomes tóxicos, discriminatórios, insultuosos,
+              provocatórios, ofensivos, sexualmente explícitos ou que tenham como
+              objetivo atacar outros participantes.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-blue-200 bg-blue-50 p-5">
+            <p className="text-sm font-black text-blue-950">
+              Decisão da organização
+            </p>
+            <p className="mt-2 text-sm leading-7 text-blue-900">
+              A organização pode pedir a alteração do nome da equipa, alterar o
+              nome manualmente ou invalidar uma participação caso o nome não
+              respeite o regulamento da competição.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </PremiumCard>
+</section>
 
         <section className="mt-12">
           <PremiumCard className="p-6 sm:p-8">
