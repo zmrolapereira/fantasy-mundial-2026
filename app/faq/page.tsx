@@ -181,9 +181,25 @@ const faqCategories: FAQCategory[] = [
         a: "Os 20% reservados aos prémios por fase são divididos pelas 8 fases premiadas. Cada fase recebe 1/8 desse valor, ou seja, 2.5% do total das inscrições.",
       },
       {
-        q: "O que acontece em caso de empate?",
-        a: "Em caso de empate, a organização aplicará os critérios internos definidos para a competição. Se necessário, a decisão final cabe à organização para garantir justiça e transparência.",
-      },
+  q: "O que acontece em caso de empate de pontos numa jornada ou fase premiada?",
+  a: "Em caso de empate de pontos entre dois ou mais participantes numa jornada ou fase premiada, o prémio dessa etapa é dividido igualmente entre todos os participantes empatados. Esta regra refere-se à pontuação dos participantes na fantasy, não a empates nos jogos do Mundial.",
+},
+{
+  q: "O que acontece em caso de empate de pontos na classificação geral final?",
+  a: "Em caso de empate de pontos entre participantes na classificação geral final, os participantes empatados ocupam a mesma posição e os prémios correspondentes aos lugares ocupados são somados e divididos igualmente entre eles. Esta regra aplica-se à pontuação final da fantasy, não aos resultados dos jogos.",
+},
+{
+  q: "Podes dar um exemplo de empate de pontos na geral final?",
+  a: "Sim. Se duas pessoas terminarem empatadas em pontos no 1º lugar da geral final, ambas são consideradas 1º lugar e o participante seguinte fica em 3º lugar. Nesse caso, o prémio de 1º lugar e o prémio de 2º lugar são somados e divididos igualmente pelas duas pessoas empatadas.",
+},
+{
+  q: "E se duas pessoas empatarem em pontos no 2º lugar?",
+  a: "Se duas pessoas terminarem empatadas em pontos no 2º lugar da geral final, o prémio de 2º lugar e o prémio de 3º lugar são somados e divididos igualmente entre elas. O participante seguinte fica fora do top 3 premiado.",
+},
+{
+  q: "E se houver empate de pontos apenas no 3º lugar?",
+  a: "Se houver empate de pontos apenas no 3º lugar da geral final, o prémio correspondente ao 3º lugar é dividido igualmente entre todos os participantes empatados nessa posição.",
+},
     ],
   },
   {
@@ -223,9 +239,9 @@ const featuredQuestions = [
     text: "A partir dos 16 avos, contam os 90 minutos; se houver empate e prolongamento, contam os 120 minutos.",
   },
   {
-    title: "Como funcionam os prémios?",
-    text: "65% para o top 3 final e 20% dividido pelas 8 fases premiadas.",
-  },
+  title: "Como funcionam os prémios?",
+  text: "65% para o top 3 final, 20% pelas 8 fases premiadas e prémios divididos se houver empate de pontos entre participantes.",
+},
   {
     title: "O que são snapshots?",
     text: "Registos dos pontos feitos por cada pessoa em cada jornada ou fase.",

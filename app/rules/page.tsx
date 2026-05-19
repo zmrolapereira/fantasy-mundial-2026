@@ -173,13 +173,16 @@ const regulationGroups = [
     ],
   },
   {
-    title: "Pontuação e validação",
-    rules: [
-      "Apenas contam resultados, golos, assistências e estatísticas validados pela organização.",
-      "A pontuação pode ser corrigida caso existam alterações oficiais ou erros de atualização.",
-      "Os rankings por fase são calculados através dos pontos obtidos por cada participante nessa jornada ou fase.",
-    ],
-  },
+  title: "Pontuação, empates e validação",
+  rules: [
+    "Apenas contam resultados, golos, assistências e estatísticas validados pela organização.",
+    "A pontuação pode ser corrigida caso existam alterações oficiais ou erros de atualização.",
+    "Os rankings por fase são calculados através dos pontos obtidos por cada participante nessa jornada ou fase.",
+    "Em caso de empate pontual numa jornada ou fase premiada, o prémio dessa etapa é dividido igualmente entre os participantes empatados.",
+    "Em caso de empate na classificação geral final, os lugares empatados ocupam as posições correspondentes em conjunto e o prémio desses lugares é somado e dividido igualmente entre os participantes empatados.",
+    "Exemplo: se duas pessoas empatarem em 1º lugar na geral final, ambas são consideradas 1º lugar, o participante seguinte fica em 3º lugar, e os prémios de 1º e 2º lugar são somados e divididos pelas duas pessoas empatadas.",
+  ],
+},
   {
     title: "Integridade da competição",
     rules: [
@@ -715,6 +718,79 @@ export default function InfoPage() {
             </div>
           </PremiumCard>
         </section>
+
+        <section className="mt-12">
+  <PremiumCard className="overflow-hidden">
+    <div className="grid gap-0 lg:grid-cols-[0.9fr_1.1fr]">
+      <div className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 p-6 text-white sm:p-8">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-white/75">
+          Empates
+        </p>
+
+        <h2 className="mt-3 text-3xl font-black tracking-tight md:text-4xl">
+          Critérios para divisão de prémios
+        </h2>
+
+        <p className="mt-4 text-sm leading-7 text-white/85">
+          Quando dois ou mais participantes terminam com a mesma pontuação numa
+          fase premiada ou na classificação geral final, o prémio é dividido de
+          forma justa entre os participantes empatados.
+        </p>
+      </div>
+
+      <div className="p-6 sm:p-8">
+        <div className="grid gap-4">
+          <div className="rounded-3xl border border-blue-200 bg-blue-50 p-5">
+            <p className="text-sm font-black text-blue-950">
+              Empate numa jornada ou fase
+            </p>
+            <p className="mt-2 text-sm leading-7 text-blue-900">
+              Se duas ou mais pessoas terminarem empatadas em pontos numa
+              jornada ou fase premiada, o prémio dessa etapa é dividido
+              igualmente entre todas as pessoas empatadas.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-purple-200 bg-purple-50 p-5">
+            <p className="text-sm font-black text-purple-950">
+              Empate na classificação geral final
+            </p>
+            <p className="mt-2 text-sm leading-7 text-purple-900">
+              Se existir empate na geral final, os participantes empatados
+              ocupam a mesma posição e os prémios correspondentes aos lugares
+              ocupados são somados e divididos igualmente entre eles.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-gray-200 bg-gray-50 p-5">
+            <p className="text-sm font-black text-gray-900">
+              Exemplo prático
+            </p>
+            <p className="mt-2 text-sm leading-7 text-gray-600">
+              Se duas pessoas empatarem em 1º lugar, ambas são consideradas 1º
+              lugar. O participante seguinte fica em 3º lugar. Nesse caso, o
+              prémio de 1º lugar e o prémio de 2º lugar são somados e divididos
+              igualmente pelas duas pessoas empatadas.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-gray-200 bg-gray-50 p-5">
+            <p className="text-sm font-black text-gray-900">
+              Outros casos de empate
+            </p>
+            <p className="mt-2 text-sm leading-7 text-gray-600">
+              A mesma lógica aplica-se a outros empates. Por exemplo, se duas
+              pessoas empatarem em 2º lugar, o prémio de 2º lugar e o prémio de
+              3º lugar são somados e divididos entre elas. Se o empate for apenas
+              no último lugar premiado, o prémio desse lugar é dividido pelos
+              participantes empatados.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </PremiumCard>
+</section>
 
         <section className="mt-12">
   <PremiumCard className="overflow-hidden">
