@@ -12,7 +12,7 @@ import {
   getGameDateTime,
 } from "@/lib/fantasy-deadlines";
 
-const APPROVED_PARTICIPANTS_COUNT = "17";
+const APPROVED_PARTICIPANTS_COUNT = "23";
 
 const heroStats = [
   {
