@@ -808,26 +808,26 @@ export default function RankingPage() {
       <section className="mb-4">
         <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
           <div
-            className="overflow-hidden rounded-[22px] shadow-lg"
+            className="overflow-hidden rounded-[26px] shadow-lg"
             style={{
               background:
                 "linear-gradient(90deg, #67c7e8 0%, #4f83ff 52%, #8b2cf5 100%)",
             }}
           >
-            <div className="px-4 py-5 sm:px-6 md:px-8 md:py-6">
-              <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-                <div className="max-w-3xl">
+            <div className="px-4 py-5 sm:px-6 md:px-8 md:py-7">
+              <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                <div className="max-w-2xl">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/85">
                     Leaderboard
                   </p>
 
-                  <h2 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl md:text-4xl">
+                  <h2 className="mt-2 text-3xl font-black tracking-tight text-white sm:text-4xl md:text-5xl">
                     {leaderboardMode === "overall"
                       ? "Ranking Global"
                       : `Leaderboard • ${activeStageLabel || "Jornada / Fase"}`}
                   </h2>
 
-                  <p className="mt-2 text-sm leading-6 text-white/95">
+                  <p className="mt-3 max-w-xl text-sm font-semibold leading-7 text-white/95">
                     {leaderboardMode === "overall"
                       ? "Vê a classificação geral, o pote total e os prémios finais da fantasy."
                       : "Classificação por jornada ou fase com base nos pontos totais feitos nessa etapa."}
@@ -842,11 +842,14 @@ export default function RankingPage() {
                         : "Sem snapshot guardado para esta etapa"}
                     </p>
                   )}
+                </div>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
+                <div className="flex w-full flex-col gap-3 xl:w-auto xl:items-end">
+                  <div className="flex flex-wrap gap-2 xl:justify-end">
                     <button
+                      type="button"
                       onClick={() => setLeaderboardMode("overall")}
-                      className="rounded-full px-4 py-1.5 text-sm font-bold transition"
+                      className="rounded-full px-5 py-2 text-sm font-bold transition"
                       style={{
                         backgroundColor:
                           leaderboardMode === "overall"
@@ -860,8 +863,9 @@ export default function RankingPage() {
                     </button>
 
                     <button
+                      type="button"
                       onClick={() => setLeaderboardMode("stage")}
-                      className="rounded-full px-4 py-1.5 text-sm font-bold transition"
+                      className="rounded-full px-5 py-2 text-sm font-bold transition"
                       style={{
                         backgroundColor:
                           leaderboardMode === "stage"
@@ -876,104 +880,122 @@ export default function RankingPage() {
                   </div>
 
                   {leaderboardMode === "stage" && (
-                    <div className="mt-3 w-full max-w-[300px]">
-                      <select
-                        value={selectedStageId}
-                        onChange={(e) => setSelectedStageId(e.target.value)}
-                        className="h-10 w-full rounded-xl border border-white/25 bg-white/95 px-3 text-sm font-semibold text-gray-900 outline-none"
-                      >
-                        {stageOptions.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {leaderboardMode === "overall" && (
-                    <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                      <div className="rounded-2xl bg-yellow-300/90 px-4 py-3 text-slate-900 shadow-sm backdrop-blur-sm">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em]">
-                          🥇 1º lugar
-                        </p>
-                        <p className="mt-1 text-2xl font-black">
-                          {formatEuro(prizeSummary.firstPrize)}
-                        </p>
-                        <p className="mt-1 text-[11px] font-semibold text-slate-800/80">
-                          60% do prémio
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl bg-slate-200/95 px-4 py-3 text-slate-900 shadow-sm backdrop-blur-sm">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em]">
-                          🥈 2º lugar
-                        </p>
-                        <p className="mt-1 text-2xl font-black">
-                          {formatEuro(prizeSummary.secondPrize)}
-                        </p>
-                        <p className="mt-1 text-[11px] font-semibold text-slate-800/80">
-                          30% do prémio
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl bg-amber-500/90 px-4 py-3 text-white shadow-sm backdrop-blur-sm">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em]">
-                          🥉 3º lugar
-                        </p>
-                        <p className="mt-1 text-2xl font-black">
-                          {formatEuro(prizeSummary.thirdPrize)}
-                        </p>
-                        <p className="mt-1 text-[11px] font-semibold text-white/85">
-                          10% do prémio
-                        </p>
-                      </div>
-                    </div>
+                    <select
+                      value={selectedStageId}
+                      onChange={(e) => setSelectedStageId(e.target.value)}
+                      className="h-10 w-full max-w-[320px] rounded-xl border border-white/25 bg-white/95 px-3 text-sm font-semibold text-gray-900 outline-none"
+                    >
+                      {stageOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   )}
                 </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-2 xl:grid-cols-5 xl:w-auto">
-                  <div className="rounded-2xl bg-white/18 px-4 py-3 backdrop-blur-sm">
+              <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.45fr)] xl:items-stretch">
+                {leaderboardMode === "overall" ? (
+                  <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
+                    <div className="rounded-2xl bg-yellow-300/90 px-5 py-4 text-slate-900 shadow-sm backdrop-blur-sm">
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em]">
+                        🥇 1º lugar
+                      </p>
+
+                      <p className="mt-2 whitespace-nowrap text-3xl font-black leading-none tracking-tight">
+                        {formatEuro(prizeSummary.firstPrize)}
+                      </p>
+
+                      <p className="mt-2 text-xs font-semibold leading-4 text-slate-800/80">
+                        60% do prémio
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl bg-slate-200/95 px-5 py-4 text-slate-900 shadow-sm backdrop-blur-sm">
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em]">
+                        🥈 2º lugar
+                      </p>
+
+                      <p className="mt-2 whitespace-nowrap text-3xl font-black leading-none tracking-tight">
+                        {formatEuro(prizeSummary.secondPrize)}
+                      </p>
+
+                      <p className="mt-2 text-xs font-semibold leading-4 text-slate-800/80">
+                        30% do prémio
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl bg-amber-500/90 px-5 py-4 text-white shadow-sm backdrop-blur-sm">
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em]">
+                        🥉 3º lugar
+                      </p>
+
+                      <p className="mt-2 whitespace-nowrap text-3xl font-black leading-none tracking-tight">
+                        {formatEuro(prizeSummary.thirdPrize)}
+                      </p>
+
+                      <p className="mt-2 text-xs font-semibold leading-4 text-white/85">
+                        10% do prémio
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-white/20 bg-white/15 p-5 text-white backdrop-blur-sm">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/75">
+                      Ranking por etapa
+                    </p>
+                    <p className="mt-3 text-2xl font-black leading-tight">
+                      {activeStageLabel || "Jornada / Fase"}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-white/80">
+                      Escolhe uma etapa para veres a classificação histórica e o vencedor dessa jornada ou fase.
+                    </p>
+                  </div>
+                )}
+
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+                  <div className="min-h-[108px] rounded-2xl bg-white/18 px-5 py-4 backdrop-blur-sm">
                     <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
                       Equipas
                     </p>
-                    <p className="mt-1 text-xl font-black text-white">
+                    <p className="mt-3 text-3xl font-black text-white">
                       {totalTeams}
                     </p>
                   </div>
 
-                  <div className="rounded-2xl bg-white/18 px-4 py-3 backdrop-blur-sm">
+                  <div className="min-h-[108px] rounded-2xl bg-white/18 px-5 py-4 backdrop-blur-sm">
                     <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
                       Total prémios
                     </p>
-                    <p className="mt-1 text-xl font-black text-white">
+                    <p className="mt-3 whitespace-nowrap text-3xl font-black text-white">
                       {formatEuro(prizeSummary.totalPrizes)}
                     </p>
                   </div>
 
-                  <div className="rounded-2xl bg-white/18 px-4 py-3 backdrop-blur-sm">
+                  <div className="min-h-[108px] rounded-2xl bg-white/18 px-5 py-4 backdrop-blur-sm">
                     <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
                       Prémio jornada
                     </p>
-                    <p className="mt-1 text-xl font-black text-white">
+                    <p className="mt-3 whitespace-nowrap text-3xl font-black text-white">
                       {formatEuro(prizeSummary.stageWinnerPrize)}
                     </p>
                   </div>
 
-                  <div className="rounded-2xl bg-white/18 px-4 py-3 backdrop-blur-sm">
+                  <div className="min-h-[108px] rounded-2xl bg-white/18 px-5 py-4 backdrop-blur-sm">
                     <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
                       A tua posição
                     </p>
-                    <p className="mt-1 text-xl font-black text-white">
+                    <p className="mt-3 text-3xl font-black text-white">
                       {myEntry?.rank ? `${myEntry.rank}º` : "—"}
                     </p>
                   </div>
 
-                  <div className="rounded-2xl bg-white/18 px-4 py-3 backdrop-blur-sm">
+                  <div className="min-h-[108px] rounded-2xl bg-white/18 px-5 py-4 backdrop-blur-sm sm:col-span-2 lg:col-span-2 2xl:col-span-1">
                     <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
                       Líder
                     </p>
-                    <p className="mt-1 text-sm font-black text-white">
+                    <p className="mt-3 line-clamp-2 text-xl font-black leading-tight text-white">
                       {activeLeaderboard[0]?.teamName || "—"}
                     </p>
                   </div>
