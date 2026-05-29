@@ -907,7 +907,7 @@ export default function RankingPage() {
                         </p>
 
                         <p className="mt-3 text-sm font-black text-slate-800">
-                          60% do ranking final
+                          60% de "Total Prémios"
                         </p>
                       </div>
 
@@ -921,7 +921,7 @@ export default function RankingPage() {
                         </p>
 
                         <p className="mt-3 text-sm font-bold text-slate-700">
-                          30% do ranking final
+                          30% de "Total Prémios"
                         </p>
                       </div>
 
@@ -935,7 +935,7 @@ export default function RankingPage() {
                         </p>
 
                         <p className="mt-3 text-sm font-bold text-white/90">
-                          10% do ranking final
+                          10% de "Total Prémios"
                         </p>
                       </div>
                     </div>
