@@ -1,0 +1,1314 @@
+[
+  {
+    "id": "0OxrLlBl5gU9h6OtFBzpThAojFL2",
+    "topScorerPick": {
+      "playerName": "Harry Kane",
+      "playerId": 607
+    },
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780919757,
+      "nanoseconds": 420000000
+    },
+    "topScorerPoints": 0,
+    "totalPoints": 0,
+    "predictionPoints": 0,
+    "userId": "0OxrLlBl5gU9h6OtFBzpThAojFL2",
+    "topAssistPick": {
+      "playerName": "Bruno Fernandes",
+      "playerId": 555
+    },
+    "topAssistPoints": 0,
+    "selectedTeamPoints": 0,
+    "teamName": "Soraco",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1777992107,
+      "nanoseconds": 793000000
+    },
+    "managerName": "Duarte Martins",
+    "championPick": {
+      "teamName": "Portugal"
+    }
+  },
+  {
+    "id": "2H6DN4ANych4SoBVRmEBAK9pHhH2",
+    "championPick": {
+      "teamName": "Espanha"
+    },
+    "managerName": "Rodrigo Gonçalves",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780844716,
+      "nanoseconds": 857000000
+    },
+    "teamName": "No Kane, No Gain",
+    "selectedTeamPoints": 0,
+    "topAssistPoints": 0,
+    "topAssistPick": {
+      "playerId": 469,
+      "playerName": "Michael Olise"
+    },
+    "predictionPoints": 0,
+    "userId": "2H6DN4ANych4SoBVRmEBAK9pHhH2",
+    "totalPoints": 0,
+    "topScorerPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780844716,
+      "nanoseconds": 857000000
+    },
+    "topScorerPick": {
+      "playerId": 607,
+      "playerName": "Harry Kane"
+    }
+  },
+  {
+    "id": "4q0P7J8RMwZRnx37jgsiV1Bf0Kl1",
+    "totalPoints": 0,
+    "topAssistPick": {
+      "playerId": 536,
+      "playerName": "Lionel Messi"
+    },
+    "predictionPoints": 0,
+    "userId": "4q0P7J8RMwZRnx37jgsiV1Bf0Kl1",
+    "topScorerPick": {
+      "playerId": 607,
+      "playerName": "Harry Kane"
+    },
+    "topScorerPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780065513,
+      "nanoseconds": 292000000
+    },
+    "teamName": "Volta Fernando",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780065513,
+      "nanoseconds": 292000000
+    },
+    "selectedTeamPoints": 0,
+    "championPick": {
+      "teamName": "Inglaterra"
+    },
+    "managerName": "Guilherme Líbano Monteiro",
+    "topAssistPoints": 0
+  },
+  {
+    "id": "AIXv8s7cBPgYj61wZxkPa3SAAMZ2",
+    "topScorerPick": {
+      "playerId": 559,
+      "playerName": "Cristiano Ronaldo"
+    },
+    "topScorerPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780668353,
+      "nanoseconds": 544000000
+    },
+    "totalPoints": 0,
+    "topAssistPick": {
+      "playerId": 242,
+      "playerName": "Florian Wirtz"
+    },
+    "predictionPoints": 0,
+    "userId": "AIXv8s7cBPgYj61wZxkPa3SAAMZ2",
+    "topAssistPoints": 0,
+    "teamName": "EMANUEL FC",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780667942,
+      "nanoseconds": 552000000
+    },
+    "selectedTeamPoints": 0,
+    "championPick": {
+      "teamName": "Portugal"
+    },
+    "managerName": "Emanuel Barbosa"
+  },
+  {
+    "id": "BMQomnwYOlf7SogvIC2Kykmv29f2",
+    "championPick": {
+      "teamName": "Portugal"
+    },
+    "managerName": "Gonçalo Teixeira",
+    "teamName": "tarrana",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780923911,
+      "nanoseconds": 263000000
+    },
+    "selectedTeamPoints": 0,
+    "topAssistPoints": 0,
+    "topAssistPick": {
+      "playerId": 555,
+      "playerName": "Bruno Fernandes"
+    },
+    "userId": "BMQomnwYOlf7SogvIC2Kykmv29f2",
+    "predictionPoints": 0,
+    "totalPoints": 0,
+    "topScorerPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780923911,
+      "nanoseconds": 263000000
+    },
+    "topScorerPick": {
+      "playerId": 438,
+      "playerName": "Mikel Oyarzabal"
+    }
+  },
+  {
+    "id": "BtdIB2vRWhPGP0Cx3EnAu0MT6y43",
+    "totalPoints": 0,
+    "topAssistPick": {
+      "playerId": 369,
+      "playerName": "Kevin De Bruyne"
+    },
+    "userId": "BtdIB2vRWhPGP0Cx3EnAu0MT6y43",
+    "predictionPoints": 0,
+    "topScorerPick": {
+      "playerId": 607,
+      "playerName": "Harry Kane"
+    },
+    "topScorerPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780061878,
+      "nanoseconds": 466000000
+    },
+    "teamName": "Rolinhas FC",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1777996077,
+      "nanoseconds": 305000000
+    },
+    "selectedTeamPoints": 0,
+    "championPick": {
+      "teamName": "Portugal"
+    },
+    "managerName": "José Maria “zmrolapereira” Rola Pereira",
+    "topAssistPoints": 0
+  },
+  {
+    "id": "BxQ1PtHcYVTEZgmB7mfS2IzWWjk2",
+    "managerName": "Diogo Alves",
+    "championPick": {
+      "teamName": "França"
+    },
+    "selectedTeamPoints": 0,
+    "teamName": "Camilo FC",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780229938,
+      "nanoseconds": 550000000
+    },
+    "topAssistPoints": 0,
+    "userId": "BxQ1PtHcYVTEZgmB7mfS2IzWWjk2",
+    "predictionPoints": 0,
+    "topAssistPick": {
+      "playerId": 555,
+      "playerName": "Bruno Fernandes"
+    },
+    "totalPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780229938,
+      "nanoseconds": 550000000
+    },
+    "topScorerPoints": 0,
+    "topScorerPick": {
+      "playerId": 607,
+      "playerName": "Harry Kane"
+    }
+  },
+  {
+    "id": "DelH2wq1BsbLeCB9aBYQ7Ma5Avp2",
+    "topAssistPoints": 0,
+    "championPick": {
+      "teamName": "Alemanha"
+    },
+    "managerName": "Filipe Reis",
+    "teamName": "Čipić Team",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780921908,
+      "nanoseconds": 711000000
+    },
+    "selectedTeamPoints": 0,
+    "topScorerPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780923283,
+      "nanoseconds": 142000000
+    },
+    "topScorerPick": {
+      "playerId": 607,
+      "playerName": "Harry Kane"
+    },
+    "topAssistPick": {
+      "playerId": 241,
+      "playerName": "Jamal Musiala"
+    },
+    "predictionPoints": 0,
+    "userId": "DelH2wq1BsbLeCB9aBYQ7Ma5Avp2",
+    "totalPoints": 0
+  },
+  {
+    "id": "FomE5Ry9rhPiTArLbT8KaYmocx73",
+    "topScorerPick": {
+      "playerId": 607,
+      "playerName": "Harry Kane"
+    },
+    "topScorerPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780315857,
+      "nanoseconds": 743000000
+    },
+    "totalPoints": 0,
+    "topAssistPick": {
+      "playerId": 557,
+      "playerName": "Vitinha"
+    },
+    "predictionPoints": 0,
+    "userId": "FomE5Ry9rhPiTArLbT8KaYmocx73",
+    "topAssistPoints": 0,
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1778967222,
+      "nanoseconds": 133000000
+    },
+    "teamName": "Os Vimaranis",
+    "selectedTeamPoints": 0,
+    "championPick": {
+      "teamName": "Portugal"
+    },
+    "managerName": "Pedro Barros Ferreira"
+  },
+  {
+    "id": "HCNSICBp6Me1znv8TcWdmpxndvg2",
+    "totalPoints": 0,
+    "topAssistPick": {
+      "playerId": 427,
+      "playerName": "Lamine Yamal"
+    },
+    "predictionPoints": 0,
+    "userId": "HCNSICBp6Me1znv8TcWdmpxndvg2",
+    "topScorerPick": {
+      "playerId": 536,
+      "playerName": "Lionel Messi"
+    },
+    "topScorerPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780420715,
+      "nanoseconds": 635000000
+    },
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780420715,
+      "nanoseconds": 635000000
+    },
+    "teamName": "Desportivo Sapalense Clube",
+    "selectedTeamPoints": 0,
+    "championPick": {
+      "teamName": "Argentina"
+    },
+    "managerName": "Nuno Lança",
+    "topAssistPoints": 0
+  },
+  {
+    "id": "KhvBssjA72eoe3chJIdHrPIMnLH3",
+    "topAssistPoints": 0,
+    "selectedTeamPoints": 0,
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1778010882,
+      "nanoseconds": 213000000
+    },
+    "teamName": "Campeão d'Ourique",
+    "managerName": "José Rola",
+    "championPick": {
+      "teamName": "Espanha"
+    },
+    "topScorerPick": {
+      "playerName": "Lamine Yamal",
+      "playerId": 427
+    },
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1778010882,
+      "nanoseconds": 213000000
+    },
+    "topScorerPoints": 0,
+    "totalPoints": 0,
+    "predictionPoints": 0,
+    "userId": "KhvBssjA72eoe3chJIdHrPIMnLH3",
+    "topAssistPick": {
+      "playerName": "Bruno Fernandes",
+      "playerId": 555
+    }
+  },
+  {
+    "id": "L34whQQYVIbGLBGlpcf0zM31iEb2",
+    "topAssistPoints": 0,
+    "championPick": {
+      "teamName": "Portugal"
+    },
+    "managerName": "André Eduardo",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780922010,
+      "nanoseconds": 73000000
+    },
+    "teamName": "Pé de Pombo",
+    "selectedTeamPoints": 0,
+    "topScorerPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780922010,
+      "nanoseconds": 73000000
+    },
+    "topScorerPick": {
+      "playerId": 607,
+      "playerName": "Harry Kane"
+    },
+    "topAssistPick": {
+      "playerId": 555,
+      "playerName": "Bruno Fernandes"
+    },
+    "userId": "L34whQQYVIbGLBGlpcf0zM31iEb2",
+    "predictionPoints": 0,
+    "totalPoints": 0
+  },
+  {
+    "id": "LP1bSrbfVidyMi8nk06sROB0ZZG3",
+    "topAssistPoints": 0,
+    "managerName": "Salvador Ribeiro",
+    "championPick": {
+      "teamName": "França"
+    },
+    "selectedTeamPoints": 0,
+    "teamName": "Vale do Palheiro FC",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1779648543,
+      "nanoseconds": 927000000
+    },
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780062615,
+      "nanoseconds": 240000000
+    },
+    "topScorerPoints": 0,
+    "topScorerPick": {
+      "playerId": 607,
+      "playerName": "Harry Kane"
+    },
+    "userId": "LP1bSrbfVidyMi8nk06sROB0ZZG3",
+    "predictionPoints": 0,
+    "topAssistPick": {
+      "playerId": 555,
+      "playerName": "Bruno Fernandes"
+    },
+    "totalPoints": 0
+  },
+  {
+    "id": "NgHJto8ACkYOrwXnDaM1we8kwcj1",
+    "predictionPoints": 0,
+    "userId": "NgHJto8ACkYOrwXnDaM1we8kwcj1",
+    "topAssistPick": {
+      "playerId": 555,
+      "playerName": "Bruno Fernandes"
+    },
+    "totalPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780774374,
+      "nanoseconds": 128000000
+    },
+    "topScorerPoints": 0,
+    "topScorerPick": {
+      "playerId": 454,
+      "playerName": "Kylian Mbappé"
+    },
+    "managerName": "EMANUEL CRUZ",
+    "championPick": {
+      "teamName": "França"
+    },
+    "selectedTeamPoints": 0,
+    "teamName": "Lendas do Relvado",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780257362,
+      "nanoseconds": 327000000
+    },
+    "topAssistPoints": 0
+  },
+  {
+    "id": "OWnFIGqR9neZjUWjhq5cqTCrPo12",
+    "topScorerPick": {
+      "playerId": 427,
+      "playerName": "Lamine Yamal"
+    },
+    "topScorerPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780681344,
+      "nanoseconds": 407000000
+    },
+    "totalPoints": 0,
+    "topAssistPick": {
+      "playerId": 555,
+      "playerName": "Bruno Fernandes"
+    },
+    "predictionPoints": 0,
+    "userId": "OWnFIGqR9neZjUWjhq5cqTCrPo12",
+    "topAssistPoints": 0,
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780681344,
+      "nanoseconds": 407000000
+    },
+    "teamName": "Equipa Loti",
+    "selectedTeamPoints": 0,
+    "championPick": {
+      "teamName": "Portugal"
+    },
+    "managerName": "Carlota Ferreira"
+  },
+  {
+    "id": "PPAhQed9qCPwSB9uLGfG6l3sP6N2",
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780063338,
+      "nanoseconds": 860000000
+    },
+    "topScorerPoints": 0,
+    "topScorerPick": {
+      "playerId": 607,
+      "playerName": "Harry Kane"
+    },
+    "userId": "PPAhQed9qCPwSB9uLGfG6l3sP6N2",
+    "predictionPoints": 0,
+    "topAssistPick": {
+      "playerId": 469,
+      "playerName": "Michael Olise"
+    },
+    "totalPoints": 0,
+    "topAssistPoints": 0,
+    "managerName": "Tiago Santos",
+    "championPick": {
+      "teamName": "França"
+    },
+    "selectedTeamPoints": 0,
+    "teamName": "Tiki Taska",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1779835628,
+      "nanoseconds": 858000000
+    }
+  },
+  {
+    "id": "QLcvQwmQXyTUCCglayWqMYQYBwJ2",
+    "topAssistPick": {
+      "playerId": 570,
+      "playerName": "João Neves"
+    },
+    "predictionPoints": 0,
+    "userId": "QLcvQwmQXyTUCCglayWqMYQYBwJ2",
+    "totalPoints": 0,
+    "topScorerPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780062190,
+      "nanoseconds": 119000000
+    },
+    "topScorerPick": {
+      "playerId": 520,
+      "playerName": "Andreas Schjelderup"
+    },
+    "championPick": {
+      "teamName": "Noruega"
+    },
+    "managerName": "Sebastião Moreira Rato",
+    "teamName": "Haalaland",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1779890089,
+      "nanoseconds": 180000000
+    },
+    "selectedTeamPoints": 0,
+    "topAssistPoints": 0
+  },
+  {
+    "id": "SQcfsRuRt0X2wgN0Bjl8IszTesj2",
+    "topAssistPoints": 0,
+    "managerName": "Falcão “Falcão”",
+    "championPick": {
+      "teamName": "Portugal"
+    },
+    "selectedTeamPoints": 0,
+    "teamName": "Falcao",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780485940,
+      "nanoseconds": 195000000
+    },
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780485940,
+      "nanoseconds": 195000000
+    },
+    "topScorerPoints": 0,
+    "topScorerPick": {
+      "playerId": 559,
+      "playerName": "Cristiano Ronaldo"
+    },
+    "predictionPoints": 0,
+    "userId": "SQcfsRuRt0X2wgN0Bjl8IszTesj2",
+    "topAssistPick": {
+      "playerId": 555,
+      "playerName": "Bruno Fernandes"
+    },
+    "totalPoints": 0
+  },
+  {
+    "id": "TSXX76otJOQyEwb6WgnkbWDtKfM2",
+    "topAssistPoints": 0,
+    "managerName": "Afonso Fernandes",
+    "championPick": {
+      "teamName": "Portugal"
+    },
+    "selectedTeamPoints": 0,
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780924602,
+      "nanoseconds": 670000000
+    },
+    "teamName": "Tugal",
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780924606,
+      "nanoseconds": 472000000
+    },
+    "topScorerPoints": 0,
+    "topScorerPick": {
+      "playerId": 454,
+      "playerName": "Kylian Mbappé"
+    },
+    "userId": "TSXX76otJOQyEwb6WgnkbWDtKfM2",
+    "predictionPoints": 0,
+    "topAssistPick": {
+      "playerId": 555,
+      "playerName": "Bruno Fernandes"
+    },
+    "totalPoints": 0
+  },
+  {
+    "id": "TfNM5pWx3TcqsBz0UIqGJjCewAM2",
+    "managerName": "António Inglês",
+    "championPick": {
+      "teamName": "Portugal"
+    },
+    "selectedTeamPoints": 0,
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780397635,
+      "nanoseconds": 185000000
+    },
+    "teamName": "Canecas FC",
+    "topAssistPoints": 0,
+    "userId": "TfNM5pWx3TcqsBz0UIqGJjCewAM2",
+    "predictionPoints": 0,
+    "topAssistPick": {
+      "playerId": 555,
+      "playerName": "Bruno Fernandes"
+    },
+    "totalPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780397643,
+      "nanoseconds": 849000000
+    },
+    "topScorerPoints": 0,
+    "topScorerPick": {
+      "playerId": 454,
+      "playerName": "Kylian Mbappé"
+    }
+  },
+  {
+    "id": "VZqlqBuqyCQfIqi4AeyuPR3O3ye2",
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780835810,
+      "nanoseconds": 209000000
+    },
+    "topScorerPoints": 0,
+    "topScorerPick": {
+      "playerId": 454,
+      "playerName": "Kylian Mbappé"
+    },
+    "predictionPoints": 0,
+    "userId": "VZqlqBuqyCQfIqi4AeyuPR3O3ye2",
+    "topAssistPick": {
+      "playerId": 555,
+      "playerName": "Bruno Fernandes"
+    },
+    "totalPoints": 0,
+    "topAssistPoints": 0,
+    "managerName": "Pedro Matos",
+    "championPick": {
+      "teamName": "Espanha"
+    },
+    "selectedTeamPoints": 0,
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780835810,
+      "nanoseconds": 209000000
+    },
+    "teamName": "Flat Whites"
+  },
+  {
+    "id": "XBr7AiaQureOBwZhl9V7U3eVwG23",
+    "topAssistPoints": 0,
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780924406,
+      "nanoseconds": 51000000
+    },
+    "teamName": "Vai dar Pai Cris",
+    "selectedTeamPoints": 0,
+    "championPick": {
+      "teamName": "Espanha"
+    },
+    "managerName": "DIOGO EDUARDO",
+    "topScorerPick": {
+      "playerId": 607,
+      "playerName": "Harry Kane"
+    },
+    "topScorerPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780924406,
+      "nanoseconds": 51000000
+    },
+    "totalPoints": 0,
+    "topAssistPick": {
+      "playerId": 555,
+      "playerName": "Bruno Fernandes"
+    },
+    "userId": "XBr7AiaQureOBwZhl9V7U3eVwG23",
+    "predictionPoints": 0
+  },
+  {
+    "id": "XMYil8VBU6POLGijyKnFIeZRucy1",
+    "topAssistPoints": 0,
+    "managerName": "Francisco Menezes",
+    "championPick": {
+      "teamName": "Portugal"
+    },
+    "selectedTeamPoints": 0,
+    "teamName": "Almirante Colmeia e Mel",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1779806989,
+      "nanoseconds": 612000000
+    },
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780920871,
+      "nanoseconds": 593000000
+    },
+    "topScorerPoints": 0,
+    "topScorerPick": {
+      "playerId": 607,
+      "playerName": "Harry Kane"
+    },
+    "predictionPoints": 0,
+    "userId": "XMYil8VBU6POLGijyKnFIeZRucy1",
+    "topAssistPick": {
+      "playerName": "Bruno Fernandes",
+      "playerId": 555
+    },
+    "totalPoints": 0
+  },
+  {
+    "id": "YpQs2ej5uYS4yWvmlAmvQheMvz22",
+    "topScorerPick": {
+      "playerId": 607,
+      "playerName": "Harry Kane"
+    },
+    "topScorerPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780865979,
+      "nanoseconds": 44000000
+    },
+    "totalPoints": 0,
+    "topAssistPick": {
+      "playerId": 427,
+      "playerName": "Lamine Yamal"
+    },
+    "predictionPoints": 0,
+    "userId": "YpQs2ej5uYS4yWvmlAmvQheMvz22",
+    "topAssistPoints": 0,
+    "teamName": "Bôria",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780864604,
+      "nanoseconds": 862000000
+    },
+    "selectedTeamPoints": 0,
+    "championPick": {
+      "teamName": "Espanha"
+    },
+    "managerName": "Manuel Matias"
+  },
+  {
+    "id": "ZaAKJItiC6Uw6VftImT0CWcyX0D3",
+    "topAssistPoints": 0,
+    "selectedTeamPoints": 0,
+    "teamName": "Man I Love Fredrik Aursnes",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1779879583,
+      "nanoseconds": 36000000
+    },
+    "managerName": "Vasco Maria Maldonado",
+    "championPick": {
+      "teamName": "Espanha"
+    },
+    "topScorerPick": {
+      "playerName": "Harry Kane",
+      "playerId": 607
+    },
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780836078,
+      "nanoseconds": 86000000
+    },
+    "topScorerPoints": 0,
+    "totalPoints": 0,
+    "predictionPoints": 0,
+    "userId": "ZaAKJItiC6Uw6VftImT0CWcyX0D3",
+    "topAssistPick": {
+      "playerId": 374,
+      "playerName": "Jérémy Doku"
+    }
+  },
+  {
+    "id": "a0o3eseqwtgCbZRSSwlTQ0wrDbe2",
+    "selectedTeamPoints": 0,
+    "teamName": "Os pandilheiros",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780920463,
+      "nanoseconds": 681000000
+    },
+    "managerName": "Bernardo Anunciação",
+    "championPick": {
+      "teamName": "Portugal"
+    },
+    "topAssistPoints": 0,
+    "totalPoints": 0,
+    "userId": "a0o3eseqwtgCbZRSSwlTQ0wrDbe2",
+    "predictionPoints": 0,
+    "topAssistPick": {
+      "playerId": 555,
+      "playerName": "Bruno Fernandes"
+    },
+    "topScorerPick": {
+      "playerId": 454,
+      "playerName": "Kylian Mbappé"
+    },
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780920467,
+      "nanoseconds": 88000000
+    },
+    "topScorerPoints": 0
+  },
+  {
+    "id": "efuAcQF5h4VAWiWfqpWh2ptlOFn1",
+    "predictionPoints": 0,
+    "userId": "efuAcQF5h4VAWiWfqpWh2ptlOFn1",
+    "topAssistPick": {
+      "playerName": "Nuno Mendes",
+      "playerId": 554
+    },
+    "totalPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1778757908,
+      "nanoseconds": 665000000
+    },
+    "topScorerPoints": 0,
+    "topScorerPick": {
+      "playerId": 607,
+      "playerName": "Harry Kane"
+    },
+    "managerName": "francisco",
+    "championPick": {
+      "teamName": "Portugal"
+    },
+    "selectedTeamPoints": 0,
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1778757908,
+      "nanoseconds": 665000000
+    },
+    "teamName": "FRB FC",
+    "topAssistPoints": 0
+  },
+  {
+    "id": "eyo1GL3np8TApKTxR9ZezoCzs0A2",
+    "topAssistPoints": 0,
+    "managerName": "Jan Schmidt",
+    "championPick": {
+      "teamName": "Espanha"
+    },
+    "selectedTeamPoints": 0,
+    "teamName": "Imagine Losing",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780848396,
+      "nanoseconds": 657000000
+    },
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780848436,
+      "nanoseconds": 874000000
+    },
+    "topScorerPoints": 0,
+    "topScorerPick": {
+      "playerId": 607,
+      "playerName": "Harry Kane"
+    },
+    "predictionPoints": 0,
+    "userId": "eyo1GL3np8TApKTxR9ZezoCzs0A2",
+    "topAssistPick": {
+      "playerId": 469,
+      "playerName": "Michael Olise"
+    },
+    "totalPoints": 0
+  },
+  {
+    "id": "f8FUlNXeUUVqc2w2dUc0zqKq8PL2",
+    "managerName": "António Mendes",
+    "championPick": {
+      "teamName": "Espanha"
+    },
+    "selectedTeamPoints": 0,
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780755640,
+      "nanoseconds": 173000000
+    },
+    "teamName": "Mendi",
+    "topAssistPoints": 0,
+    "userId": "f8FUlNXeUUVqc2w2dUc0zqKq8PL2",
+    "predictionPoints": 0,
+    "topAssistPick": {
+      "playerId": 427,
+      "playerName": "Lamine Yamal"
+    },
+    "totalPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780755643,
+      "nanoseconds": 341000000
+    },
+    "topScorerPoints": 0,
+    "topScorerPick": {
+      "playerId": 454,
+      "playerName": "Kylian Mbappé"
+    }
+  },
+  {
+    "id": "fVBi1yFmWTdPpOOYHPyehOJ2FiZ2",
+    "topScorerPick": {
+      "playerId": 454,
+      "playerName": "Kylian Mbappé"
+    },
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780859660,
+      "nanoseconds": 671000000
+    },
+    "topScorerPoints": 0,
+    "totalPoints": 0,
+    "userId": "fVBi1yFmWTdPpOOYHPyehOJ2FiZ2",
+    "predictionPoints": 0,
+    "topAssistPick": {
+      "playerId": 469,
+      "playerName": "Michael Olise"
+    },
+    "topAssistPoints": 0,
+    "selectedTeamPoints": 0,
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780859253,
+      "nanoseconds": 264000000
+    },
+    "teamName": "O OBSERVADOR",
+    "managerName": "José Alves",
+    "championPick": {
+      "teamName": "França"
+    }
+  },
+  {
+    "id": "gnl6Evx4X6NREiHH9JbGRiz9g9S2",
+    "selectedTeamPoints": 0,
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1778150784,
+      "nanoseconds": 767000000
+    },
+    "teamName": "CASARELOFC",
+    "managerName": "Alexandre Dias",
+    "championPick": {
+      "teamName": "França"
+    },
+    "topAssistPoints": 0,
+    "totalPoints": 0,
+    "predictionPoints": 0,
+    "userId": "gnl6Evx4X6NREiHH9JbGRiz9g9S2",
+    "topAssistPick": {
+      "playerName": "Ousmane Dembélé",
+      "playerId": 455
+    },
+    "topScorerPick": {
+      "playerId": 607,
+      "playerName": "Harry Kane"
+    },
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780064320,
+      "nanoseconds": 300000000
+    },
+    "topScorerPoints": 0
+  },
+  {
+    "id": "k5QANQiLMMd1ltUPFCFQ9mrEoJF2",
+    "managerName": "Rodrigo Lourenço",
+    "championPick": {
+      "teamName": "França"
+    },
+    "selectedTeamPoints": 0,
+    "teamName": "Bósnia e Tarraxinha",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780322028,
+      "nanoseconds": 139000000
+    },
+    "topAssistPoints": 0,
+    "userId": "k5QANQiLMMd1ltUPFCFQ9mrEoJF2",
+    "predictionPoints": 0,
+    "topAssistPick": {
+      "playerId": 555,
+      "playerName": "Bruno Fernandes"
+    },
+    "totalPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780322127,
+      "nanoseconds": 170000000
+    },
+    "topScorerPoints": 0,
+    "topScorerPick": {
+      "playerId": 607,
+      "playerName": "Harry Kane"
+    }
+  },
+  {
+    "id": "l52BJs4u0KfVA2wV6Yj2rJbE2tI3",
+    "totalPoints": 0,
+    "userId": "l52BJs4u0KfVA2wV6Yj2rJbE2tI3",
+    "predictionPoints": 0,
+    "topAssistPick": {
+      "playerName": "Lamine Yamal",
+      "playerId": 427
+    },
+    "topScorerPick": {
+      "playerId": 454,
+      "playerName": "Kylian Mbappé"
+    },
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1779819849,
+      "nanoseconds": 448000000
+    },
+    "topScorerPoints": 0,
+    "selectedTeamPoints": 0,
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1778179730,
+      "nanoseconds": 770000000
+    },
+    "teamName": "República Democrática do Croko",
+    "managerName": "Bernardo Fonseca",
+    "championPick": {
+      "teamName": "França"
+    },
+    "topAssistPoints": 0
+  },
+  {
+    "id": "lTGG9zVjusUEut4CY6kHxRTU2gk2",
+    "topAssistPoints": 0,
+    "managerName": "Duarte Amaral",
+    "championPick": {
+      "teamName": "Portugal"
+    },
+    "selectedTeamPoints": 0,
+    "teamName": "Gosma",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1778431278,
+      "nanoseconds": 708000000
+    },
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780062482,
+      "nanoseconds": 82000000
+    },
+    "topScorerPoints": 0,
+    "topScorerPick": {
+      "playerId": 559,
+      "playerName": "Cristiano Ronaldo"
+    },
+    "userId": "lTGG9zVjusUEut4CY6kHxRTU2gk2",
+    "predictionPoints": 0,
+    "topAssistPick": {
+      "playerId": 555,
+      "playerName": "Bruno Fernandes"
+    },
+    "totalPoints": 0
+  },
+  {
+    "id": "lweVCPzHHPZ8olxELc5gAjDQa4G3",
+    "managerName": "Bernardo Christie",
+    "championPick": {
+      "teamName": "Portugal"
+    },
+    "selectedTeamPoints": 0,
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780583434,
+      "nanoseconds": 538000000
+    },
+    "teamName": "10€ e um sonho",
+    "topAssistPoints": 0,
+    "userId": "lweVCPzHHPZ8olxELc5gAjDQa4G3",
+    "predictionPoints": 0,
+    "topAssistPick": {
+      "playerId": 555,
+      "playerName": "Bruno Fernandes"
+    },
+    "totalPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780666899,
+      "nanoseconds": 351000000
+    },
+    "topScorerPoints": 0,
+    "topScorerPick": {
+      "playerId": 454,
+      "playerName": "Kylian Mbappé"
+    }
+  },
+  {
+    "id": "ma9j5FP3rzOtYnTgoAxxYfOT3Gs2",
+    "totalPoints": 0,
+    "topAssistPick": {
+      "playerId": 427,
+      "playerName": "Lamine Yamal"
+    },
+    "predictionPoints": 0,
+    "userId": "ma9j5FP3rzOtYnTgoAxxYfOT3Gs2",
+    "topScorerPick": {
+      "playerId": 454,
+      "playerName": "Kylian Mbappé"
+    },
+    "topScorerPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780875843,
+      "nanoseconds": 486000000
+    },
+    "teamName": "Benfica Acima de Tudo",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780875843,
+      "nanoseconds": 486000000
+    },
+    "selectedTeamPoints": 0,
+    "championPick": {
+      "teamName": "Portugal"
+    },
+    "managerName": "José Cary",
+    "topAssistPoints": 0
+  },
+  {
+    "id": "mtFhrWgHLUNAYXzoNBSFUr0U5hB3",
+    "topAssistPick": {
+      "playerId": 555,
+      "playerName": "Bruno Fernandes"
+    },
+    "userId": "mtFhrWgHLUNAYXzoNBSFUr0U5hB3",
+    "predictionPoints": 0,
+    "totalPoints": 0,
+    "topScorerPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780838814,
+      "nanoseconds": 464000000
+    },
+    "topScorerPick": {
+      "playerId": 454,
+      "playerName": "Kylian Mbappé"
+    },
+    "championPick": {
+      "teamName": "Portugal"
+    },
+    "managerName": "Mariana Goncas",
+    "teamName": "Gyoza",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780642207,
+      "nanoseconds": 7000000
+    },
+    "selectedTeamPoints": 0,
+    "topAssistPoints": 0
+  },
+  {
+    "id": "pr5raGILRqN7OhxJMIEsTiu7dNF3",
+    "topAssistPoints": 0,
+    "selectedTeamPoints": 0,
+    "teamName": "Ultimo Homem",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780680483,
+      "nanoseconds": 899000000
+    },
+    "managerName": "João Matos",
+    "championPick": {
+      "teamName": "Portugal"
+    },
+    "topScorerPick": {
+      "playerId": 454,
+      "playerName": "Kylian Mbappé"
+    },
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780680483,
+      "nanoseconds": 899000000
+    },
+    "topScorerPoints": 0,
+    "totalPoints": 0,
+    "predictionPoints": 0,
+    "userId": "pr5raGILRqN7OhxJMIEsTiu7dNF3",
+    "topAssistPick": {
+      "playerId": 555,
+      "playerName": "Bruno Fernandes"
+    }
+  },
+  {
+    "id": "rAkxWrYislYoCthh7y5LYSqCCSB3",
+    "topAssistPoints": 0,
+    "teamName": "Fit Sashimi",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780099512,
+      "nanoseconds": 164000000
+    },
+    "selectedTeamPoints": 0,
+    "championPick": {
+      "teamName": "Espanha"
+    },
+    "managerName": "Francisco Ribeiro Ferreira",
+    "topScorerPick": {
+      "playerId": 454,
+      "playerName": "Kylian Mbappé"
+    },
+    "topScorerPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780392584,
+      "nanoseconds": 563000000
+    },
+    "totalPoints": 0,
+    "topAssistPick": {
+      "playerId": 427,
+      "playerName": "Lamine Yamal"
+    },
+    "userId": "rAkxWrYislYoCthh7y5LYSqCCSB3",
+    "predictionPoints": 0
+  },
+  {
+    "id": "wGCu72TAYcVlI6B3Df3lExEcGGl2",
+    "topScorerPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780712232,
+      "nanoseconds": 534000000
+    },
+    "topScorerPick": {
+      "playerId": 607,
+      "playerName": "Harry Kane"
+    },
+    "topAssistPick": {
+      "playerId": 555,
+      "playerName": "Bruno Fernandes"
+    },
+    "predictionPoints": 0,
+    "userId": "wGCu72TAYcVlI6B3Df3lExEcGGl2",
+    "totalPoints": 0,
+    "topAssistPoints": 0,
+    "championPick": {
+      "teamName": "Espanha"
+    },
+    "managerName": "António Carvalho",
+    "teamName": "Tó",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780712232,
+      "nanoseconds": 534000000
+    },
+    "selectedTeamPoints": 0
+  },
+  {
+    "id": "yaRAHt6r7rUBNjJ5McFB7k4Nn8J3",
+    "championPick": {
+      "teamName": "Espanha"
+    },
+    "managerName": "DANIEL TEIXEIRA",
+    "teamName": "F.C.Custoias",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1778538746,
+      "nanoseconds": 151000000
+    },
+    "selectedTeamPoints": 0,
+    "topAssistPoints": 0,
+    "topAssistPick": {
+      "playerId": 555,
+      "playerName": "Bruno Fernandes"
+    },
+    "userId": "yaRAHt6r7rUBNjJ5McFB7k4Nn8J3",
+    "predictionPoints": 0,
+    "totalPoints": 0,
+    "topScorerPoints": 0,
+    "updatedAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1778538746,
+      "nanoseconds": 151000000
+    },
+    "topScorerPick": {
+      "playerName": "Kylian Mbappé",
+      "playerId": 454
+    }
+  }
+]
