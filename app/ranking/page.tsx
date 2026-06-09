@@ -315,6 +315,7 @@ export default function RankingPage() {
   const [user, setUser] = useState<User | null>(null);
   const [entries, setEntries] = useState<FantasyEntry[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [rankingSearch, setRankingSearch] = useState("");
 
   const [selectedPredictions, setSelectedPredictions] = useState<
     MatchPrediction[]
@@ -799,6 +800,28 @@ export default function RankingPage() {
   const activeLeaderboard =
     leaderboardMode === "overall" ? leaderboard : stageSnapshotEntries;
 
+  const filteredLeaderboard = useMemo(() => {
+    const search = rankingSearch.trim().toLowerCase();
+
+    if (!search) return activeLeaderboard;
+
+    return activeLeaderboard.filter((entry) => {
+      const teamName = entry.teamName?.toLowerCase() || "";
+      const managerName = entry.managerName?.toLowerCase() || "";
+      const championTeam = entry.championPick?.teamName?.toLowerCase() || "";
+      const topScorer = entry.topScorerPick?.playerName?.toLowerCase() || "";
+      const topAssist = entry.topAssistPick?.playerName?.toLowerCase() || "";
+
+      return (
+        teamName.includes(search) ||
+        managerName.includes(search) ||
+        championTeam.includes(search) ||
+        topScorer.includes(search) ||
+        topAssist.includes(search)
+      );
+    });
+  }, [activeLeaderboard, rankingSearch]);
+
   const myEntry = leaderboardMode === "overall" ? myOverallEntry : myStageEntry;
 
   return (
@@ -907,7 +930,7 @@ export default function RankingPage() {
                         </p>
 
                         <p className="mt-3 text-sm font-black text-slate-800">
-                          60% de "Total Prémios"
+                          60% do ranking final
                         </p>
                       </div>
 
@@ -921,7 +944,7 @@ export default function RankingPage() {
                         </p>
 
                         <p className="mt-3 text-sm font-bold text-slate-700">
-                          30% de "Total Prémios"
+                          30% do ranking final
                         </p>
                       </div>
 
@@ -935,7 +958,7 @@ export default function RankingPage() {
                         </p>
 
                         <p className="mt-3 text-sm font-bold text-white/90">
-                          10% de "Total Prémios"
+                          10% do ranking final
                         </p>
                       </div>
                     </div>
@@ -1178,6 +1201,30 @@ export default function RankingPage() {
               </div>
             )}
 
+            <div className="mb-4 rounded-[18px] border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <div className="flex-1">
+                  <label className="block text-xs font-black uppercase tracking-[0.16em] text-violet-600">
+                    Pesquisar no ranking
+                  </label>
+
+                  <input
+                    type="text"
+                    value={rankingSearch}
+                    onChange={(e) => setRankingSearch(e.target.value)}
+                    placeholder="Pesquisar por equipa, manager, seleção ou jogador..."
+                    className="mt-2 h-11 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
+                  />
+                </div>
+
+                <div className="rounded-2xl bg-gray-50 px-4 py-3 text-sm font-bold text-gray-600">
+                  {rankingSearch.trim()
+                    ? `${filteredLeaderboard.length} resultado(s)`
+                    : `${activeLeaderboard.length} equipa(s)`}
+                </div>
+              </div>
+            </div>
+
             <div className="rounded-[18px] border border-gray-200 bg-white shadow-sm">
               <div className="hidden grid-cols-[62px_1.55fr_1fr_82px_112px_20px] border-b border-gray-200 bg-gray-50 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.16em] text-gray-500 lg:grid">
                 <div>Rank</div>
@@ -1191,7 +1238,7 @@ export default function RankingPage() {
               </div>
 
               <div className="divide-y divide-gray-100">
-                {activeLeaderboard.map((entry) => {
+                {filteredLeaderboard.map((entry) => {
                   const championFlag = getFlagByCountry(
                     entry.championPick?.teamName
                   );
@@ -1314,9 +1361,11 @@ export default function RankingPage() {
                   );
                 })}
 
-                {activeLeaderboard.length === 0 && (
+                {filteredLeaderboard.length === 0 && (
                   <div className="px-6 py-10 text-center text-sm text-gray-500">
-                    {leaderboardMode === "stage"
+                    {rankingSearch.trim()
+                      ? "Não foram encontradas equipas com essa pesquisa."
+                      : leaderboardMode === "stage"
                       ? "Ainda não existe snapshot para esta jornada/fase."
                       : loadingAllPredictions
                       ? "A carregar leaderboard..."
