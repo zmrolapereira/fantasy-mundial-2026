@@ -1025,7 +1025,70 @@ export default function AdminPage() {
               </div>
             </div>
           </section>
+          <section
+            className="rounded-2xl p-5 shadow-sm"
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid #e5e7eb",
+              color: "#111827",
+            }}
+          >
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.16em",
+                    color: "#7c3aed",
+                  }}
+                >
+                  Controlo
+                </p>
 
+                <h2
+                  style={{
+                    marginTop: 8,
+                    marginBottom: 0,
+                    fontSize: 26,
+                    fontWeight: 900,
+                    color: "#111827",
+                  }}
+                >
+                  Equipas e predictions em falta
+                </h2>
+
+                <p
+                  style={{
+                    marginTop: 8,
+                    marginBottom: 0,
+                    fontSize: 14,
+                    color: "#6b7280",
+                    lineHeight: 1.7,
+                  }}
+                >
+                  Vê quem já pagou mas ainda não criou equipa e quem ainda não
+                  preencheu as predictions de cada jornada ou fase.
+                </p>
+              </div>
+
+              <a
+                href="/admin/missing-team"
+                className="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold transition hover:scale-[1.02]"
+                style={{
+                  backgroundColor: "#2f2140",
+                  color: "#ffffff",
+                  border: "1px solid #2f2140",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+                  minWidth: 210,
+                }}
+              >
+                Abrir painel →
+              </a>
+            </div>
+          </section>
           <section
             className="rounded-2xl p-4 shadow-sm"
             style={{
