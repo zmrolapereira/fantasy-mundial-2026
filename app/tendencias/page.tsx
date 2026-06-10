@@ -3,38 +3,19 @@
 import { useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 import { collection, getDocs } from "firebase/firestore";
-import { games } from "@/data/games";
+import SiteHeader from "@/components/SiteHeader";
 import { db } from "@/lib/firebase";
 import { listenToAuth } from "@/lib/auth";
-import SiteHeader from "@/components/SiteHeader";
 
 const ADMIN_EMAIL = "zmrolapereira@gmail.com";
 
-type PredictionDoc = {
-  gameId?: string | number;
-  userId?: string;
-  predictedHomeScore?: string | number;
-  predictedAwayScore?: string | number;
-};
-
-type RoundMeta = {
-  label: string;
-  firstDate: string;
-  firstTime: string;
-  startsAt: Date;
-  firstGameId: number;
-  totalGames: number;
-};
-
 type TopResult = {
-  label: string;
-  shortLabel: string;
+  score: string;
   count: number;
   pct: number;
 };
 
 type TrendGame = {
-  round: string;
   gameId: string;
   homeTeam: string;
   awayTeam: string;
@@ -45,321 +26,105 @@ type TrendGame = {
   homePct: number;
   drawPct: number;
   awayPct: number;
-  favoriteLabel: string;
-  favoritePct: number;
-  topResults: TopResult[];
+  topResults?: TopResult[];
 };
 
-function getGameId(game: any) {
-  return String(game.id);
-}
+type TrendRoundDoc = {
+  id: string;
+  round: string;
+  roundKey: string;
+  availableAt: string;
+  games: TrendGame[];
+  totalPredictions: number;
+};
 
-function getRoundLabel(game: any) {
-  const phase = String(
-    game.phase ||
-      game.fase ||
-      game.stage ||
-      game.phaseName ||
-      game.stageName ||
-      ""
-  ).trim();
-
-  const round = String(game.round || game.jornada || game.roundName || "").trim();
-
-  const normalizedPhase = phase.toLowerCase();
-  const normalizedRound = round.toLowerCase();
-
-  const isGroupStage =
-    normalizedPhase.includes("fase de grupos") ||
-    normalizedPhase.includes("grupos") ||
-    normalizedPhase.includes("group");
-
-  if (isGroupStage) {
-    if (normalizedRound.includes("jornada 1") || normalizedRound === "1") {
-      return "Fase de Grupos - Jornada 1";
-    }
-
-    if (normalizedRound.includes("jornada 2") || normalizedRound === "2") {
-      return "Fase de Grupos - Jornada 2";
-    }
-
-    if (normalizedRound.includes("jornada 3") || normalizedRound === "3") {
-      return "Fase de Grupos - Jornada 3";
-    }
-
-    return round ? `Fase de Grupos - ${round}` : "Fase de Grupos";
+function formatUnlockDate(value: string) {
+  try {
+    return new Date(value).toLocaleString("pt-PT", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return value;
   }
-
-  if (normalizedPhase.includes("3º lugar")) return "3º lugar";
-  if (normalizedPhase === "final" || normalizedRound === "final") return "Final";
-
-  if (phase) return phase;
-  if (round) return round;
-
-  return "Sem fase";
 }
 
-function hasValidPrediction(data: PredictionDoc) {
-  return (
-    data.userId &&
-    data.gameId !== undefined &&
-    data.predictedHomeScore !== undefined &&
-    data.predictedHomeScore !== "" &&
-    data.predictedAwayScore !== undefined &&
-    data.predictedAwayScore !== ""
-  );
-}
-
-function getPortugalDate(game: any) {
-  const date = String(game.date || "");
-  const time = String(game.time || "00:00");
-
-  // Os horários do teu games.ts estão em Portugal.
-  // Em junho/julho Portugal está em WEST (+01:00).
-  return new Date(`${date}T${time}:00+01:00`);
-}
-
-function formatUnlockDate(value: Date) {
-  return value.toLocaleString("pt-PT", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function getRoundMetas(): RoundMeta[] {
-  const map = new Map<string, RoundMeta>();
-
-  games.forEach((game: any) => {
-    const label = getRoundLabel(game);
-    const startsAt = getPortugalDate(game);
-    const firstGameId = Number(game.id);
-
-    const existing = map.get(label);
-
-    if (!existing) {
-      map.set(label, {
-        label,
-        firstDate: game.date,
-        firstTime: game.time,
-        startsAt,
-        firstGameId,
-        totalGames: 1,
-      });
-      return;
-    }
-
-    existing.totalGames += 1;
-
-    if (startsAt.getTime() < existing.startsAt.getTime()) {
-      existing.startsAt = startsAt;
-      existing.firstDate = game.date;
-      existing.firstTime = game.time;
-      existing.firstGameId = firstGameId;
-    }
-  });
-
-  return Array.from(map.values()).sort((a, b) => {
-    const timeDiff = a.startsAt.getTime() - b.startsAt.getTime();
-    if (timeDiff !== 0) return timeDiff;
-    return a.firstGameId - b.firstGameId;
-  });
-}
-
-function getFavorite(item: {
-  homeTeam: string;
-  awayTeam: string;
-  homePct: number;
-  drawPct: number;
-  awayPct: number;
-}) {
+function getFavorite(game: TrendGame) {
   const options = [
-    { label: item.homeTeam, pct: item.homePct },
-    { label: "Empate", pct: item.drawPct },
-    { label: item.awayTeam, pct: item.awayPct },
-  ].sort((a, b) => b.pct - a.pct);
-
-  return options[0];
-}
-
-async function getPredictionTrendsByGame(): Promise<TrendGame[]> {
-  const teamsSnapshot = await getDocs(collection(db, "fantasyEntries"));
-  const predictionsSnapshot = await getDocs(collection(db, "predictions"));
-
-  const registeredTeamUserIds = new Set<string>();
-
-  teamsSnapshot.forEach((doc) => {
-    const data = doc.data() as { userId?: string };
-    registeredTeamUserIds.add(String(data.userId || doc.id));
-  });
-
-  const trendsMap = new Map<
-    string,
     {
-      homeWins: number;
-      draws: number;
-      awayWins: number;
-      totalPredictions: number;
-      countedUsers: Set<string>;
-      exactResults: Map<string, number>;
-    }
-  >();
+      label: game.homeTeam,
+      pct: game.homePct,
+      count: game.homeWins,
+    },
+    {
+      label: "Empate",
+      pct: game.drawPct,
+      count: game.draws,
+    },
+    {
+      label: game.awayTeam,
+      pct: game.awayPct,
+      count: game.awayWins,
+    },
+  ];
 
-  predictionsSnapshot.forEach((doc) => {
-    const data = doc.data() as PredictionDoc;
-
-    if (!hasValidPrediction(data)) return;
-
-    const userId = String(data.userId);
-    const gameId = String(data.gameId);
-
-    // Só conta pessoas que têm equipa criada.
-    if (!registeredTeamUserIds.has(userId)) return;
-
-    if (!trendsMap.has(gameId)) {
-      trendsMap.set(gameId, {
-        homeWins: 0,
-        draws: 0,
-        awayWins: 0,
-        totalPredictions: 0,
-        countedUsers: new Set<string>(),
-        exactResults: new Map<string, number>(),
-      });
-    }
-
-    const current = trendsMap.get(gameId);
-    if (!current) return;
-
-    // Evita contar o mesmo user mais do que uma vez no mesmo jogo.
-    if (current.countedUsers.has(userId)) return;
-    current.countedUsers.add(userId);
-
-    const predictedHome = Number(data.predictedHomeScore);
-    const predictedAway = Number(data.predictedAwayScore);
-
-    if (!Number.isFinite(predictedHome) || !Number.isFinite(predictedAway)) return;
-
-    current.totalPredictions += 1;
-
-    const resultKey = `${predictedHome}-${predictedAway}`;
-    current.exactResults.set(resultKey, (current.exactResults.get(resultKey) ?? 0) + 1);
-
-    if (predictedHome > predictedAway) {
-      current.homeWins += 1;
-    } else if (predictedHome < predictedAway) {
-      current.awayWins += 1;
-    } else {
-      current.draws += 1;
-    }
-  });
-
-  return games.map((game: any) => {
-    const gameId = String(game.id);
-    const trend = trendsMap.get(gameId) ?? {
-      homeWins: 0,
-      draws: 0,
-      awayWins: 0,
-      totalPredictions: 0,
-      countedUsers: new Set<string>(),
-      exactResults: new Map<string, number>(),
-    };
-
-    const total = trend.totalPredictions;
-
-    const base = {
-      round: getRoundLabel(game),
-      gameId,
-      homeTeam: game.homeTeam,
-      awayTeam: game.awayTeam,
-      totalPredictions: total,
-      homeWins: trend.homeWins,
-      draws: trend.draws,
-      awayWins: trend.awayWins,
-      homePct: total > 0 ? Math.round((trend.homeWins / total) * 100) : 0,
-      drawPct: total > 0 ? Math.round((trend.draws / total) * 100) : 0,
-      awayPct: total > 0 ? Math.round((trend.awayWins / total) * 100) : 0,
-    };
-
-    const favorite = getFavorite(base);
-
-    const topResults = Array.from(trend.exactResults.entries())
-      .map(([shortLabel, count]) => ({
-        shortLabel,
-        label: `${game.homeTeam} ${shortLabel} ${game.awayTeam}`,
-        count,
-        pct: total > 0 ? Math.round((count / total) * 100) : 0,
-      }))
-      .sort((a, b) => {
-        if (b.count !== a.count) return b.count - a.count;
-        return a.shortLabel.localeCompare(b.shortLabel);
-      })
-      .slice(0, 3);
-
-    return {
-      ...base,
-      favoriteLabel: favorite.label,
-      favoritePct: favorite.pct,
-      topResults,
-    };
-  });
+  return options.sort((a, b) => {
+    if (b.pct !== a.pct) return b.pct - a.pct;
+    return b.count - a.count;
+  })[0];
 }
 
 export default function TendenciasPage() {
   const [user, setUser] = useState<User | null>(null);
-  const [predictionTrends, setPredictionTrends] = useState<TrendGame[]>([]);
+  const [loadingAuth, setLoadingAuth] = useState(true);
   const [loadingTrends, setLoadingTrends] = useState(true);
-  const [selectedRound, setSelectedRound] = useState("");
+  const [roundDocs, setRoundDocs] = useState<TrendRoundDoc[]>([]);
+  const [selectedRoundId, setSelectedRoundId] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [copied, setCopied] = useState(false);
   const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
-    const unsubscribe = listenToAuth(setUser);
+    const unsubscribe = listenToAuth((authUser) => {
+      setUser(authUser);
+      setLoadingAuth(false);
+    });
+
     return () => unsubscribe();
   }, []);
 
   const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-  const roundMetas = useMemo(() => getRoundMetas(), []);
-  const now = Date.now();
-
-  const unlockedRounds = useMemo(() => {
-    return roundMetas.filter((round) => now >= round.startsAt.getTime());
-  }, [roundMetas, now]);
-
-  const canPreview = isAdmin && showPreview;
-  const visibleRounds = canPreview ? roundMetas : unlockedRounds;
-
-  const nextRound = useMemo(() => {
-    return roundMetas.find((round) => now < round.startsAt.getTime()) ?? null;
-  }, [roundMetas, now]);
-
-  useEffect(() => {
-    if (visibleRounds.length === 0) {
-      setSelectedRound("");
-      return;
-    }
-
-    const stillVisible = visibleRounds.some((round) => round.label === selectedRound);
-
-    if (!selectedRound || !stillVisible) {
-      setSelectedRound(visibleRounds[0].label);
-    }
-  }, [visibleRounds, selectedRound]);
-
   const loadTrends = async () => {
     try {
       setLoadingTrends(true);
       setLoadError("");
-      const data = await getPredictionTrendsByGame();
-      setPredictionTrends(data);
+
+      const snapshot = await getDocs(collection(db, "publicPredictionTrends"));
+
+      const data = snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+      })) as TrendRoundDoc[];
+
+      const sorted = data.sort((a, b) => {
+        const dateDiff =
+          new Date(a.availableAt).getTime() - new Date(b.availableAt).getTime();
+
+        if (dateDiff !== 0) return dateDiff;
+
+        return a.round.localeCompare(b.round);
+      });
+
+      setRoundDocs(sorted);
     } catch (error: any) {
       console.error(error);
       setLoadError(
         error?.message ||
-          "Erro ao carregar tendências. Verifica as permissões de leitura da Firebase."
+          "Erro ao carregar tendências. Verifica se a collection publicPredictionTrends existe e tem permissões de leitura pública."
       );
     } finally {
       setLoadingTrends(false);
@@ -370,41 +135,86 @@ export default function TendenciasPage() {
     loadTrends();
   }, []);
 
-  const selectedRoundMeta = useMemo(() => {
-    return roundMetas.find((round) => round.label === selectedRound) ?? null;
-  }, [roundMetas, selectedRound]);
+  const visibleRounds = useMemo(() => {
+    const now = new Date();
 
-  const filteredGames = useMemo(() => {
-    return predictionTrends
-      .filter((item) => item.round === selectedRound)
-      .sort((a, b) => Number(a.gameId) - Number(b.gameId));
-  }, [predictionTrends, selectedRound]);
+    if (isAdmin && showPreview) {
+      return roundDocs;
+    }
 
-  const roundTotalPredictions = filteredGames.reduce(
-    (sum, item) => sum + item.totalPredictions,
-    0
-  );
+    return roundDocs.filter((round) => new Date(round.availableAt) <= now);
+  }, [roundDocs, isAdmin, showPreview]);
+
+  const lockedRounds = useMemo(() => {
+    const now = new Date();
+
+    return roundDocs.filter((round) => new Date(round.availableAt) > now);
+  }, [roundDocs]);
+
+  useEffect(() => {
+    if (visibleRounds.length === 0) {
+      setSelectedRoundId("");
+      return;
+    }
+
+    const stillVisible = visibleRounds.some(
+      (round) => round.id === selectedRoundId
+    );
+
+    if (!selectedRoundId || !stillVisible) {
+      setSelectedRoundId(visibleRounds[visibleRounds.length - 1].id);
+    }
+  }, [visibleRounds, selectedRoundId]);
+
+  const selectedRound = useMemo(() => {
+    return visibleRounds.find((round) => round.id === selectedRoundId) ?? null;
+  }, [visibleRounds, selectedRoundId]);
+
+  const selectedGames = useMemo(() => {
+    if (!selectedRound) return [];
+
+    return [...(selectedRound.games || [])].sort(
+      (a, b) => Number(a.gameId) - Number(b.gameId)
+    );
+  }, [selectedRound]);
+
+  const roundTotalPredictions = useMemo(() => {
+    return selectedGames.reduce(
+      (sum, game) => sum + Number(game.totalPredictions || 0),
+      0
+    );
+  }, [selectedGames]);
+
+  const nextRound = lockedRounds[0] ?? null;
 
   const copySummary = async () => {
-    if (!selectedRound || filteredGames.length === 0) return;
+    if (!selectedRound || selectedGames.length === 0) return;
 
     const lines = [
-      `📊 Tendências das predictions — ${selectedRound}`,
+      `📊 Tendências das predictions — ${selectedRound.round}`,
       "",
-      ...filteredGames.map((item) => {
-        const topResultsText =
-          item.topResults.length > 0
-            ? ` | Top resultados: ${item.topResults
-                .map((result, index) => `${index + 1}) ${result.shortLabel} (${result.pct}%)`)
-                .join(", ")}`
-            : "";
+      ...selectedGames.map((game) => {
+        const favorite = getFavorite(game);
 
-        return `• ${item.homeTeam} vs ${item.awayTeam}: ${item.homeTeam} ${item.homePct}% | Empate ${item.drawPct}% | ${item.awayTeam} ${item.awayPct}% (${item.totalPredictions} apostas)${topResultsText}`;
+        const topResultsText =
+          game.topResults && game.topResults.length > 0
+            ? game.topResults
+                .map(
+                  (result, index) =>
+                    `${index + 1}) ${result.score} — ${result.count} voto(s) (${result.pct}%)`
+                )
+                .join(" | ")
+            : "Sem dados suficientes";
+
+        return `⚽ ${game.homeTeam} vs ${game.awayTeam}
+${game.homeTeam}: ${game.homePct}% (${game.homeWins}) | Empate: ${game.drawPct}% (${game.draws}) | ${game.awayTeam}: ${game.awayPct}% (${game.awayWins})
+Favorito: ${favorite.label} ${favorite.pct}%
+Top 3 resultados: ${topResultsText}`;
       }),
     ];
 
     try {
-      await navigator.clipboard.writeText(lines.join("\n"));
+      await navigator.clipboard.writeText(lines.join("\n\n"));
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch (error) {
@@ -488,8 +298,53 @@ export default function TendenciasPage() {
                   {loadingTrends ? "A atualizar..." : "Atualizar dados"}
                 </button>
               )}
+
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setShowPreview((value) => !value)}
+                  className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-bold"
+                  style={{
+                    backgroundColor: showPreview ? "#fee2e2" : "#f3f4f6",
+                    color: showPreview ? "#991b1b" : "#374151",
+                    border: showPreview
+                      ? "1px solid #fca5a5"
+                      : "1px solid #d1d5db",
+                  }}
+                >
+                  {showPreview ? "Desligar teste" : "Ver antes das datas"}
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={copySummary}
+                disabled={!selectedRound || selectedGames.length === 0}
+                className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50"
+                style={{
+                  backgroundColor: "#7c3aed",
+                  color: "#ffffff",
+                  border: "1px solid #6d28d9",
+                }}
+              >
+                {copied ? "Resumo copiado ✅" : "Copiar resumo"}
+              </button>
             </div>
           </div>
+
+          {isAdmin && showPreview && (
+            <div
+              className="mt-4 rounded-2xl p-4 text-sm font-semibold"
+              style={{
+                backgroundColor: "#fff7ed",
+                border: "1px solid #fed7aa",
+                color: "#9a3412",
+              }}
+            >
+              Modo teste ligado: só tu consegues ver jornadas/fases antes de
+              começarem.
+            </div>
+          )}
         </section>
 
         <section
@@ -513,8 +368,8 @@ export default function TendenciasPage() {
               </label>
 
               <select
-                value={selectedRound}
-                onChange={(e) => setSelectedRound(e.target.value)}
+                value={selectedRoundId}
+                onChange={(e) => setSelectedRoundId(e.target.value)}
                 disabled={visibleRounds.length === 0}
                 className="mt-2 h-11 w-full rounded-xl px-3 text-sm font-bold outline-none"
                 style={{
@@ -527,64 +382,30 @@ export default function TendenciasPage() {
                   <option value="">Ainda não há jornadas disponíveis</option>
                 ) : (
                   visibleRounds.map((round) => (
-                    <option key={round.label} value={round.label}>
-                      {round.label} · disponível desde{" "}
-                      {formatUnlockDate(round.startsAt)}
+                    <option key={round.id} value={round.id}>
+                      {round.round} · disponível desde{" "}
+                      {formatUnlockDate(round.availableAt)}
                     </option>
                   ))
                 )}
               </select>
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <button
-                type="button"
-                onClick={copySummary}
-                disabled={!selectedRound || filteredGames.length === 0}
-                className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50"
+            {selectedRound && (
+              <div
+                className="rounded-2xl px-4 py-3 text-sm font-black"
                 style={{
-                  backgroundColor: "#7c3aed",
-                  color: "#ffffff",
-                  border: "1px solid #6d28d9",
+                  backgroundColor: "#ede9fe",
+                  color: "#5b21b6",
                 }}
               >
-                {copied ? "Resumo copiado ✅" : "Copiar resumo"}
-              </button>
-
-              {isAdmin && (
-                <button
-                  type="button"
-                  onClick={() => setShowPreview((value) => !value)}
-                  className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-bold"
-                  style={{
-                    backgroundColor: showPreview ? "#fee2e2" : "#f3f4f6",
-                    color: showPreview ? "#991b1b" : "#374151",
-                    border: showPreview
-                      ? "1px solid #fca5a5"
-                      : "1px solid #d1d5db",
-                  }}
-                >
-                  {showPreview ? "Desligar teste" : "Ver antes das datas"}
-                </button>
-              )}
-            </div>
+                {selectedRound.games?.length || 0} jogos ·{" "}
+                {roundTotalPredictions} predictions únicas
+              </div>
+            )}
           </div>
 
-          {isAdmin && showPreview && (
-            <div
-              className="mt-4 rounded-2xl p-4 text-sm font-semibold"
-              style={{
-                backgroundColor: "#fff7ed",
-                border: "1px solid #fed7aa",
-                color: "#9a3412",
-              }}
-            >
-              Modo teste ligado: só tu consegues ver jornadas/fases antes de
-              começarem.
-            </div>
-          )}
-
-          {!canPreview && visibleRounds.length === 0 && nextRound && (
+          {loadingTrends || loadingAuth ? (
             <div
               className="mt-4 rounded-2xl p-4 text-sm font-semibold"
               style={{
@@ -593,13 +414,9 @@ export default function TendenciasPage() {
                 color: "#374151",
               }}
             >
-              Ainda não há tendências disponíveis. A primeira a desbloquear é{" "}
-              <strong>{nextRound.label}</strong>, em{" "}
-              <strong>{formatUnlockDate(nextRound.startsAt)}</strong>.
+              A carregar tendências...
             </div>
-          )}
-
-          {loadError && (
+          ) : loadError ? (
             <div
               className="mt-4 rounded-2xl p-4 text-sm font-semibold"
               style={{
@@ -610,7 +427,31 @@ export default function TendenciasPage() {
             >
               {loadError}
             </div>
-          )}
+          ) : roundDocs.length === 0 ? (
+            <div
+              className="mt-4 rounded-2xl p-4 text-sm font-semibold"
+              style={{
+                backgroundColor: "#f8fafc",
+                border: "1px solid #e5e7eb",
+                color: "#374151",
+              }}
+            >
+              Ainda não existem tendências publicadas.
+            </div>
+          ) : visibleRounds.length === 0 && nextRound ? (
+            <div
+              className="mt-4 rounded-2xl p-4 text-sm font-semibold"
+              style={{
+                backgroundColor: "#f8fafc",
+                border: "1px solid #e5e7eb",
+                color: "#374151",
+              }}
+            >
+              Ainda não há tendências disponíveis. A primeira a desbloquear é{" "}
+              <strong>{nextRound.round}</strong>, em{" "}
+              <strong>{formatUnlockDate(nextRound.availableAt)}</strong>.
+            </div>
+          ) : null}
         </section>
 
         {selectedRound && (
@@ -653,7 +494,7 @@ export default function TendenciasPage() {
                       color: "#111827",
                     }}
                   >
-                    {selectedRound}
+                    {selectedRound.round}
                   </h2>
 
                   <p
@@ -665,7 +506,7 @@ export default function TendenciasPage() {
                       fontWeight: 700,
                     }}
                   >
-                    {selectedRoundMeta?.totalGames ?? filteredGames.length} jogos ·{" "}
+                    {selectedRound.games?.length || 0} jogos ·{" "}
                     {roundTotalPredictions} predictions únicas contabilizadas
                   </p>
                 </div>
@@ -685,24 +526,94 @@ export default function TendenciasPage() {
                 <div className="rounded-2xl bg-white p-5 text-sm font-semibold text-gray-600">
                   A carregar tendências...
                 </div>
-              ) : filteredGames.length === 0 ? (
+              ) : selectedGames.length === 0 ? (
                 <div className="rounded-2xl bg-white p-5 text-sm font-semibold text-gray-600">
                   Ainda não há dados para esta jornada/fase.
                 </div>
               ) : (
                 <div className="grid gap-4">
-                  {filteredGames.map((item) => (
-                    <article
-                      key={item.gameId}
-                      className="rounded-3xl p-5"
-                      style={{
-                        backgroundColor: "#ffffff",
-                        border: "1px solid #e5e7eb",
-                        boxShadow: "0 12px 30px rgba(17, 24, 39, 0.08)",
-                      }}
-                    >
-                      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
+                  {selectedGames.map((game) => {
+                    const favorite = getFavorite(game);
+
+                    return (
+                      <article
+                        key={game.gameId}
+                        className="rounded-3xl p-5"
+                        style={{
+                          backgroundColor: "#ffffff",
+                          border: "1px solid #e5e7eb",
+                          boxShadow: "0 12px 30px rgba(17, 24, 39, 0.08)",
+                        }}
+                      >
+                        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <p
+                              style={{
+                                margin: 0,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.16em",
+                                color: "#7c3aed",
+                              }}
+                            >
+                              Jogo #{game.gameId}
+                            </p>
+
+                            <h3
+                              style={{
+                                marginTop: 6,
+                                marginBottom: 0,
+                                fontSize: 24,
+                                fontWeight: 950,
+                                color: "#111827",
+                              }}
+                            >
+                              {game.homeTeam} vs {game.awayTeam}
+                            </h3>
+                          </div>
+
+                          <div
+                            className="rounded-full px-4 py-2 text-xs font-black"
+                            style={{
+                              backgroundColor: "#ede9fe",
+                              color: "#5b21b6",
+                            }}
+                          >
+                            Favorito: {favorite.label} {favorite.pct}%
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <TrendBar
+                            label={`Vitória ${game.homeTeam}`}
+                            percentage={game.homePct}
+                            count={game.homeWins}
+                            color="#22c55e"
+                          />
+
+                          <TrendBar
+                            label="Empate"
+                            percentage={game.drawPct}
+                            count={game.draws}
+                            color="#f59e0b"
+                          />
+
+                          <TrendBar
+                            label={`Vitória ${game.awayTeam}`}
+                            percentage={game.awayPct}
+                            count={game.awayWins}
+                            color="#3b82f6"
+                          />
+                        </div>
+
+                        <div
+                          className="mt-5 rounded-2xl p-4"
+                          style={{
+                            backgroundColor: "#f8fafc",
+                            border: "1px solid #e5e7eb",
+                          }}
+                        >
                           <p
                             style={{
                               margin: 0,
@@ -713,71 +624,87 @@ export default function TendenciasPage() {
                               color: "#7c3aed",
                             }}
                           >
-                            Jogo #{item.gameId}
+                            Top 3 resultados exatos
                           </p>
 
-                          <h3
-                            style={{
-                              marginTop: 6,
-                              marginBottom: 0,
-                              fontSize: 24,
-                              fontWeight: 950,
-                              color: "#111827",
-                            }}
-                          >
-                            {item.homeTeam} vs {item.awayTeam}
-                          </h3>
+                          {game.topResults && game.topResults.length > 0 ? (
+                            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                              {game.topResults.map((result, index) => (
+                                <div
+                                  key={`${game.gameId}-${result.score}`}
+                                  className="rounded-2xl bg-white p-4"
+                                  style={{
+                                    border: "1px solid #e5e7eb",
+                                    boxShadow:
+                                      "0 6px 16px rgba(17, 24, 39, 0.06)",
+                                  }}
+                                >
+                                  <p
+                                    style={{
+                                      margin: 0,
+                                      fontSize: 11,
+                                      fontWeight: 900,
+                                      color: "#7c3aed",
+                                    }}
+                                  >
+                                    #{index + 1}
+                                  </p>
+
+                                  <p
+                                    style={{
+                                      marginTop: 4,
+                                      marginBottom: 0,
+                                      fontSize: 28,
+                                      fontWeight: 950,
+                                      color: "#111827",
+                                    }}
+                                  >
+                                    {result.score}
+                                  </p>
+
+                                  <p
+                                    style={{
+                                      marginTop: 4,
+                                      marginBottom: 0,
+                                      fontSize: 13,
+                                      fontWeight: 800,
+                                      color: "#6b7280",
+                                    }}
+                                  >
+                                    {result.count} voto(s) · {result.pct}%
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p
+                              style={{
+                                marginTop: 8,
+                                marginBottom: 0,
+                                fontSize: 13,
+                                fontWeight: 800,
+                                color: "#6b7280",
+                              }}
+                            >
+                              Ainda não existem resultados suficientes.
+                            </p>
+                          )}
                         </div>
 
-                        <div
-                          className="rounded-full px-4 py-2 text-xs font-black"
+                        <p
                           style={{
-                            backgroundColor: "#ede9fe",
-                            color: "#5b21b6",
+                            marginTop: 14,
+                            marginBottom: 0,
+                            fontSize: 13,
+                            fontWeight: 800,
+                            color: "#6b7280",
                           }}
                         >
-                          Favorito: {item.favoriteLabel} {item.favoritePct}%
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <TrendBar
-                          label={item.homeTeam}
-                          percentage={item.homePct}
-                          count={item.homeWins}
-                          color="#22c55e"
-                        />
-
-                        <TrendBar
-                          label="Empate"
-                          percentage={item.drawPct}
-                          count={item.draws}
-                          color="#f59e0b"
-                        />
-
-                        <TrendBar
-                          label={item.awayTeam}
-                          percentage={item.awayPct}
-                          count={item.awayWins}
-                          color="#3b82f6"
-                        />
-                      </div>
-
-                      <TopResults results={item.topResults} />
-
-                      <p
-                        style={{
-                          marginTop: 14,
-                          marginBottom: 0,
-                          fontSize: 13,
-                          fontWeight: 800,
-                          color: "#6b7280",
-                        }}
-                      >
-                        Total: {item.totalPredictions} prediction(s)
-                      </p>
-                    </article>
-                  ))}
+                          Total: {game.totalPredictions} prediction(s)
+                        </p>
+                      </article>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -838,102 +765,6 @@ function TrendBar({
             borderRadius: 9999,
           }}
         />
-      </div>
-    </div>
-  );
-}
-
-function TopResults({ results }: { results: TopResult[] }) {
-  if (results.length === 0) {
-    return (
-      <div
-        className="mt-4 rounded-2xl p-4"
-        style={{
-          backgroundColor: "#f8fafc",
-          border: "1px solid #e5e7eb",
-        }}
-      >
-        <p
-          style={{
-            margin: 0,
-            fontSize: 13,
-            fontWeight: 800,
-            color: "#6b7280",
-          }}
-        >
-          Ainda não há resultados exatos suficientes para este jogo.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="mt-4 rounded-2xl p-4"
-      style={{
-        backgroundColor: "#f8fafc",
-        border: "1px solid #e5e7eb",
-      }}
-    >
-      <p
-        style={{
-          margin: 0,
-          fontSize: 12,
-          fontWeight: 950,
-          textTransform: "uppercase",
-          letterSpacing: "0.14em",
-          color: "#7c3aed",
-        }}
-      >
-        Top 3 resultados mais escolhidos
-      </p>
-
-      <div className="mt-3 grid gap-2 sm:grid-cols-3">
-        {results.map((result, index) => (
-          <div
-            key={`${result.shortLabel}-${index}`}
-            className="rounded-2xl bg-white p-3"
-            style={{
-              border: "1px solid #e5e7eb",
-            }}
-          >
-            <p
-              style={{
-                margin: 0,
-                fontSize: 11,
-                fontWeight: 950,
-                color:
-                  index === 0 ? "#7c3aed" : index === 1 ? "#4b5563" : "#6b7280",
-              }}
-            >
-              #{index + 1}
-            </p>
-
-            <p
-              style={{
-                marginTop: 4,
-                marginBottom: 0,
-                fontSize: 20,
-                fontWeight: 950,
-                color: "#111827",
-              }}
-            >
-              {result.shortLabel}
-            </p>
-
-            <p
-              style={{
-                marginTop: 4,
-                marginBottom: 0,
-                fontSize: 12,
-                fontWeight: 800,
-                color: "#6b7280",
-              }}
-            >
-              {result.count} votos · {result.pct}%
-            </p>
-          </div>
-        ))}
       </div>
     </div>
   );
