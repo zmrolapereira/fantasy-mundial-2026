@@ -1025,69 +1025,128 @@ export default function AdminPage() {
               </div>
             </div>
           </section>
-          <section
-            className="rounded-2xl p-5 shadow-sm"
-            style={{
-              backgroundColor: "#ffffff",
-              border: "1px solid #e5e7eb",
-              color: "#111827",
-            }}
-          >
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.16em",
-                    color: "#7c3aed",
-                  }}
-                >
-                  Controlo
-                </p>
+          <section className="grid gap-4 md:grid-cols-2">
+            <a
+              href="/admin/missing-team"
+              className="rounded-2xl p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              style={{
+                backgroundColor: "#ffffff",
+                border: "1px solid #e5e7eb",
+                color: "#111827",
+                textDecoration: "none",
+              }}
+            >
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.16em",
+                  color: "#7c3aed",
+                }}
+              >
+                Controlo
+              </p>
 
-                <h2
-                  style={{
-                    marginTop: 8,
-                    marginBottom: 0,
-                    fontSize: 26,
-                    fontWeight: 900,
-                    color: "#111827",
-                  }}
-                >
-                  Equipas e predictions em falta
-                </h2>
+              <h2
+                style={{
+                  marginTop: 8,
+                  marginBottom: 0,
+                  fontSize: 24,
+                  fontWeight: 900,
+                  color: "#111827",
+                }}
+              >
+                Equipas e predictions em falta
+              </h2>
 
-                <p
-                  style={{
-                    marginTop: 8,
-                    marginBottom: 0,
-                    fontSize: 14,
-                    color: "#6b7280",
-                    lineHeight: 1.7,
-                  }}
-                >
-                  Vê quem já pagou mas ainda não criou equipa e quem ainda não
-                  preencheu as predictions de cada jornada ou fase.
-                </p>
-              </div>
+              <p
+                style={{
+                  marginTop: 8,
+                  marginBottom: 0,
+                  fontSize: 14,
+                  color: "#6b7280",
+                  lineHeight: 1.7,
+                }}
+              >
+                Vê quem já pagou mas ainda não criou equipa e quem ainda não
+                preencheu as predictions de cada jornada ou fase.
+              </p>
 
-              <a
-                href="/admin/missing-team"
-                className="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold transition hover:scale-[1.02]"
+              <div
+                className="mt-4 inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold"
                 style={{
                   backgroundColor: "#2f2140",
                   color: "#ffffff",
                   border: "1px solid #2f2140",
                   boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
-                  minWidth: 210,
                 }}
               >
                 Abrir painel →
-              </a>
-            </div>
+              </div>
+            </a>
+
+            <a
+              href="/admin/gerar-tendencias"
+              className="rounded-2xl p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              style={{
+                backgroundColor: "#ffffff",
+                border: "1px solid #e5e7eb",
+                color: "#111827",
+                textDecoration: "none",
+              }}
+            >
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.16em",
+                  color: "#7c3aed",
+                }}
+              >
+                Tendências
+              </p>
+
+              <h2
+                style={{
+                  marginTop: 8,
+                  marginBottom: 0,
+                  fontSize: 24,
+                  fontWeight: 900,
+                  color: "#111827",
+                }}
+              >
+                Gerar tendências públicas
+              </h2>
+
+              <p
+                style={{
+                  marginTop: 8,
+                  marginBottom: 0,
+                  fontSize: 14,
+                  color: "#6b7280",
+                  lineHeight: 1.7,
+                }}
+              >
+                Atualiza os dados agregados das predictions para a página pública
+                de tendências sem fazer o público ler todas as predictions.
+              </p>
+
+              <div
+                className="mt-4 inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold"
+                style={{
+                  backgroundColor: "#7c3aed",
+                  color: "#ffffff",
+                  border: "1px solid #6d28d9",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+                }}
+              >
+                Gerar tendências →
+              </div>
+            </a>
           </section>
           <section
             className="rounded-2xl p-4 shadow-sm"
