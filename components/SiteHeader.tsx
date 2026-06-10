@@ -16,8 +16,9 @@ const baseLinks = [
   { href: "/games", label: "Jogos" },
   { href: "/table", label: "Tabela" },
   { href: "/rules", label: "Info" },
-  { href: "/faq", label: "FAQ" }, // 👈 NOVO
+  { href: "/faq", label: "FAQ" },
   { href: "/ranking", label: "Ranking" },
+  { href: "/tendencias", label: "Tendências" },
 ];
 
 export default function SiteHeader() {
@@ -37,6 +38,11 @@ export default function SiteHeader() {
       ? [...baseLinks, { href: "/admin", label: "Admin" }]
       : baseLinks;
   }, [isAdmin]);
+
+  const isActiveLink = (href: string) => {
+    if (href === "/") return pathname === "/";
+    return pathname === href;
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white/95 backdrop-blur">
@@ -58,19 +64,25 @@ export default function SiteHeader() {
             onClick={() => setOpen((prev) => !prev)}
             className="inline-flex items-center justify-center rounded-xl border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 md:hidden"
           >
-            Menu
+            {open ? "Fechar" : "Menu"}
           </button>
 
           <nav className="hidden items-center gap-5 text-sm font-medium md:flex">
             {links.map((link) => {
-              const active = pathname === link.href;
+              const active = isActiveLink(link.href);
+              const isAdminLink = link.href === "/admin";
+
               return (
                 <Link
                   key={link.href}
                   href={link.href}
                   className={
                     active
-                      ? "font-semibold text-blue-600"
+                      ? isAdminLink
+                        ? "rounded-full bg-violet-100 px-3 py-2 font-bold text-violet-700"
+                        : "font-semibold text-blue-600"
+                      : isAdminLink
+                      ? "rounded-full bg-gray-100 px-3 py-2 font-semibold text-gray-700 hover:bg-violet-100 hover:text-violet-700"
                       : "text-gray-700 hover:text-blue-600"
                   }
                 >
@@ -84,7 +96,9 @@ export default function SiteHeader() {
         {open && (
           <nav className="grid grid-cols-2 gap-2 pb-4 md:hidden">
             {links.map((link) => {
-              const active = pathname === link.href;
+              const active = isActiveLink(link.href);
+              const isAdminLink = link.href === "/admin";
+
               return (
                 <Link
                   key={link.href}
@@ -92,7 +106,11 @@ export default function SiteHeader() {
                   onClick={() => setOpen(false)}
                   className={
                     active
-                      ? "rounded-xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-600"
+                      ? isAdminLink
+                        ? "rounded-xl bg-violet-100 px-4 py-3 text-sm font-bold text-violet-700"
+                        : "rounded-xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-600"
+                      : isAdminLink
+                      ? "rounded-xl bg-gray-100 px-4 py-3 text-sm font-bold text-gray-700"
                       : "rounded-xl bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700"
                   }
                 >
