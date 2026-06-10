@@ -100,11 +100,7 @@ const faqCategories: FAQCategory[] = [
       },
       {
         q: "Como funcionam as predictions nas fases a eliminar?",
-        a: "A partir dos 16 avos, a prediction é sempre feita para o resultado do jogo antes dos penalties. Se o jogo ficar decidido nos 90 minutos, conta o resultado aos 90 minutos. Se houver empate aos 90 minutos e o jogo for a prolongamento, conta o resultado no final dos 120 minutos.",
-      },
-      {
-        q: "E se o jogo continuar empatado aos 120 minutos?",
-        a: "Se o jogo continuar empatado no final dos 120 minutos, esse empate é o resultado contabilizado para a prediction. Os penalties não alteram o resultado usado para pontuar o palpite.",
+        a: "A partir dos 16 avos, a prediction conta sempre para o resultado aos 90 minutos. Se o jogo for decidido no prolongamento ou nos penáltis, o palpite continua a contar pelo resultado que estava aos 90 minutos.",
       },
       {
         q: "Os penalties contam para alguma coisa?",
@@ -236,7 +232,7 @@ const faqCategories: FAQCategory[] = [
 const featuredQuestions = [
   {
     title: "Predictions nas eliminatórias",
-    text: "A partir dos 16 avos, contam os 90 minutos; se houver empate e prolongamento, contam os 120 minutos.",
+    text: "A partir dos 16 avos, contam os 90 minutos; se houver empate e prolongamento, contam os 90 minutos apenas.",
   },
   {
   title: "Como funcionam os prémios?",

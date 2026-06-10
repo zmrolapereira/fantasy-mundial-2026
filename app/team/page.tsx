@@ -1131,16 +1131,12 @@ const activeRoundGames = useMemo(() => {
         </p>
 
         <p className="mt-2 text-sm leading-7 text-blue-900">
-          A partir dos 16 avos, a prediction conta para o resultado antes dos
-          penalties. Se o jogo ficar decidido nos 90 minutos, conta o resultado
-          aos 90 minutos. Se houver empate aos 90 minutos e o jogo for a
-          prolongamento, conta o resultado no final dos 120 minutos.
+          A partir dos 16 avos, a prediction conta sempre para o resultado aos 90 minutos.  
         </p>
 
         <p className="mt-2 text-sm leading-7 text-blue-900">
-          Se o jogo continuar empatado aos 120 minutos, esse empate é o
-          resultado contabilizado para a prediction. O vencedor dos penalties
-          conta apenas para os pontos extra de passagem da seleção escolhida.
+          Se o jogo ficar empatado aos 90 minutos e for decidido no prolongamento ou nos penáltis, o palpite continua a contar como empate.  
+          A equipa que passar será considerada apenas para os pontos da seleção escolhida.
         </p>
       </div>
     </div>
