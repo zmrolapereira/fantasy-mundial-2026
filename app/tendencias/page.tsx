@@ -473,19 +473,21 @@ export default function TendenciasPage() {
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">
-              <button
-                type="button"
-                onClick={loadTrends}
-                disabled={loadingTrends}
-                className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-bold disabled:opacity-60"
-                style={{
-                  backgroundColor: "#2f2140",
-                  color: "#ffffff",
-                  border: "1px solid #2f2140",
-                }}
-              >
-                {loadingTrends ? "A atualizar..." : "Atualizar dados"}
-              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={loadTrends}
+                  disabled={loadingTrends}
+                  className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-bold disabled:opacity-60"
+                  style={{
+                    backgroundColor: "#2f2140",
+                    color: "#ffffff",
+                    border: "1px solid #2f2140",
+                  }}
+                >
+                  {loadingTrends ? "A atualizar..." : "Atualizar dados"}
+                </button>
+              )}
             </div>
           </div>
         </section>
