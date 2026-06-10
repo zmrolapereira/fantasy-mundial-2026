@@ -117,11 +117,11 @@ const faqCategories: FAQCategory[] = [
     questions: [
       {
         q: "Como pontuam as predictions?",
-        a: "Cada jogo pode dar 0, 1 ou 2 pontos. Acertar no sentido do jogo vale 1 ponto. Acertar no resultado exato vale 2 pontos no total. Um palpite errado vale 0 pontos.",
+        a: "Cada jogo pode dar 0, 1 ou 3 pontos. Acertar no sentido do jogo vale 1 ponto. Acertar no resultado exato vale 3 pontos no total. Um palpite errado vale 0 pontos.",
       },
       {
         q: "O resultado exato acumula com o ponto do sentido?",
-        a: "Não. O resultado exato vale 2 pontos no total. Ou seja, não soma 1 ponto pelo sentido mais 2 pontos pelo resultado exato.",
+        a: "Não. O resultado exato vale 3 pontos no total. Ou seja, não soma 1 ponto pelo sentido mais 3 pontos pelo resultado exato.",
       },
       {
         q: "Como pontua o melhor marcador?",
@@ -137,7 +137,7 @@ const faqCategories: FAQCategory[] = [
       },
       {
         q: "Quais são os pontos extra da seleção escolhida?",
-        a: "A passagem dos 16 avos para os oitavos vale +1 ponto, dos oitavos para os quartos vale +1 ponto, dos quartos para as meias-finais vale +1 ponto, das meias-finais para a final vale +1 ponto, e ganhar o Mundial vale +2 pontos.",
+        a: "A passagem dos 16 avos para os oitavos vale +1 ponto, dos oitavos para os quartos vale +1 ponto, dos quartos para as meias-finais vale +1 ponto, das meias-finais para a final vale +1 ponto, e ganhar o Mundial vale +4 pontos.",
       },
       {
         q: "Quando são atualizados os pontos?",

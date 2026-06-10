@@ -54,7 +54,7 @@ const participationFlow = [
 const scoringOverview = [
   {
     title: "Predictions",
-    value: "0-2 pts",
+    value: "0-3 pts",
     text: "Pontuação atribuída consoante o acerto no resultado previsto para cada jogo.",
     accent: "from-cyan-400 to-blue-500",
   },
@@ -81,7 +81,7 @@ const scoringOverview = [
 const predictionRules = [
   {
     label: "Resultado exato",
-    points: "2 pontos",
+    points: "3 pontos",
     example: "Previsão: 2-1 | Resultado final: 2-1.",
   },
   {
@@ -103,7 +103,7 @@ const teamScoring = [
   { label: "Passagem dos oitavos para os quartos", value: "+1 ponto" },
   { label: "Passagem dos quartos para as meias-finais", value: "+1 ponto" },
   { label: "Passagem das meias-finais para a final", value: "+1 ponto" },
-  { label: "Vitória no Mundial", value: "+2 pontos" },
+  { label: "Vitória no Mundial", value: "+4 pontos" },
 ];
 
 const prizeDistribution = [
@@ -453,7 +453,7 @@ export default function InfoPage() {
                 Resultado exato
               </p>
               <p className="mt-2 text-sm leading-7 text-blue-900">
-                O resultado exato vale 2 pontos no total. Não acumula com o
+                O resultado exato vale 3 pontos no total. Não acumula com o
                 ponto do sentido correto.
               </p>
             </div>

@@ -68,9 +68,9 @@ function getPredictionPoints(prediction: MatchPrediction, game: Game) {
   const realOutcome = getOutcome(realHome, realAway);
 
   // Resultado exato.
-  // Exemplo: apostou 1-1 e ficou 1-1 = 2 pontos.
+  // Exemplo: apostou 1-1 e ficou 1-1 = 3 pontos.
   if (predictedHome === realHome && predictedAway === realAway) {
-    return 2;
+    return 3;
   }
 
   // Resultado certo.
@@ -224,7 +224,7 @@ function getSelectedTeamStagePoints(teamName: string, games: Game[]) {
   if (passedOitavos) points += 1;
   if (passedQuartos) points += 1;
   if (passedMeias) points += 1;
-  if (wonFinal) points += 2;
+  if (wonFinal) points += 4;
 
   return points;
 }
