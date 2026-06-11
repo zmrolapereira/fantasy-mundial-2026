@@ -36,9 +36,9 @@ export const games: Game[] = [
   group: "A",
   homeTeam: "México",
   awayTeam: "África do Sul",
-  homeScore: null,
-  awayScore: null,
-  status: "Por jogar",
+  homeScore: 2,
+  awayScore: 0,
+  status: "FT",
 },
 {
   id: 2,
