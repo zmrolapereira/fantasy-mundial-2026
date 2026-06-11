@@ -322,9 +322,6 @@ export default function RankingPage() {
   >([]);
   const [loadingPredictions, setLoadingPredictions] = useState(false);
 
-  const [predictionsByUserId, setPredictionsByUserId] = useState<
-    Record<string, MatchPrediction[]>
-  >({});
   const [loadingAllPredictions, setLoadingAllPredictions] = useState(false);
 
   const [selectedRoundFilter, setSelectedRoundFilter] =
@@ -485,35 +482,6 @@ export default function RankingPage() {
       stageWinnerPrize,
     };
   }, [totalTeams]);
-
-  useEffect(() => {
-    const loadAllPredictions = async () => {
-      if (leaderboard.length === 0) {
-        setPredictionsByUserId({});
-        return;
-      }
-
-      try {
-        setLoadingAllPredictions(true);
-
-        const results = await Promise.all(
-          leaderboard.map(async (entry) => {
-            const predictions = await getPredictionsForUser(entry.userId);
-            return [entry.userId, predictions] as const;
-          })
-        );
-
-        setPredictionsByUserId(Object.fromEntries(results));
-      } catch (error) {
-        console.error(error);
-        setPredictionsByUserId({});
-      } finally {
-        setLoadingAllPredictions(false);
-      }
-    };
-
-    loadAllPredictions();
-  }, [leaderboard]);
 
   useEffect(() => {
     if (!selectedStageId && stageOptions.length > 0) {
