@@ -852,8 +852,9 @@ export default function RankingPage() {
       <div className="mt-2 rounded-2xl border border-violet-200 bg-violet-50 p-2.5 lg:hidden">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[9px] font-black uppercase tracking-[0.14em] text-violet-700">
-            Stats
+            Pontos
           </p>
+
           {loadingPredictions && (
             <span className="text-[9px] font-bold text-violet-500">
               A carregar...
@@ -861,29 +862,24 @@ export default function RankingPage() {
           )}
         </div>
 
-        <div className="mt-2 grid grid-cols-4 gap-1.5">
-          <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-center">
-            <p className="text-[8px] uppercase tracking-wide text-gray-500">
-              Total
-            </p>
-            <p className="text-sm font-black text-gray-900">{displayedTotal}</p>
-          </div>
+        {leaderboardMode === "overall" ? (
+          <>
+            <div className="mt-2 grid grid-cols-2 gap-1.5">
+              <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-center">
+                <p className="text-[8px] uppercase tracking-wide text-gray-500">
+                  Total
+                </p>
+                <p className="text-sm font-black text-gray-900">
+                  {displayedTotal} pts
+                </p>
+              </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-center">
-            <p className="text-[8px] uppercase tracking-wide text-gray-500">
-              Exatos
-            </p>
-            <p className="text-sm font-black text-violet-700">{exactCount}</p>
-          </div>
-
-          {leaderboardMode === "overall" ? (
-            <>
               <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-center">
                 <p className="text-[8px] uppercase tracking-wide text-gray-500">
                   Palpites
                 </p>
                 <p className="text-sm font-black text-emerald-700">
-                  {activeEntry.predictionPoints ?? 0}
+                  {activeEntry.predictionPoints ?? 0} pts
                 </p>
               </div>
 
@@ -892,12 +888,72 @@ export default function RankingPage() {
                   Seleção
                 </p>
                 <p className="text-sm font-black text-rose-700">
-                  {activeEntry.selectedTeamPoints ?? 0}
+                  {activeEntry.selectedTeamPoints ?? 0} pts
                 </p>
               </div>
-            </>
-          ) : (
-            <>
+
+              <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-center">
+                <p className="text-[8px] uppercase tracking-wide text-gray-500">
+                  Marcador
+                </p>
+                <p className="text-sm font-black text-amber-700">
+                  {activeEntry.topScorerPoints ?? 0} pts
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-center">
+                <p className="text-[8px] uppercase tracking-wide text-gray-500">
+                  Assistente
+                </p>
+                <p className="text-sm font-black text-blue-700">
+                  {activeEntry.topAssistPoints ?? 0} pts
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-2 rounded-xl border border-violet-200 bg-white px-3 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[9px] font-black uppercase tracking-[0.12em] text-violet-700">
+                  Resultados exatos acertados
+                </p>
+
+                <p className="text-sm font-black text-violet-700">
+                  {exactCount} {exactCount === 1 ? "exato" : "exatos"}
+                </p>
+              </div>
+
+              <p className="mt-1 text-[9px] font-semibold leading-4 text-gray-500">
+                Isto é uma contagem de resultados certos. Os pontos desses exatos
+                já estão incluídos nos pontos de Palpites.
+              </p>
+            </div>
+
+            <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+              <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5">
+                <p className="truncate text-[9px] font-bold text-gray-500">
+                  ⚽ {activeEntry.topScorerPick?.playerName || "Sem marcador"}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5">
+                <p className="truncate text-[9px] font-bold text-gray-500">
+                  🎯 {activeEntry.topAssistPick?.playerName || "Sem assistente"}
+                </p>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="mt-2 grid grid-cols-2 gap-1.5">
+              <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-center">
+                <p className="text-[8px] uppercase tracking-wide text-gray-500">
+                  Pontos da fase
+                </p>
+                <p className="text-sm font-black text-gray-900">
+                  {displayedTotal} pts
+                </p>
+              </div>
+
               <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-center">
                 <p className="text-[8px] uppercase tracking-wide text-gray-500">
                   Rank fase
@@ -909,36 +965,30 @@ export default function RankingPage() {
 
               <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-center">
                 <p className="text-[8px] uppercase tracking-wide text-gray-500">
-                  Geral
+                  Rank geral
                 </p>
                 <p className="text-sm font-black text-gray-900">
                   {activeOverallEntry?.rank ?? "—"}º
                 </p>
               </div>
-            </>
-          )}
-        </div>
-
-        {leaderboardMode === "overall" && (
-          <div className="mt-1.5 grid grid-cols-2 gap-1.5">
-            <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5">
-              <p className="truncate text-[9px] font-bold text-gray-500">
-                ⚽ {activeEntry.topScorerPick?.playerName || "Sem marcador"}
-              </p>
-              <p className="text-xs font-black text-amber-700">
-                {activeEntry.topScorerPoints ?? 0} pts
-              </p>
             </div>
 
-            <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5">
-              <p className="truncate text-[9px] font-bold text-gray-500">
-                🎯 {activeEntry.topAssistPick?.playerName || "Sem assistente"}
-              </p>
-              <p className="text-xs font-black text-blue-700">
-                {activeEntry.topAssistPoints ?? 0} pts
+            <div className="mt-2 rounded-xl border border-violet-200 bg-white px-3 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[9px] font-black uppercase tracking-[0.12em] text-violet-700">
+                  Resultados exatos nesta fase
+                </p>
+
+                <p className="text-sm font-black text-violet-700">
+                  {exactCount} {exactCount === 1 ? "exato" : "exatos"}
+                </p>
+              </div>
+
+              <p className="mt-1 text-[9px] font-semibold leading-4 text-gray-500">
+                Isto é uma contagem de resultados certos, não uma categoria de pontos.
               </p>
             </div>
-          </div>
+          </>
         )}
 
         <p className="mt-1.5 truncate text-[10px] font-semibold text-gray-600">
@@ -1587,12 +1637,22 @@ export default function RankingPage() {
                         </p>
                       </div>
 
-                      <div className="rounded-2xl border border-gray-200 bg-white p-3">
-                        <p className="text-[9px] uppercase tracking-wide text-gray-500">
-                          Resultados exatos
-                        </p>
-                        <p className="mt-1 text-lg font-black text-violet-700">
-                          {exactResultsCount}
+                      <div className="col-span-2 rounded-2xl border border-violet-200 bg-violet-50 p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-[9px] uppercase tracking-wide text-violet-700">
+                            Resultados exatos acertados
+                          </p>
+
+                          <p className="text-lg font-black text-violet-700">
+                            {exactResultsCount}{" "}
+                            <span className="text-xs font-black">
+                              {exactResultsCount === 1 ? "exato" : "exatos"}
+                            </span>
+                          </p>
+                        </div>
+
+                        <p className="mt-1 text-[10px] font-semibold leading-4 text-gray-500">
+                          Contagem de resultados certos. (Os pontos já estão incluídos em Palpites)
                         </p>
                       </div>
                     </div>
@@ -1627,12 +1687,22 @@ export default function RankingPage() {
                         </p>
                       </div>
 
-                      <div className="rounded-2xl border border-gray-200 bg-white p-3">
-                        <p className="text-[9px] uppercase tracking-wide text-gray-500">
-                          Resultados exatos
-                        </p>
-                        <p className="mt-1 text-lg font-black text-violet-700">
-                          {stageExactResultsCount}
+                      <div className="col-span-2 rounded-2xl border border-violet-200 bg-violet-50 p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-[9px] uppercase tracking-wide text-violet-700">
+                            Resultados exatos nesta fase
+                          </p>
+
+                          <p className="text-lg font-black text-violet-700">
+                            {stageExactResultsCount}{" "}
+                            <span className="text-xs font-black">
+                              {stageExactResultsCount === 1 ? "exato" : "exatos"}
+                            </span>
+                          </p>
+                        </div>
+
+                        <p className="mt-1 text-[10px] font-semibold leading-4 text-gray-500">
+                          Contagem de resultados certos, não uma categoria de pontos.
                         </p>
                       </div>
 

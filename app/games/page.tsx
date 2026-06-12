@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { games, type Game, type GamePhase } from "@/data/games";
+import { useEffect, useMemo, useState } from "react";
+import { games as baseGames, type Game } from "@/data/games";
 import { teams } from "@/data/teams";
 import SiteHeader from "@/components/SiteHeader";
+import { getGamesWithResults } from "@/lib/game-results";
 
 type PhaseFilter =
   | "ALL"
@@ -28,6 +29,7 @@ function getGameDateTime(game: Game) {
 
 function formatDate(dateString: string) {
   const date = new Date(dateString);
+
   return date.toLocaleDateString("pt-PT", {
     weekday: "short",
     day: "2-digit",
@@ -36,8 +38,11 @@ function formatDate(dateString: string) {
   });
 }
 
-function renderScore(homeScore: number | null, awayScore: number | null) {
-  if (homeScore === null || awayScore === null) return "vs";
+function renderScore(homeScore?: number | null, awayScore?: number | null) {
+  if (typeof homeScore !== "number" || typeof awayScore !== "number") {
+    return "vs";
+  }
+
   return `${homeScore} - ${awayScore}`;
 }
 
@@ -66,11 +71,36 @@ function getPhaseOrder(phase: string) {
 }
 
 export default function GamesPage() {
+  const [games, setGames] = useState<Game[]>(baseGames);
+  const [loadingGames, setLoadingGames] = useState(true);
+
   const [selectedTeam, setSelectedTeam] = useState<string>("ALL");
   const [selectedPhase, setSelectedPhase] = useState<PhaseFilter>("ALL");
 
+  useEffect(() => {
+    const loadGames = async () => {
+      try {
+        setLoadingGames(true);
+
+        const mergedGames = await getGamesWithResults(baseGames);
+
+        setGames(mergedGames);
+      } catch (error) {
+        console.error(error);
+        setGames(baseGames);
+      } finally {
+        setLoadingGames(false);
+      }
+    };
+
+    loadGames();
+  }, []);
+
   const uniqueTeams = useMemo(() => {
-    return ["ALL", ...teams.map((team) => team.name).sort((a, b) => a.localeCompare(b))];
+    return [
+      "ALL",
+      ...teams.map((team) => team.name).sort((a, b) => a.localeCompare(b)),
+    ];
   }, []);
 
   const phaseOptions: PhaseFilter[] = [
@@ -109,7 +139,7 @@ export default function GamesPage() {
 
       return matchesTeam && matchesPhase;
     });
-  }, [selectedTeam, selectedPhase]);
+  }, [games, selectedTeam, selectedPhase]);
 
   const groupedByPhase = useMemo(() => {
     const groups: Record<string, Game[]> = {};
@@ -146,6 +176,7 @@ export default function GamesPage() {
       <div className="mx-auto max-w-7xl px-4 pb-10 pt-6 sm:px-6">
         <div className="mb-6">
           <h1 className="text-2xl font-extrabold sm:text-3xl">Jogos</h1>
+
           <p className="text-sm text-gray-500 sm:text-base">
             Calendário completo do Mundial 2026 com filtros por fase e seleção.
           </p>
@@ -178,6 +209,7 @@ export default function GamesPage() {
             </select>
 
             <button
+              type="button"
               onClick={() => {
                 setSelectedPhase("ALL");
                 setSelectedTeam("ALL");
@@ -187,16 +219,26 @@ export default function GamesPage() {
               Reset
             </button>
           </div>
+
+          {loadingGames && (
+            <p className="mt-3 text-xs font-bold text-gray-500">
+              A atualizar resultados...
+            </p>
+          )}
         </div>
 
         <div className="space-y-8">
           {groupedByPhase.map(({ phase, games: phaseGames }) => (
-            <section key={phase} className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
+            <section
+              key={phase}
+              className="rounded-3xl bg-white p-5 shadow-sm sm:p-6"
+            >
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-purple-600">
                     Mundial 2026
                   </p>
+
                   <h2 className="mt-1 text-xl font-extrabold text-[#3a0d57] sm:text-2xl">
                     {getPhaseLabel(phase)}
                   </h2>
@@ -211,7 +253,11 @@ export default function GamesPage() {
                 {phaseGames.map((game) => {
                   const homeTeam = getTeamByName(game.homeTeam);
                   const awayTeam = getTeamByName(game.awayTeam);
-                  const hasResult = game.homeScore !== null && game.awayScore !== null;
+
+                  const hasResult =
+                    game.status === "FT" &&
+                    typeof game.homeScore === "number" &&
+                    typeof game.awayScore === "number";
 
                   return (
                     <article
@@ -242,14 +288,14 @@ export default function GamesPage() {
                         </div>
 
                         <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                            game.status === "FT"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {game.status}
-                        </span>
+  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+    game.status === "FT"
+      ? "bg-green-100 text-green-700"
+      : "bg-gray-100 text-gray-600"
+  }`}
+>
+  {game.status === "FT" ? "Finalizado" : "Por jogar"}
+</span>
                       </div>
 
                       <div className="space-y-3">
@@ -271,7 +317,9 @@ export default function GamesPage() {
                           </div>
 
                           <span className="text-lg font-extrabold text-[#3a0d57]">
-                            {game.homeScore ?? "-"}
+                            {typeof game.homeScore === "number"
+                              ? game.homeScore
+                              : "-"}
                           </span>
                         </div>
 
@@ -293,26 +341,30 @@ export default function GamesPage() {
                           </div>
 
                           <span className="text-lg font-extrabold text-[#3a0d57]">
-                            {game.awayScore ?? "-"}
+                            {typeof game.awayScore === "number"
+                              ? game.awayScore
+                              : "-"}
                           </span>
                         </div>
                       </div>
 
                       <div className="mt-4 border-t border-gray-100 pt-3">
-  <div className="flex items-center justify-center">
-    <span className="rounded-xl bg-[#f1ebf6] px-4 py-2 text-sm font-extrabold text-[#4a145f]">
-      {hasResult ? renderScore(game.homeScore, game.awayScore) : "Por jogar"}
-    </span>
-  </div>
+                        <div className="flex items-center justify-center">
+                          <span className="rounded-xl bg-[#f1ebf6] px-4 py-2 text-sm font-extrabold text-[#4a145f]">
+                            {hasResult
+                              ? renderScore(game.homeScore, game.awayScore)
+                              : "Por jogar"}
+                          </span>
+                        </div>
 
-  {game.penaltyWinner && (
-    <div className="mt-3 flex justify-center">
-      <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 ring-1 ring-amber-200">
-        {game.penaltyWinner} venceu nos penáltis
-      </span>
-    </div>
-  )}
-</div>
+                        {game.penaltyWinner && (
+                          <div className="mt-3 flex justify-center">
+                            <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 ring-1 ring-amber-200">
+                              {game.penaltyWinner} passou nos penáltis/prolongamento
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </article>
                   );
                 })}

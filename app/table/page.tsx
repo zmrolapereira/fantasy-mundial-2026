@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { teams } from "@/data/teams";
-import { games, type Game } from "@/data/games";
+import { games as baseGames, type Game } from "@/data/games";
+import { getGamesWithResults } from "@/lib/game-results";
 import SiteHeader from "@/components/SiteHeader";
 
 type ViewMode = "groups" | "playoffs";
@@ -49,7 +50,7 @@ function sortStandings(rows: StandingRow[]) {
   });
 }
 
-function getGroupStandings(group: string): StandingRow[] {
+function getGroupStandings(group: string, games: Game[]): StandingRow[] {
   const groupTeams = teams.filter((team) => team.group === group);
 
   const standings: StandingRow[] = groupTeams.map((team) => ({
@@ -73,7 +74,7 @@ function getGroupStandings(group: string): StandingRow[] {
       game.phase === "Fase de Grupos" &&
       game.group === group &&
       game.homeScore !== null &&
-      game.awayScore !== null
+      game.awayScore !== null,
   );
 
   for (const game of groupGames) {
@@ -117,10 +118,10 @@ function getGroupStandings(group: string): StandingRow[] {
   return sortStandings(standings);
 }
 
-function getThirdPlaceStandings(): StandingRow[] {
+function getThirdPlaceStandings(games: Game[]): StandingRow[] {
   const thirdPlacedTeams = allGroups
     .filter((group) => group !== "THIRD_PLACES")
-    .map((group) => getGroupStandings(group)[2])
+    .map((group) => getGroupStandings(group, games)[2])
     .filter(Boolean);
 
   return sortStandings(thirdPlacedTeams);
@@ -195,7 +196,9 @@ function BracketMatch({
     <div className="h-[158px] w-[280px] rounded-2xl border border-white/15 bg-[#743040] p-3 shadow-xl">
       <div className="mb-3 flex items-center justify-between gap-2 px-1 text-[11px] font-black uppercase tracking-wide text-white/75">
         <span className="truncate">
-          {game ? `${formatDate(game.date)} • ${game.time ?? "--:--"}` : "--/--"}
+          {game
+            ? `${formatDate(game.date)} • ${game.time ?? "--:--"}`
+            : "--/--"}
         </span>
 
         <span className="shrink-0">{game?.status ?? "Por jogar"}</span>
@@ -224,13 +227,19 @@ function BracketMatch({
   );
 }
 
-function GroupTable({ selectedGroup }: { selectedGroup: string }) {
+function GroupTable({
+  selectedGroup,
+  games,
+}: {
+  selectedGroup: string;
+  games: Game[];
+}) {
   const isThirdPlaces = selectedGroup === "THIRD_PLACES";
 
   const standings = useMemo(() => {
-    if (isThirdPlaces) return getThirdPlaceStandings();
-    return getGroupStandings(selectedGroup);
-  }, [selectedGroup, isThirdPlaces]);
+    if (isThirdPlaces) return getThirdPlaceStandings(games);
+    return getGroupStandings(selectedGroup, games);
+  }, [selectedGroup, isThirdPlaces, games]);
 
   return (
     <div className="overflow-hidden rounded-3xl bg-white shadow-sm">
@@ -340,8 +349,8 @@ function GroupTable({ selectedGroup }: { selectedGroup: string }) {
                       team.goalDifference > 0
                         ? "text-green-600"
                         : team.goalDifference < 0
-                        ? "text-red-500"
-                        : "text-gray-600"
+                          ? "text-red-500"
+                          : "text-gray-600"
                     }`}
                   >
                     {team.goalDifference > 0
@@ -382,7 +391,7 @@ function GroupTable({ selectedGroup }: { selectedGroup: string }) {
   );
 }
 
-function PlayoffBracket() {
+function PlayoffBracket({ games }: { games: Game[] }) {
   const roundOf32 = games.filter((game) => game.phase === "16 avos");
   const roundOf16 = games.filter((game) => game.phase === "Oitavos");
   const quarterFinals = games.filter((game) => game.phase === "Quartos");
@@ -419,23 +428,18 @@ function PlayoffBracket() {
 
   const y32 = [70, 250, 430, 610, 790, 970, 1150, 1330];
   const y16 = y32
-  .map((y, i) => (i % 2 === 0 ? (y + y32[i + 1]) / 2 : null))
-  .filter((v) => v !== null) as number[];
+    .map((y, i) => (i % 2 === 0 ? (y + y32[i + 1]) / 2 : null))
+    .filter((v) => v !== null) as number[];
   const yQF = y16
-  .map((y, i) => (i % 2 === 0 ? (y + y16[i + 1]) / 2 : null))
-  .filter((v) => v !== null) as number[];
+    .map((y, i) => (i % 2 === 0 ? (y + y16[i + 1]) / 2 : null))
+    .filter((v) => v !== null) as number[];
   const ySF = (yQF[0] + yQF[1]) / 2;
   const yFinal = ySF;
   const yThird = ySF + 220;
 
   const centerY = (top: number) => top + cardH / 2;
 
-  const path = (
-    fromX: number,
-    fromY: number,
-    toX: number,
-    toY: number
-  ) => {
+  const path = (fromX: number, fromY: number, toX: number, toY: number) => {
     const midX = (fromX + toX) / 2;
     return `M ${fromX} ${fromY} H ${midX} V ${toY} H ${toX}`;
   };
@@ -448,8 +452,8 @@ function PlayoffBracket() {
         x.left32 + cardW,
         centerY(y32[i]),
         x.left16,
-        centerY(y16[Math.floor(i / 2)])
-      )
+        centerY(y16[Math.floor(i / 2)]),
+      ),
     );
 
     connectors.push(
@@ -457,8 +461,8 @@ function PlayoffBracket() {
         x.right32,
         centerY(y32[i]),
         x.right16 + cardW,
-        centerY(y16[Math.floor(i / 2)])
-      )
+        centerY(y16[Math.floor(i / 2)]),
+      ),
     );
   }
 
@@ -468,8 +472,8 @@ function PlayoffBracket() {
         x.left16 + cardW,
         centerY(y16[i]),
         x.leftQF,
-        centerY(yQF[Math.floor(i / 2)])
-      )
+        centerY(yQF[Math.floor(i / 2)]),
+      ),
     );
 
     connectors.push(
@@ -477,34 +481,34 @@ function PlayoffBracket() {
         x.right16,
         centerY(y16[i]),
         x.rightQF + cardW,
-        centerY(yQF[Math.floor(i / 2)])
-      )
+        centerY(yQF[Math.floor(i / 2)]),
+      ),
     );
   }
 
   for (let i = 0; i < 2; i++) {
     connectors.push(
-      path(x.leftQF + cardW, centerY(yQF[i]), x.leftSF, centerY(ySF))
+      path(x.leftQF + cardW, centerY(yQF[i]), x.leftSF, centerY(ySF)),
     );
 
     connectors.push(
-      path(x.rightQF, centerY(yQF[i]), x.rightSF + cardW, centerY(ySF))
+      path(x.rightQF, centerY(yQF[i]), x.rightSF + cardW, centerY(ySF)),
     );
   }
 
   connectors.push(
-    path(x.leftSF + cardW, centerY(ySF), x.final, centerY(yFinal))
+    path(x.leftSF + cardW, centerY(ySF), x.final, centerY(yFinal)),
   );
 
   connectors.push(
-    path(x.rightSF, centerY(ySF), x.final + cardW, centerY(yFinal))
+    path(x.rightSF, centerY(ySF), x.final + cardW, centerY(yFinal)),
   );
 
   const renderMatch = (
     game: Game | undefined,
     left: number,
     top: number,
-    align: "left" | "right" = "left"
+    align: "left" | "right" = "left",
   ) => (
     <div
       key={`${left}-${top}-${game?.id ?? "empty"}`}
@@ -586,12 +590,8 @@ function PlayoffBracket() {
 
         {renderMatch(rightSF, x.rightSF, ySF, "right")}
         {yQF.map((top, i) => renderMatch(rightQF[i], x.rightQF, top, "right"))}
-        {y16.map((top, i) =>
-          renderMatch(rightR16[i], x.right16, top, "right")
-        )}
-        {y32.map((top, i) =>
-          renderMatch(rightR32[i], x.right32, top, "right")
-        )}
+        {y16.map((top, i) => renderMatch(rightR16[i], x.right16, top, "right"))}
+        {y32.map((top, i) => renderMatch(rightR32[i], x.right32, top, "right"))}
       </div>
     </div>
   );
@@ -600,6 +600,21 @@ function PlayoffBracket() {
 export default function TablePage() {
   const [viewMode, setViewMode] = useState<ViewMode>("groups");
   const [selectedGroup, setSelectedGroup] = useState<string>("A");
+  const [games, setGames] = useState<Game[]>(baseGames);
+
+  useEffect(() => {
+    const loadGames = async () => {
+      try {
+        const mergedGames = await getGamesWithResults(baseGames);
+        setGames(mergedGames);
+      } catch (error) {
+        console.error(error);
+        setGames(baseGames);
+      }
+    };
+
+    loadGames();
+  }, []);
 
   return (
     <main className="min-h-screen bg-[#f4f5f7] text-gray-900">
@@ -659,9 +674,9 @@ export default function TablePage() {
         </div>
 
         {viewMode === "groups" ? (
-          <GroupTable selectedGroup={selectedGroup} />
+          <GroupTable selectedGroup={selectedGroup} games={games} />
         ) : (
-          <PlayoffBracket />
+          <PlayoffBracket games={games} />
         )}
       </div>
     </main>
