@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { User } from "firebase/auth";
 import { listenToAuth } from "@/lib/auth";
 import { teams } from "@/data/teams";
-import { games, type Game } from "@/data/games";
+import { games as baseGames, type Game } from "@/data/games";
 import {
   FantasyEntry,
   MatchPrediction,
@@ -16,6 +16,7 @@ import {
   getStageLeaderboardSnapshot,
 } from "@/lib/leaderboard-snapshots";
 import SiteHeader from "@/components/SiteHeader";
+import { getGamesWithResults } from "@/lib/game-results";
 
 function getFlagByCountry(countryName?: string) {
   if (!countryName) return undefined;
@@ -313,6 +314,7 @@ function buildTotalHistoryFromSnapshots({
 
 export default function RankingPage() {
   const [user, setUser] = useState<User | null>(null);
+  const [games, setGames] = useState<Game[]>(baseGames);
   const [entries, setEntries] = useState<FantasyEntry[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [rankingSearch, setRankingSearch] = useState("");
@@ -321,8 +323,6 @@ export default function RankingPage() {
     MatchPrediction[]
   >([]);
   const [loadingPredictions, setLoadingPredictions] = useState(false);
-
-  const [loadingAllPredictions, setLoadingAllPredictions] = useState(false);
 
   const [selectedRoundFilter, setSelectedRoundFilter] =
     useState<string>("ALL");
@@ -342,6 +342,20 @@ export default function RankingPage() {
   useEffect(() => {
     const unsubscribe = listenToAuth(setUser);
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const loadGamesWithFirebaseResults = async () => {
+      try {
+        const mergedGames = await getGamesWithResults(baseGames);
+        setGames(mergedGames);
+      } catch (error) {
+        console.error(error);
+        setGames(baseGames);
+      }
+    };
+
+    loadGamesWithFirebaseResults();
   }, []);
 
   useEffect(() => {
@@ -373,7 +387,7 @@ export default function RankingPage() {
         game.homeScore !== null &&
         game.awayScore !== null
     );
-  }, []);
+  }, [games]);
 
   const stageOptions: StageOption[] = useMemo(() => {
     const unique = new Map<string, StageOption>();
@@ -668,7 +682,7 @@ export default function RankingPage() {
 
   const predictionsWithGameData: PredictionWithGame[] = useMemo(() => {
     return selectedPredictions.map((prediction) => {
-      const game = games.find((g) => g.id === prediction.gameId);
+      const game = games.find((g) => Number(g.id) === Number(prediction.gameId));
 
       return {
         ...prediction,
@@ -676,13 +690,19 @@ export default function RankingPage() {
         points: getPredictionPoints(prediction, game),
       };
     });
-  }, [selectedPredictions]);
+  }, [selectedPredictions, games]);
 
   const finishedPredictionsWithGameData = useMemo(() => {
     return predictionsWithGameData.filter(
       (prediction) => prediction.game && prediction.game.status === "FT"
     );
   }, [predictionsWithGameData]);
+
+  const exactResultsCount = useMemo(() => {
+    return finishedPredictionsWithGameData.filter(
+      (prediction) => prediction.points === 3
+    ).length;
+  }, [finishedPredictionsWithGameData]);
 
   const stageFilteredPredictions = useMemo(() => {
     if (leaderboardMode !== "stage") return finishedPredictionsWithGameData;
@@ -691,6 +711,12 @@ export default function RankingPage() {
       (prediction) => getStageId(getStageLabel(prediction.game)) === selectedStageId
     );
   }, [finishedPredictionsWithGameData, leaderboardMode, selectedStageId]);
+
+  const stageExactResultsCount = useMemo(() => {
+    return stageFilteredPredictions.filter(
+      (prediction) => prediction.points === 3
+    ).length;
+  }, [stageFilteredPredictions]);
 
   const selectedHistory: HistoryRow[] = useMemo(() => {
     const snapshotHistory = buildTotalHistoryFromSnapshots({
@@ -791,6 +817,123 @@ export default function RankingPage() {
   }, [activeLeaderboard, rankingSearch]);
 
   const myEntry = leaderboardMode === "overall" ? myOverallEntry : myStageEntry;
+
+  const renderMobileSelectedStats = () => {
+    if (!activeEntry) return null;
+
+    const displayedTotal =
+      leaderboardMode === "overall"
+        ? Number(activeEntry.predictionPoints ?? 0) +
+          Number(activeEntry.topScorerPoints ?? 0) +
+          Number(activeEntry.topAssistPoints ?? 0) +
+          Number(activeEntry.selectedTeamPoints ?? 0)
+        : (activeEntry as StageRankedEntry).stagePoints ?? 0;
+
+    return (
+      <div className="mt-3 rounded-2xl border border-violet-200 bg-violet-50 p-3 lg:hidden">
+        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-violet-700">
+          Stats da equipa
+        </p>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="rounded-2xl border border-gray-200 bg-white p-3">
+            <p className="text-[9px] uppercase tracking-wide text-gray-500">
+              Pontos totais
+            </p>
+            <p className="mt-1 text-lg font-black text-gray-900">
+              {displayedTotal}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white p-3">
+            <p className="text-[9px] uppercase tracking-wide text-gray-500">
+              Resultados exatos
+            </p>
+            <p className="mt-1 text-lg font-black text-violet-700">
+              {leaderboardMode === "overall"
+                ? exactResultsCount
+                : stageExactResultsCount}
+            </p>
+          </div>
+
+          {leaderboardMode === "overall" ? (
+            <>
+              <div className="rounded-2xl border border-gray-200 bg-white p-3">
+                <p className="text-[9px] uppercase tracking-wide text-gray-500">
+                  Palpites
+                </p>
+                <p className="mt-1 text-lg font-black text-emerald-700">
+                  {activeEntry.predictionPoints ?? 0}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-3">
+                <p className="text-[9px] uppercase tracking-wide text-gray-500">
+                  Seleção campeã
+                </p>
+                <p className="mt-1 text-lg font-black text-rose-700">
+                  {activeEntry.selectedTeamPoints ?? 0}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-3">
+                <p className="text-[9px] uppercase tracking-wide text-gray-500">
+                  Melhor marcador
+                </p>
+                <p className="mt-1 text-lg font-black text-amber-700">
+                  {activeEntry.topScorerPoints ?? 0}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-3">
+                <p className="text-[9px] uppercase tracking-wide text-gray-500">
+                  Melhor assistente
+                </p>
+                <p className="mt-1 text-lg font-black text-blue-700">
+                  {activeEntry.topAssistPoints ?? 0}
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="rounded-2xl border border-gray-200 bg-white p-3">
+                <p className="text-[9px] uppercase tracking-wide text-gray-500">
+                  Rank fase
+                </p>
+                <p className="mt-1 text-lg font-black text-violet-700">
+                  {(activeEntry as StageRankedEntry).rank ?? "—"}º
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-3">
+                <p className="text-[9px] uppercase tracking-wide text-gray-500">
+                  Rank geral
+                </p>
+                <p className="mt-1 text-lg font-black text-gray-900">
+                  {activeOverallEntry?.rank ?? "—"}º
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-3">
+          <p className="text-[9px] font-black uppercase tracking-wide text-gray-500">
+            Picks
+          </p>
+          <p className="mt-2 text-xs font-semibold text-gray-900">
+            Melhor marcador: {activeEntry.topScorerPick?.playerName || "—"}
+          </p>
+          <p className="mt-1 text-xs font-semibold text-gray-900">
+            Melhor assistente: {activeEntry.topAssistPick?.playerName || "—"}
+          </p>
+          <p className="mt-1 text-xs font-semibold text-gray-900">
+            Seleção campeã: {activeEntry.championPick?.teamName || "—"}
+          </p>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <main className="min-h-screen bg-[#f4f6fb] text-gray-900">
@@ -1163,6 +1306,8 @@ export default function RankingPage() {
                           />
                         )}
                       </div>
+
+                      {isSelected && renderMobileSelectedStats()}
                     </button>
                   );
                 })}
@@ -1324,6 +1469,8 @@ export default function RankingPage() {
                             </span>
                           )}
                         </div>
+
+                        {isSelected && renderMobileSelectedStats()}
                       </div>
                     </button>
                   );
@@ -1335,8 +1482,6 @@ export default function RankingPage() {
                       ? "Não foram encontradas equipas com essa pesquisa."
                       : leaderboardMode === "stage"
                       ? "Ainda não existe snapshot para esta jornada/fase."
-                      : loadingAllPredictions
-                      ? "A carregar leaderboard..."
                       : "Ainda não existem equipas registadas."}
                   </div>
                 )}
@@ -1344,7 +1489,7 @@ export default function RankingPage() {
             </div>
           </section>
 
-          <aside className="rounded-[18px] border border-gray-200 bg-white p-4 shadow-sm">
+          <aside className="hidden rounded-[18px] border border-gray-200 bg-white p-4 shadow-sm xl:block">
             {!activeEntry ? (
               <p className="text-gray-500">Ainda não existem entradas.</p>
             ) : (
@@ -1427,6 +1572,15 @@ export default function RankingPage() {
                           {activeEntry.predictionPoints ?? 0}
                         </p>
                       </div>
+
+                      <div className="rounded-2xl border border-gray-200 bg-white p-3">
+                        <p className="text-[9px] uppercase tracking-wide text-gray-500">
+                          Resultados exatos
+                        </p>
+                        <p className="mt-1 text-lg font-black text-violet-700">
+                          {exactResultsCount}
+                        </p>
+                      </div>
                     </div>
                   ) : (
                     <div className="mt-2 grid grid-cols-2 gap-2">
@@ -1456,6 +1610,15 @@ export default function RankingPage() {
                           {snapshotTotalsByUserId.get(activeEntry.userId) ??
                             activeOverallEntry?.totalPoints ??
                             0}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-gray-200 bg-white p-3">
+                        <p className="text-[9px] uppercase tracking-wide text-gray-500">
+                          Resultados exatos
+                        </p>
+                        <p className="mt-1 text-lg font-black text-violet-700">
+                          {stageExactResultsCount}
                         </p>
                       </div>
 
