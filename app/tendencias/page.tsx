@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import SiteHeader from "@/components/SiteHeader";
+import { teams } from "@/data/teams";
 import { db } from "@/lib/firebase";
 import { listenToAuth } from "@/lib/auth";
 
@@ -67,6 +68,21 @@ function formatUnlockDate(value: string) {
   } catch {
     return value;
   }
+}
+
+
+function getFlagByCountry(countryName?: string) {
+  if (!countryName) return undefined;
+  return teams.find((team) => team.name === countryName)?.flag;
+}
+
+function safePct(value: number) {
+  if (!Number.isFinite(Number(value))) return 0;
+  return Math.max(0, Math.min(100, Number(value)));
+}
+
+function getMostVotedResult(game: TrendGame) {
+  return game.topResults?.[0] ?? null;
 }
 
 function getFavorite(game: TrendGame) {
@@ -276,140 +292,122 @@ Top 3 resultados: ${topResultsText}`;
   };
 
   return (
-    <main
-      className="min-h-screen"
-      style={{ backgroundColor: "#2f2140", color: "#111827" }}
-    >
+    <main className="min-h-screen bg-[#f4f6fb] text-gray-900">
       <SiteHeader />
 
-      <div className="mx-auto max-w-6xl px-3 py-5 sm:px-4 md:px-5 md:py-6">
-        <section
-          className="rounded-3xl p-6 shadow-lg"
-          style={{
-            backgroundColor: "#ffffff",
-            border: "1px solid rgba(255,255,255,0.18)",
-          }}
-        >
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 11,
-                  fontWeight: 800,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.2em",
-                  color: "#7c3aed",
-                }}
-              >
-                Fantasy Mundial 2026
-              </p>
+      <div className="mx-auto max-w-7xl px-4 pb-12 pt-5 sm:px-6 lg:px-8">
+        <section className="overflow-hidden rounded-[34px] bg-slate-950 shadow-xl">
+          <div className="relative p-6 sm:p-8 lg:p-10">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(124,58,237,0.48),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.40),_transparent_32%),linear-gradient(135deg,_#111827_0%,_#312e81_52%,_#581c87_100%)]" />
 
-              <h1
-                style={{
-                  marginTop: 10,
-                  marginBottom: 0,
-                  fontSize: 40,
-                  lineHeight: 1.05,
-                  fontWeight: 950,
-                  color: "#111827",
-                }}
-              >
-                Tendências
-              </h1>
+            <div className="relative z-10 grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-violet-200">
+                  Fantasy Mundial 2026
+                </p>
 
-              <p
-                style={{
-                  marginTop: 12,
-                  marginBottom: 0,
-                  maxWidth: 760,
-                  fontSize: 15,
-                  lineHeight: 1.7,
-                  color: "#6b7280",
-                }}
-              >
-                Vê os picks mais escolhidos pelo grupo e as tendências das
-                predictions por jogo. Esta página lê apenas dados agregados.
-              </p>
+                <h1 className="mt-3 max-w-3xl text-4xl font-black tracking-tight text-white sm:text-5xl lg:text-6xl">
+                  Tendências do grupo
+                </h1>
+
+                <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-slate-200 sm:text-base">
+                  Vê as escolhas mais populares e como o grupo está a apostar em
+                  cada jogo. Tudo aparece de forma agregada, sem mostrar picks
+                  individuais.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 rounded-3xl border border-white/15 bg-white/10 p-3 backdrop-blur-md">
+                <div className="rounded-2xl bg-white/10 p-3 text-white">
+                  <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/60">
+                    Equipas
+                  </p>
+                  <p className="mt-2 text-2xl font-black">
+                    {pickDashboard?.totalTeams ?? "—"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-white/10 p-3 text-white">
+                  <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/60">
+                    Etapas
+                  </p>
+                  <p className="mt-2 text-2xl font-black">
+                    {visibleRounds.length}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-white/10 p-3 text-white">
+                  <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/60">
+                    Jogos
+                  </p>
+                  <p className="mt-2 text-2xl font-black">
+                    {selectedGames.length}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-4 rounded-[28px] border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <TabButton
+                active={activeTab === "picks"}
+                onClick={() => setActiveTab("picks")}
+                label="Picks do grupo"
+              />
+
+              <TabButton
+                active={activeTab === "games"}
+                onClick={() => setActiveTab("games")}
+                label="Tendências dos jogos"
+              />
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">
-              {isAdmin && (
-                <button
-                  type="button"
-                  onClick={refreshAll}
-                  disabled={loadingTrends || loadingPicks}
-                  className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-bold disabled:opacity-60"
-                  style={{
-                    backgroundColor: "#2f2140",
-                    color: "#ffffff",
-                    border: "1px solid #2f2140",
-                  }}
-                >
-                  {loadingTrends || loadingPicks
-                    ? "A atualizar..."
-                    : "Atualizar dados"}
-                </button>
-              )}
-
-              {isAdmin && (
-                <button
-                  type="button"
-                  onClick={() => setShowPreview((value) => !value)}
-                  className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-bold"
-                  style={{
-                    backgroundColor: showPreview ? "#fee2e2" : "#f3f4f6",
-                    color: showPreview ? "#991b1b" : "#374151",
-                    border: showPreview
-                      ? "1px solid #fca5a5"
-                      : "1px solid #d1d5db",
-                  }}
-                >
-                  {showPreview ? "Desligar teste" : "Ver antes das datas"}
-                </button>
-              )}
-
               {activeTab === "games" && (
                 <button
                   type="button"
                   onClick={copySummary}
                   disabled={!selectedRound || selectedGames.length === 0}
-                  className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50"
-                  style={{
-                    backgroundColor: "#7c3aed",
-                    color: "#ffffff",
-                    border: "1px solid #6d28d9",
-                  }}
+                  className="inline-flex h-11 items-center justify-center rounded-2xl bg-violet-600 px-4 text-sm font-black text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   {copied ? "Resumo copiado ✅" : "Copiar resumo"}
                 </button>
               )}
+
+              {isAdmin && (
+                <>
+                  <button
+                    type="button"
+                    onClick={refreshAll}
+                    disabled={loadingTrends || loadingPicks}
+                    className="inline-flex h-11 items-center justify-center rounded-2xl bg-slate-950 px-4 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-60"
+                  >
+                    {loadingTrends || loadingPicks
+                      ? "A atualizar..."
+                      : "Atualizar dados"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPreview((value) => !value)}
+                    className={`inline-flex h-11 items-center justify-center rounded-2xl border px-4 text-sm font-black transition ${
+                      showPreview
+                        ? "border-red-200 bg-red-50 text-red-700"
+                        : "border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    {showPreview ? "Desligar teste" : "Ver antes das datas"}
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
-          <div className="mt-6 flex flex-wrap gap-2">
-            <TabButton
-              active={activeTab === "picks"}
-              onClick={() => setActiveTab("picks")}
-              label="Picks do grupo"
-            />
-
-            <TabButton
-              active={activeTab === "games"}
-              onClick={() => setActiveTab("games")}
-              label="Tendências dos jogos"
-            />
-          </div>
-
           {isAdmin && showPreview && (
-            <div
-              className="mt-4 rounded-2xl p-4 text-sm font-semibold"
-              style={{
-                backgroundColor: "#fff7ed",
-                border: "1px solid #fed7aa",
-                color: "#9a3412",
-              }}
-            >
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
               Modo teste ligado: só tu consegues ver jornadas/fases antes de
               começarem.
             </div>
@@ -417,7 +415,7 @@ Top 3 resultados: ${topResultsText}`;
         </section>
 
         {activeTab === "picks" && (
-          <section className="mt-4">
+          <section className="mt-5">
             {loadingPicks || loadingAuth ? (
               <InfoBox text="A carregar picks do grupo..." />
             ) : pickError ? (
@@ -426,68 +424,46 @@ Top 3 resultados: ${topResultsText}`;
               <InfoBox text="Ainda não existe dashboard dos picks publicado. Vai a /admin/gerar-dashboard-picks e gera os dados." />
             ) : (
               <>
-                <section
-                  className="rounded-3xl p-6 shadow-xl"
-                  style={{
-                    backgroundColor: "#ffffff",
-                    border: "1px solid #e5e7eb",
-                  }}
-                >
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: 11,
-                      fontWeight: 900,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.18em",
-                      color: "#7c3aed",
-                    }}
-                  >
-                    Picks do grupo
-                  </p>
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-violet-600">
+                      Picks do grupo
+                    </p>
 
-                  <h2
-                    style={{
-                      marginTop: 8,
-                      marginBottom: 0,
-                      fontSize: 34,
-                      fontWeight: 950,
-                      color: "#111827",
-                    }}
-                  >
-                    As escolhas mais populares 👀
-                  </h2>
+                    <h2 className="mt-1 text-3xl font-black tracking-tight text-gray-950 sm:text-4xl">
+                      As escolhas mais populares
+                    </h2>
 
-                  <p
-                    style={{
-                      marginTop: 8,
-                      marginBottom: 0,
-                      fontSize: 14,
-                      color: "#6b7280",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Total de equipas: {pickDashboard.totalTeams}
-                  </p>
-                </section>
+                    <p className="mt-2 text-sm font-semibold text-gray-500">
+                      Total de equipas: {pickDashboard.totalTeams}
+                    </p>
+                  </div>
 
-                <div className="mt-4 grid gap-5 lg:grid-cols-3">
+                  <div className="rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3 text-sm font-black text-violet-700">
+                    Dados agregados
+                  </div>
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-3">
                   <RankingCard
                     title="Marcadores escolhidos"
                     emoji="⚽"
                     items={pickDashboard.topScorers}
+                    tone="amber"
                   />
 
                   <RankingCard
                     title="Assistentes escolhidos"
                     emoji="🎯"
                     items={pickDashboard.topAssisters}
+                    tone="blue"
                   />
 
                   <RankingCard
                     title="Campeões escolhidos"
                     emoji="🏆"
                     items={pickDashboard.champions}
+                    tone="violet"
                   />
                 </div>
               </>
@@ -496,24 +472,11 @@ Top 3 resultados: ${topResultsText}`;
         )}
 
         {activeTab === "games" && (
-          <>
-            <section
-              className="mt-4 rounded-3xl p-5 shadow-sm"
-              style={{
-                backgroundColor: "#ffffff",
-                border: "1px solid #e5e7eb",
-              }}
-            >
-              <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+          <section className="mt-5">
+            <div className="rounded-[28px] border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
                 <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: 13,
-                      fontWeight: 800,
-                      color: "#374151",
-                    }}
-                  >
+                  <label className="block text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
                     Jornada/fase disponível
                   </label>
 
@@ -521,12 +484,7 @@ Top 3 resultados: ${topResultsText}`;
                     value={selectedRoundId}
                     onChange={(e) => setSelectedRoundId(e.target.value)}
                     disabled={visibleRounds.length === 0}
-                    className="mt-2 h-11 w-full rounded-xl px-3 text-sm font-bold outline-none"
-                    style={{
-                      backgroundColor: "#ffffff",
-                      color: "#111827",
-                      border: "1px solid #d1d5db",
-                    }}
+                    className="mt-2 h-12 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 text-sm font-bold text-gray-950 outline-none transition focus:border-violet-500 focus:bg-white focus:ring-4 focus:ring-violet-100"
                   >
                     {visibleRounds.length === 0 ? (
                       <option value="">Ainda não há jornadas disponíveis</option>
@@ -542,15 +500,9 @@ Top 3 resultados: ${topResultsText}`;
                 </div>
 
                 {selectedRound && (
-                  <div
-                    className="rounded-2xl px-4 py-3 text-sm font-black"
-                    style={{
-                      backgroundColor: "#ede9fe",
-                      color: "#5b21b6",
-                    }}
-                  >
+                  <div className="rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3 text-sm font-black text-violet-700">
                     {selectedRound.games?.length || 0} jogos ·{" "}
-                    {roundTotalPredictions} predictions únicas
+                    {roundTotalPredictions} predictions
                   </div>
                 )}
               </div>
@@ -568,260 +520,43 @@ Top 3 resultados: ${topResultsText}`;
                   )}.`}
                 />
               ) : null}
-            </section>
+            </div>
 
             {selectedRound && (
-              <section
-                className="mt-4 overflow-hidden rounded-[32px] shadow-2xl"
-                style={{
-                  backgroundColor: "#f5f3ff",
-                  border: "1px solid rgba(255,255,255,0.22)",
-                }}
-              >
-                <div
-                  className="p-5 sm:p-7"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f5f3ff 100%)",
-                  }}
-                >
-                  <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p
-                        style={{
-                          margin: 0,
-                          fontSize: 12,
-                          fontWeight: 950,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.22em",
-                          color: "#7c3aed",
-                        }}
-                      >
-                        Fantasy Mundial 2026
-                      </p>
+              <div className="mt-5">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-violet-600">
+                      Tendências dos jogos
+                    </p>
 
-                      <h2
-                        style={{
-                          marginTop: 8,
-                          marginBottom: 0,
-                          fontSize: 34,
-                          lineHeight: 1.05,
-                          fontWeight: 950,
-                          color: "#111827",
-                        }}
-                      >
-                        {selectedRound.round}
-                      </h2>
+                    <h2 className="mt-1 text-3xl font-black tracking-tight text-gray-950 sm:text-4xl">
+                      {selectedRound.round}
+                    </h2>
 
-                      <p
-                        style={{
-                          marginTop: 8,
-                          marginBottom: 0,
-                          fontSize: 14,
-                          color: "#6b7280",
-                          fontWeight: 700,
-                        }}
-                      >
-                        {selectedRound.games?.length || 0} jogos ·{" "}
-                        {roundTotalPredictions} predictions únicas
-                        contabilizadas
-                      </p>
-                    </div>
-
-                    <div
-                      className="rounded-2xl px-4 py-3 text-sm font-black"
-                      style={{
-                        backgroundColor: "#ede9fe",
-                        color: "#5b21b6",
-                      }}
-                    >
-                      O grupo apostou assim 👀
-                    </div>
+                    <p className="mt-2 text-sm font-semibold text-gray-500">
+                      {selectedRound.games?.length || 0} jogos ·{" "}
+                      {roundTotalPredictions} predictions contabilizadas
+                    </p>
                   </div>
 
-                  {selectedGames.length === 0 ? (
-                    <InfoBox text="Ainda não há dados para esta jornada/fase." />
-                  ) : (
-                    <div className="grid gap-4">
-                      {selectedGames.map((game) => {
-                        const favorite = getFavorite(game);
-
-                        return (
-                          <article
-                            key={game.gameId}
-                            className="rounded-3xl p-5"
-                            style={{
-                              backgroundColor: "#ffffff",
-                              border: "1px solid #e5e7eb",
-                              boxShadow: "0 12px 30px rgba(17, 24, 39, 0.08)",
-                            }}
-                          >
-                            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                              <div>
-                                <p
-                                  style={{
-                                    margin: 0,
-                                    fontSize: 11,
-                                    fontWeight: 900,
-                                    textTransform: "uppercase",
-                                    letterSpacing: "0.16em",
-                                    color: "#7c3aed",
-                                  }}
-                                >
-                                  Jogo #{game.gameId}
-                                </p>
-
-                                <h3
-                                  style={{
-                                    marginTop: 6,
-                                    marginBottom: 0,
-                                    fontSize: 24,
-                                    fontWeight: 950,
-                                    color: "#111827",
-                                  }}
-                                >
-                                  {game.homeTeam} vs {game.awayTeam}
-                                </h3>
-                              </div>
-
-                              <div
-                                className="rounded-full px-4 py-2 text-xs font-black"
-                                style={{
-                                  backgroundColor: "#ede9fe",
-                                  color: "#5b21b6",
-                                }}
-                              >
-                                Favorito: {favorite.label} {favorite.pct}%
-                              </div>
-                            </div>
-
-                            <div className="space-y-3">
-                              <TrendBar
-                                label={`Vitória ${game.homeTeam}`}
-                                percentage={game.homePct}
-                                count={game.homeWins}
-                                color="#22c55e"
-                              />
-
-                              <TrendBar
-                                label="Empate"
-                                percentage={game.drawPct}
-                                count={game.draws}
-                                color="#f59e0b"
-                              />
-
-                              <TrendBar
-                                label={`Vitória ${game.awayTeam}`}
-                                percentage={game.awayPct}
-                                count={game.awayWins}
-                                color="#3b82f6"
-                              />
-                            </div>
-
-                            <div
-                              className="mt-5 rounded-2xl p-4"
-                              style={{
-                                backgroundColor: "#f8fafc",
-                                border: "1px solid #e5e7eb",
-                              }}
-                            >
-                              <p
-                                style={{
-                                  margin: 0,
-                                  fontSize: 11,
-                                  fontWeight: 900,
-                                  textTransform: "uppercase",
-                                  letterSpacing: "0.16em",
-                                  color: "#7c3aed",
-                                }}
-                              >
-                                Top 3 resultados exatos
-                              </p>
-
-                              {game.topResults && game.topResults.length > 0 ? (
-                                <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                                  {game.topResults.map((result, index) => (
-                                    <div
-                                      key={`${game.gameId}-${result.score}`}
-                                      className="rounded-2xl bg-white p-4"
-                                      style={{
-                                        border: "1px solid #e5e7eb",
-                                        boxShadow:
-                                          "0 6px 16px rgba(17, 24, 39, 0.06)",
-                                      }}
-                                    >
-                                      <p
-                                        style={{
-                                          margin: 0,
-                                          fontSize: 11,
-                                          fontWeight: 900,
-                                          color: "#7c3aed",
-                                        }}
-                                      >
-                                        #{index + 1}
-                                      </p>
-
-                                      <p
-                                        style={{
-                                          marginTop: 4,
-                                          marginBottom: 0,
-                                          fontSize: 28,
-                                          fontWeight: 950,
-                                          color: "#111827",
-                                        }}
-                                      >
-                                        {result.score}
-                                      </p>
-
-                                      <p
-                                        style={{
-                                          marginTop: 4,
-                                          marginBottom: 0,
-                                          fontSize: 13,
-                                          fontWeight: 800,
-                                          color: "#6b7280",
-                                        }}
-                                      >
-                                        {result.count} voto(s) · {result.pct}%
-                                      </p>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <p
-                                  style={{
-                                    marginTop: 8,
-                                    marginBottom: 0,
-                                    fontSize: 13,
-                                    fontWeight: 800,
-                                    color: "#6b7280",
-                                  }}
-                                >
-                                  Ainda não existem resultados suficientes.
-                                </p>
-                              )}
-                            </div>
-
-                            <p
-                              style={{
-                                marginTop: 14,
-                                marginBottom: 0,
-                                fontSize: 13,
-                                fontWeight: 800,
-                                color: "#6b7280",
-                              }}
-                            >
-                              Total: {game.totalPredictions} prediction(s)
-                            </p>
-                          </article>
-                        );
-                      })}
-                    </div>
-                  )}
+                  <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-black text-gray-700 shadow-sm">
+                    Percentagens do grupo
+                  </div>
                 </div>
-              </section>
+
+                {selectedGames.length === 0 ? (
+                  <InfoBox text="Ainda não há dados para esta jornada/fase." />
+                ) : (
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    {selectedGames.map((game) => (
+                      <GameTrendCard key={game.gameId} game={game} />
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
-          </>
+          </section>
         )}
       </div>
     </main>
@@ -841,12 +576,11 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-black"
-      style={{
-        backgroundColor: active ? "#2f2140" : "#f3f4f6",
-        color: active ? "#ffffff" : "#374151",
-        border: active ? "1px solid #2f2140" : "1px solid #d1d5db",
-      }}
+      className={`inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-black transition ${
+        active
+          ? "bg-slate-950 text-white shadow-sm"
+          : "bg-gray-50 text-gray-700 ring-1 ring-gray-200 hover:bg-gray-100"
+      }`}
     >
       {label}
     </button>
@@ -857,78 +591,107 @@ function RankingCard({
   title,
   emoji,
   items,
+  tone,
 }: {
   title: string;
   emoji: string;
   items: CountItem[];
+  tone: "amber" | "blue" | "violet";
 }) {
   const visibleItems = items.slice(0, 15);
 
+  const toneClasses = {
+    amber: {
+      badge: "bg-amber-100 text-amber-700",
+      bar: "#f59e0b",
+      soft: "from-amber-50 to-white",
+    },
+    blue: {
+      badge: "bg-blue-100 text-blue-700",
+      bar: "#3b82f6",
+      soft: "from-blue-50 to-white",
+    },
+    violet: {
+      badge: "bg-violet-100 text-violet-700",
+      bar: "#7c3aed",
+      soft: "from-violet-50 to-white",
+    },
+  }[tone];
+
   return (
-    <section className="rounded-[28px] bg-white p-5 shadow-xl">
-      <div className="mb-4 flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-2xl">
-          {emoji}
-        </div>
+    <section className="overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-sm">
+      <div className={`bg-gradient-to-br ${toneClasses.soft} border-b border-gray-100 p-5`}>
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm ring-1 ring-gray-100">
+            {emoji}
+          </div>
 
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-violet-600">
-            Ranking
-          </p>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">
+              Ranking
+            </p>
 
-          <h2 className="text-xl font-black text-gray-900">{title}</h2>
+            <h2 className="text-xl font-black text-gray-950">{title}</h2>
+          </div>
         </div>
       </div>
 
-      {visibleItems.length === 0 ? (
-        <p className="text-sm font-semibold text-gray-500">
-          Ainda não existem dados.
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {visibleItems.map((item, index) => (
-            <div
-              key={`${item.name}-${item.team || ""}`}
-              className="rounded-2xl bg-gray-50 p-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-black text-violet-600">
-                    #{index + 1}
-                  </p>
-
-                  <h3 className="mt-1 text-lg font-black text-gray-900">
-                    {item.name}
-                  </h3>
-
-                  {item.team && (
-                    <p className="mt-1 text-sm font-bold text-gray-500">
-                      {item.team}
+      <div className="p-4">
+        {visibleItems.length === 0 ? (
+          <p className="rounded-2xl bg-gray-50 p-4 text-sm font-semibold text-gray-500">
+            Ainda não existem dados.
+          </p>
+        ) : (
+          <div className="space-y-2.5">
+            {visibleItems.map((item, index) => (
+              <div
+                key={`${item.name}-${item.team || ""}`}
+                className="rounded-2xl border border-gray-100 bg-gray-50 p-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black text-violet-600">
+                      #{index + 1}
                     </p>
-                  )}
-                </div>
 
-                <div className="rounded-full bg-violet-100 px-3 py-1 text-sm font-black text-violet-700">
-                  {item.pct}%
-                </div>
-              </div>
+                    <h3 className="mt-0.5 truncate text-sm font-black text-gray-950">
+                      {item.name}
+                    </h3>
 
-              <div className="mt-3 flex items-center gap-3">
-                <div className="h-3 flex-1 overflow-hidden rounded-full bg-gray-200">
+                    {item.team && (
+                      <p className="mt-0.5 truncate text-xs font-bold text-gray-500">
+                        {item.team}
+                      </p>
+                    )}
+                  </div>
+
                   <div
-                    className="h-full rounded-full bg-violet-600"
-                    style={{ width: `${item.pct}%` }}
-                  />
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-black ${toneClasses.badge}`}
+                  >
+                    {item.pct}%
+                  </div>
                 </div>
 
-                <p className="min-w-[70px] text-right text-sm font-black text-gray-700">
-                  {item.count} picks
-                </p>
+                <div className="mt-2 flex items-center gap-3">
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.max(0, Math.min(100, item.pct))}%`,
+                        backgroundColor: toneClasses.bar,
+                      }}
+                    />
+                  </div>
+
+                  <p className="min-w-[62px] text-right text-xs font-black text-gray-600">
+                    {item.count} picks
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </section>
   );
 }
@@ -945,59 +708,249 @@ function TrendBar({
   color: string;
 }) {
   return (
-    <div>
-      <div className="mb-1 flex items-center justify-between gap-3">
-        <p
-          style={{
-            margin: 0,
-            fontSize: 15,
-            fontWeight: 900,
-            color: "#111827",
-          }}
-        >
+    <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <p className="truncate text-sm font-black text-gray-950">{label}</p>
+
+        <div className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[11px] font-black text-gray-600 ring-1 ring-gray-200">
+          {count} votos
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-gray-200">
+          <div
+            className="h-full rounded-full"
+            style={{
+              width: `${Math.max(0, Math.min(100, percentage))}%`,
+              backgroundColor: color,
+            }}
+          />
+        </div>
+
+        <p className="w-12 text-right text-sm font-black text-gray-950">
+          {percentage}%
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function GameTrendCard({ game }: { game: TrendGame }) {
+  const favorite = getFavorite(game);
+  const homeFlag = getFlagByCountry(game.homeTeam);
+  const awayFlag = getFlagByCountry(game.awayTeam);
+
+  const homePct = safePct(game.homePct);
+  const drawPct = safePct(game.drawPct);
+  const awayPct = safePct(game.awayPct);
+
+  return (
+    <article className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+      <div className="relative overflow-hidden bg-slate-950 p-4 text-white sm:p-5">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(103,199,232,0.32),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(139,44,245,0.30),_transparent_34%),linear-gradient(135deg,_#0f172a_0%,_#1e1b4b_55%,_#312e81_100%)]" />
+
+        <div className="relative z-10">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-cyan-200/90">
+                Jogo #{game.gameId}
+              </p>
+
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xl font-black tracking-tight sm:text-2xl">
+                <TeamTitle flag={homeFlag} name={game.homeTeam} />
+                <span className="text-xs font-black uppercase tracking-[0.16em] text-white/35">
+                  vs
+                </span>
+                <TeamTitle flag={awayFlag} name={game.awayTeam} />
+              </div>
+            </div>
+
+            <div className="shrink-0 rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-right backdrop-blur-md">
+              <p className="text-[8px] font-black uppercase tracking-[0.16em] text-white/55">
+                Apostas
+              </p>
+              <p className="text-xl font-black text-white">
+                {game.totalPredictions}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-white/10 p-1 shadow-inner">
+            <div className="flex h-10 overflow-hidden rounded-[14px] bg-slate-800">
+              <div
+                className="flex min-w-[28px] items-center justify-center bg-gradient-to-r from-cyan-500 to-blue-500 text-xs font-black text-white"
+                style={{ width: `${homePct}%` }}
+              >
+                {homePct >= 18 ? `${homePct}%` : ""}
+              </div>
+
+              <div
+                className="flex min-w-[24px] items-center justify-center bg-slate-400/80 text-xs font-black text-white"
+                style={{ width: `${drawPct}%` }}
+              >
+                {drawPct >= 18 ? `${drawPct}%` : ""}
+              </div>
+
+              <div
+                className="flex min-w-[24px] items-center justify-center bg-gradient-to-r from-violet-500 to-fuchsia-500 text-xs font-black text-white"
+                style={{ width: `${awayPct}%` }}
+              >
+                {awayPct >= 18 ? `${awayPct}%` : ""}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            <OutcomePill
+              dot="bg-cyan-400"
+              flag={homeFlag}
+              label={game.homeTeam}
+              count={game.homeWins}
+              pct={game.homePct}
+            />
+
+            <OutcomePill
+              dot="bg-slate-300"
+              label="Empate"
+              count={game.draws}
+              pct={game.drawPct}
+            />
+
+            <OutcomePill
+              dot="bg-violet-400"
+              flag={awayFlag}
+              label={game.awayTeam}
+              count={game.awayWins}
+              pct={game.awayPct}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="p-3 sm:p-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-violet-600">
+                Top 3 resultados exatos
+              </p>
+              <h4 className="truncate text-base font-black text-slate-950 sm:text-lg">
+                Mais escolhidos pelos participantes
+              </h4>
+            </div>
+
+            <span className="hidden shrink-0 rounded-full bg-violet-50 px-3 py-1 text-[10px] font-black text-violet-700 ring-1 ring-violet-100 sm:inline-flex">
+              {favorite.label} lidera
+            </span>
+          </div>
+
+          {game.topResults && game.topResults.length > 0 ? (
+            <div className="grid gap-2 sm:grid-cols-3">
+              {game.topResults.slice(0, 3).map((result, index) => (
+                <TopResultCard
+                  key={`${game.gameId}-${result.score}`}
+                  index={index}
+                  result={result}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-500">
+              Ainda não existem resultados suficientes.
+            </p>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function TeamTitle({ flag, name }: { flag?: string; name: string }) {
+  return (
+    <span className="inline-flex min-w-0 items-center gap-2">
+      {flag ? (
+        <img
+          src={flag}
+          alt={name}
+          className="h-6 w-9 rounded-md object-cover shadow-sm ring-1 ring-white/20"
+        />
+      ) : (
+        <span className="h-6 w-9 rounded-md bg-white/15 ring-1 ring-white/20" />
+      )}
+      <span className="truncate">{name}</span>
+    </span>
+  );
+}
+
+function OutcomePill({
+  dot,
+  flag,
+  label,
+  count,
+  pct,
+}: {
+  dot: string;
+  flag?: string;
+  label: string;
+  count: number;
+  pct: number;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/10 px-2.5 py-2 backdrop-blur-md">
+      <div className="flex items-center gap-2">
+        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${dot}`} />
+        {flag && (
+          <img src={flag} alt={label} className="h-4 w-6 rounded object-cover" />
+        )}
+        <p className="min-w-0 truncate text-xs font-black text-white">
           {label}
         </p>
+      </div>
+      <p className="mt-1 text-xs font-black text-white/75">
+        {count} voto(s) · {pct}%
+      </p>
+    </div>
+  );
+}
 
-        <p
-          style={{
-            margin: 0,
-            fontSize: 15,
-            fontWeight: 950,
-            color: "#111827",
-          }}
+function TopResultCard({ index, result }: { index: number; result: TopResult }) {
+  const styles = [
+    "border-yellow-200 bg-yellow-50 text-yellow-700",
+    "border-slate-200 bg-slate-50 text-slate-700",
+    "border-orange-200 bg-orange-50 text-orange-700",
+  ];
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <span
+          className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${
+            styles[index] || styles[1]
+          }`}
         >
-          {percentage}%{" "}
-          <span style={{ color: "#6b7280", fontWeight: 800 }}>({count})</span>
-        </p>
+          #{index + 1}
+        </span>
+
+        <span className="text-[10px] font-black text-slate-500">
+          {result.pct}%
+        </span>
       </div>
 
-      <div
-        className="h-3 overflow-hidden rounded-full"
-        style={{ backgroundColor: "#e5e7eb" }}
-      >
-        <div
-          style={{
-            width: `${percentage}%`,
-            height: "100%",
-            backgroundColor: color,
-            borderRadius: 9999,
-          }}
-        />
-      </div>
+      <p className="mt-1.5 text-xl font-black tracking-tight text-slate-950">
+        {result.score}
+      </p>
+
+      <p className="mt-0.5 text-[11px] font-bold text-slate-500">
+        {result.count} aposta(s)
+      </p>
     </div>
   );
 }
 
 function InfoBox({ text }: { text: string }) {
   return (
-    <div
-      className="mt-4 rounded-2xl p-4 text-sm font-semibold"
-      style={{
-        backgroundColor: "#f8fafc",
-        border: "1px solid #e5e7eb",
-        color: "#374151",
-      }}
-    >
+    <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 text-sm font-semibold text-gray-600 shadow-sm">
       {text}
     </div>
   );
@@ -1005,14 +958,7 @@ function InfoBox({ text }: { text: string }) {
 
 function ErrorBox({ text }: { text: string }) {
   return (
-    <div
-      className="mt-4 rounded-2xl p-4 text-sm font-semibold"
-      style={{
-        backgroundColor: "#fef2f2",
-        border: "1px solid #fecaca",
-        color: "#991b1b",
-      }}
-    >
+    <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
       {text}
     </div>
   );
