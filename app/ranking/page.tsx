@@ -818,6 +818,22 @@ export default function RankingPage() {
 
   const myEntry = leaderboardMode === "overall" ? myOverallEntry : myStageEntry;
 
+  const handleSelectUser = (userId: string, shouldScroll = false) => {
+    setRankingSearch("");
+    setSelectedUserId(userId);
+
+    if (shouldScroll) {
+      window.setTimeout(() => {
+        const element = document.getElementById(`ranking-row-${userId}`);
+
+        element?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 120);
+    }
+  };
+
   const renderMobileSelectedStats = () => {
     if (!activeEntry) return null;
 
@@ -829,87 +845,73 @@ export default function RankingPage() {
           Number(activeEntry.selectedTeamPoints ?? 0)
         : (activeEntry as StageRankedEntry).stagePoints ?? 0;
 
-    return (
-      <div className="mt-3 rounded-2xl border border-violet-200 bg-violet-50 p-3 lg:hidden">
-        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-violet-700">
-          Stats da equipa
-        </p>
+    const exactCount =
+      leaderboardMode === "overall" ? exactResultsCount : stageExactResultsCount;
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <div className="rounded-2xl border border-gray-200 bg-white p-3">
-            <p className="text-[9px] uppercase tracking-wide text-gray-500">
-              Pontos totais
+    return (
+      <div className="mt-2 rounded-2xl border border-violet-200 bg-violet-50 p-2.5 lg:hidden">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[9px] font-black uppercase tracking-[0.14em] text-violet-700">
+            Stats
+          </p>
+          {loadingPredictions && (
+            <span className="text-[9px] font-bold text-violet-500">
+              A carregar...
+            </span>
+          )}
+        </div>
+
+        <div className="mt-2 grid grid-cols-4 gap-1.5">
+          <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-center">
+            <p className="text-[8px] uppercase tracking-wide text-gray-500">
+              Total
             </p>
-            <p className="mt-1 text-lg font-black text-gray-900">
-              {displayedTotal}
-            </p>
+            <p className="text-sm font-black text-gray-900">{displayedTotal}</p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-3">
-            <p className="text-[9px] uppercase tracking-wide text-gray-500">
-              Resultados exatos
+          <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-center">
+            <p className="text-[8px] uppercase tracking-wide text-gray-500">
+              Exatos
             </p>
-            <p className="mt-1 text-lg font-black text-violet-700">
-              {leaderboardMode === "overall"
-                ? exactResultsCount
-                : stageExactResultsCount}
-            </p>
+            <p className="text-sm font-black text-violet-700">{exactCount}</p>
           </div>
 
           {leaderboardMode === "overall" ? (
             <>
-              <div className="rounded-2xl border border-gray-200 bg-white p-3">
-                <p className="text-[9px] uppercase tracking-wide text-gray-500">
+              <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-center">
+                <p className="text-[8px] uppercase tracking-wide text-gray-500">
                   Palpites
                 </p>
-                <p className="mt-1 text-lg font-black text-emerald-700">
+                <p className="text-sm font-black text-emerald-700">
                   {activeEntry.predictionPoints ?? 0}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-gray-200 bg-white p-3">
-                <p className="text-[9px] uppercase tracking-wide text-gray-500">
-                  Seleção campeã
+              <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-center">
+                <p className="text-[8px] uppercase tracking-wide text-gray-500">
+                  Seleção
                 </p>
-                <p className="mt-1 text-lg font-black text-rose-700">
+                <p className="text-sm font-black text-rose-700">
                   {activeEntry.selectedTeamPoints ?? 0}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-gray-200 bg-white p-3">
-                <p className="text-[9px] uppercase tracking-wide text-gray-500">
-                  Melhor marcador
-                </p>
-                <p className="mt-1 text-lg font-black text-amber-700">
-                  {activeEntry.topScorerPoints ?? 0}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-gray-200 bg-white p-3">
-                <p className="text-[9px] uppercase tracking-wide text-gray-500">
-                  Melhor assistente
-                </p>
-                <p className="mt-1 text-lg font-black text-blue-700">
-                  {activeEntry.topAssistPoints ?? 0}
                 </p>
               </div>
             </>
           ) : (
             <>
-              <div className="rounded-2xl border border-gray-200 bg-white p-3">
-                <p className="text-[9px] uppercase tracking-wide text-gray-500">
+              <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-center">
+                <p className="text-[8px] uppercase tracking-wide text-gray-500">
                   Rank fase
                 </p>
-                <p className="mt-1 text-lg font-black text-violet-700">
+                <p className="text-sm font-black text-violet-700">
                   {(activeEntry as StageRankedEntry).rank ?? "—"}º
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-gray-200 bg-white p-3">
-                <p className="text-[9px] uppercase tracking-wide text-gray-500">
-                  Rank geral
+              <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-center">
+                <p className="text-[8px] uppercase tracking-wide text-gray-500">
+                  Geral
                 </p>
-                <p className="mt-1 text-lg font-black text-gray-900">
+                <p className="text-sm font-black text-gray-900">
                   {activeOverallEntry?.rank ?? "—"}º
                 </p>
               </div>
@@ -917,20 +919,31 @@ export default function RankingPage() {
           )}
         </div>
 
-        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-3">
-          <p className="text-[9px] font-black uppercase tracking-wide text-gray-500">
-            Picks
-          </p>
-          <p className="mt-2 text-xs font-semibold text-gray-900">
-            Melhor marcador: {activeEntry.topScorerPick?.playerName || "—"}
-          </p>
-          <p className="mt-1 text-xs font-semibold text-gray-900">
-            Melhor assistente: {activeEntry.topAssistPick?.playerName || "—"}
-          </p>
-          <p className="mt-1 text-xs font-semibold text-gray-900">
-            Seleção campeã: {activeEntry.championPick?.teamName || "—"}
-          </p>
-        </div>
+        {leaderboardMode === "overall" && (
+          <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+            <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5">
+              <p className="truncate text-[9px] font-bold text-gray-500">
+                ⚽ {activeEntry.topScorerPick?.playerName || "Sem marcador"}
+              </p>
+              <p className="text-xs font-black text-amber-700">
+                {activeEntry.topScorerPoints ?? 0} pts
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5">
+              <p className="truncate text-[9px] font-bold text-gray-500">
+                🎯 {activeEntry.topAssistPick?.playerName || "Sem assistente"}
+              </p>
+              <p className="text-xs font-black text-blue-700">
+                {activeEntry.topAssistPoints ?? 0} pts
+              </p>
+            </div>
+          </div>
+        )}
+
+        <p className="mt-1.5 truncate text-[10px] font-semibold text-gray-600">
+          🏆 {activeEntry.championPick?.teamName || "Sem seleção campeã"}
+        </p>
       </div>
     );
   };
@@ -1151,7 +1164,7 @@ export default function RankingPage() {
             {myEntry && (
         <section className="mb-4">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
-            <div className="rounded-[18px] border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="rounded-[18px] border border-gray-200 bg-white p-3 shadow-sm">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-violet-600">
@@ -1168,8 +1181,8 @@ export default function RankingPage() {
                   <p className="text-xs text-gray-500">{myEntry.managerName}</p>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-center">
+                <div className="grid grid-cols-3 gap-1.5">
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 px-2 py-1.5 text-center">
                     <p className="text-[9px] uppercase tracking-wide text-gray-500">
                       Posição
                     </p>
@@ -1178,7 +1191,7 @@ export default function RankingPage() {
                     </p>
                   </div>
 
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-center">
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 px-2 py-1.5 text-center">
                     <p className="text-[9px] uppercase tracking-wide text-gray-500">
                       {leaderboardMode === "overall" ? "Pts" : "Fase"}
                     </p>
@@ -1190,8 +1203,8 @@ export default function RankingPage() {
                   </div>
 
                   <button
-                    onClick={() => setSelectedUserId(myEntry.userId)}
-                    className="rounded-xl bg-violet-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-violet-700"
+                    onClick={() => handleSelectUser(myEntry.userId, true)}
+                    className="rounded-xl bg-violet-600 px-2 py-1.5 text-xs font-bold text-white transition hover:bg-violet-700"
                   >
                     Ver
                   </button>
@@ -1221,7 +1234,7 @@ export default function RankingPage() {
                   return (
                     <button
                       key={entry.userId}
-                      onClick={() => setSelectedUserId(entry.userId)}
+                      onClick={() => handleSelectUser(entry.userId)}
                       className={`rounded-[18px] border px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 ${
                         isSelected
                           ? "border-violet-300 bg-violet-50"
@@ -1314,7 +1327,7 @@ export default function RankingPage() {
               </div>
             )}
 
-            <div className="mb-4 rounded-[18px] border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 rounded-[18px] border border-gray-200 bg-white p-3 shadow-sm">
               <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div className="flex-1">
                   <label className="block text-xs font-black uppercase tracking-[0.16em] text-violet-600">
@@ -1326,11 +1339,11 @@ export default function RankingPage() {
                     value={rankingSearch}
                     onChange={(e) => setRankingSearch(e.target.value)}
                     placeholder="Pesquisar por equipa, manager, seleção ou jogador..."
-                    className="mt-2 h-11 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
+                    className="mt-2 h-10 w-full rounded-2xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
                   />
                 </div>
 
-                <div className="rounded-2xl bg-gray-50 px-4 py-3 text-sm font-bold text-gray-600">
+                <div className="rounded-2xl bg-gray-50 px-3 py-2 text-xs font-bold text-gray-600">
                   {rankingSearch.trim()
                     ? `${filteredLeaderboard.length} resultado(s)`
                     : `${activeLeaderboard.length} equipa(s)`}
@@ -1366,7 +1379,8 @@ export default function RankingPage() {
                   return (
                     <button
                       key={entry.userId}
-                      onClick={() => setSelectedUserId(entry.userId)}
+                      id={`ranking-row-${entry.userId}`}
+                      onClick={() => handleSelectUser(entry.userId)}
                       className={`w-full text-left transition ${
                         isSelected
                           ? "bg-violet-50"
@@ -1421,16 +1435,16 @@ export default function RankingPage() {
                         </div>
                       </div>
 
-                      <div className="block p-4 lg:hidden">
+                      <div className="block p-2.5 lg:hidden">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <RankingBadge rank={entry.rank} isMine={isMine} />
-                              <p className="truncate text-base font-black text-gray-900">
+                              <p className="truncate text-sm font-black text-gray-900">
                                 {entry.teamName || "Sem nome"}
                               </p>
                             </div>
-                            <p className="mt-1 text-xs text-gray-500">
+                            <p className="mt-0.5 text-[11px] text-gray-500">
                               {entry.managerName}
                             </p>
                           </div>
@@ -1439,13 +1453,13 @@ export default function RankingPage() {
                             <p className="text-xs font-bold uppercase text-gray-500">
                               {leaderboardMode === "overall" ? "Pts" : "Fase"}
                             </p>
-                            <p className="text-xl font-black text-gray-900">
+                            <p className="text-lg font-black text-gray-900">
                               {displayedPoints}
                             </p>
                           </div>
                         </div>
 
-                        <div className="mt-3 flex items-center justify-between gap-3">
+                        <div className="mt-1.5 flex items-center justify-between gap-2">
                           <div className="flex min-w-0 items-center gap-2">
                             {championFlag ? (
                               <img
