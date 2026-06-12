@@ -1021,7 +1021,7 @@ export default function AdminPage() {
               </div>
             </div>
           </section>
-          <section className="grid gap-4 lg:grid-cols-3">
+          <section className="grid gap-4 lg:grid-cols-4">
             <a
               href="/admin/missing-team"
               className="rounded-2xl p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
@@ -1082,6 +1082,67 @@ export default function AdminPage() {
                 Abrir painel →
               </div>
             </a>
+            
+            <a
+  href="/admin/resultados"
+  className="rounded-2xl p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+  style={{
+    backgroundColor: "#ffffff",
+    border: "1px solid #e5e7eb",
+    color: "#111827",
+    textDecoration: "none",
+  }}
+>
+  <p
+    style={{
+      margin: 0,
+      fontSize: 11,
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: "0.16em",
+      color: "#7c3aed",
+    }}
+  >
+    Resultados
+  </p>
+
+  <h2
+    style={{
+      marginTop: 8,
+      marginBottom: 0,
+      fontSize: 24,
+      fontWeight: 900,
+      color: "#111827",
+    }}
+  >
+    Atualizar resultados
+  </h2>
+
+  <p
+    style={{
+      marginTop: 8,
+      marginBottom: 0,
+      fontSize: 14,
+      color: "#6b7280",
+      lineHeight: 1.7,
+    }}
+  >
+    Atualiza os resultados dos jogos pelo admin e recalcula os pontos sem
+    precisares de mexer no VS Code.
+  </p>
+
+  <div
+    className="mt-4 inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold"
+    style={{
+      backgroundColor: "#dc2626",
+      color: "#ffffff",
+      border: "1px solid #b91c1c",
+      boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+    }}
+  >
+    Atualizar resultados →
+  </div>
+</a>
 
             <a
               href="/admin/gerar-tendencias"
