@@ -66,7 +66,7 @@ function getPredictionPoints(prediction: MatchPrediction, game?: Game) {
   const realOutcome = getOutcome(game.homeScore, game.awayScore);
 
   if (predictedHome === game.homeScore && predictedAway === game.awayScore) {
-    return 2;
+    return 3;
   }
 
   if (predictedOutcome === realOutcome) {
