@@ -10,10 +10,25 @@ import { listenToAuth } from "@/lib/auth";
 
 const ADMIN_EMAIL = "zmrolapereira@gmail.com";
 
+type PublicVoter =
+  | string
+  | {
+      userId?: string;
+      teamName?: string;
+      managerName?: string;
+      name?: string;
+      predictedScore?: string;
+      prediction?: string;
+      score?: string;
+      predictedHomeScore?: number | string;
+      predictedAwayScore?: number | string;
+    };
+
 type TopResult = {
   score: string;
   count: number;
   pct: number;
+  voters?: PublicVoter[];
 };
 
 type TrendGame = {
@@ -28,6 +43,9 @@ type TrendGame = {
   drawPct: number;
   awayPct: number;
   topResults?: TopResult[];
+  homeVoters?: PublicVoter[];
+  drawVoters?: PublicVoter[];
+  awayVoters?: PublicVoter[];
 };
 
 type TrendRoundDoc = {
@@ -51,10 +69,28 @@ type PickDashboard = {
   topScorers: CountItem[];
   topAssisters: CountItem[];
   champions: CountItem[];
-  updatedAt?: any;
+  updatedAt?: unknown;
 };
 
 type PageTab = "picks" | "games";
+type GameTrendView = "byGame" | "byPerson";
+type OutcomeType = "home" | "draw" | "away";
+
+type PersonPrediction = {
+  gameId: string;
+  homeTeam: string;
+  awayTeam: string;
+  outcomeLabel: string;
+  outcomeType: OutcomeType;
+  predictedScore: string;
+};
+
+type PersonTrendRow = {
+  key: string;
+  name: string;
+  managerName: string;
+  predictions: PersonPrediction[];
+};
 
 function formatUnlockDate(value: string) {
   try {
@@ -70,7 +106,6 @@ function formatUnlockDate(value: string) {
   }
 }
 
-
 function getFlagByCountry(countryName?: string) {
   if (!countryName) return undefined;
   return teams.find((team) => team.name === countryName)?.flag;
@@ -81,26 +116,25 @@ function safePct(value: number) {
   return Math.max(0, Math.min(100, Number(value)));
 }
 
-function getMostVotedResult(game: TrendGame) {
-  return game.topResults?.[0] ?? null;
-}
-
 function getFavorite(game: TrendGame) {
   const options = [
     {
       label: game.homeTeam,
       pct: game.homePct,
       count: game.homeWins,
+      type: "home" as const,
     },
     {
       label: "Empate",
       pct: game.drawPct,
       count: game.draws,
+      type: "draw" as const,
     },
     {
       label: game.awayTeam,
       pct: game.awayPct,
       count: game.awayWins,
+      type: "away" as const,
     },
   ];
 
@@ -110,11 +144,161 @@ function getFavorite(game: TrendGame) {
   })[0];
 }
 
+function getVoterName(voter: PublicVoter) {
+  if (typeof voter === "string") return voter;
+
+  return (
+    voter.teamName ||
+    voter.name ||
+    voter.managerName ||
+    voter.userId ||
+    "Equipa sem nome"
+  );
+}
+
+function getVoterManager(voter: PublicVoter) {
+  if (typeof voter === "string") return "";
+
+  if (voter.managerName && voter.managerName !== voter.teamName) {
+    return voter.managerName;
+  }
+
+  return "";
+}
+
+function getVoterScore(voter: PublicVoter) {
+  if (typeof voter === "string") return "";
+
+  if (voter.predictedScore) return String(voter.predictedScore);
+  if (voter.prediction) return String(voter.prediction);
+  if (voter.score) return String(voter.score);
+
+  const home = voter.predictedHomeScore;
+  const away = voter.predictedAwayScore;
+
+  if (home !== undefined && home !== "" && away !== undefined && away !== "") {
+    return `${home}-${away}`;
+  }
+
+  return "";
+}
+
+function getVoterKey(voter: PublicVoter) {
+  if (typeof voter === "string") return voter.trim().toLowerCase();
+
+  return String(
+    voter.userId ||
+      `${voter.teamName || voter.name || ""}-${voter.managerName || ""}`
+  )
+    .trim()
+    .toLowerCase();
+}
+
+function getVotersList(voters?: PublicVoter[]) {
+  if (!Array.isArray(voters)) return [];
+  return voters.filter(Boolean);
+}
+
+function getInitials(name: string) {
+  const clean = name.trim();
+  if (!clean) return "—";
+
+  const words = clean.split(/\s+/).slice(0, 2);
+  return words.map((word) => word[0]?.toUpperCase()).join("");
+}
+
+function getOutcomeMeta(type: OutcomeType) {
+  if (type === "home") {
+    return {
+      dot: "#2563eb",
+      bg: "#eff6ff",
+      text: "#1d4ed8",
+      label: "Casa",
+    };
+  }
+
+  if (type === "draw") {
+    return {
+      dot: "#64748b",
+      bg: "#f1f5f9",
+      text: "#475569",
+      label: "Empate",
+    };
+  }
+
+  return {
+    dot: "#7c3aed",
+    bg: "#f5f3ff",
+    text: "#6d28d9",
+    label: "Fora",
+  };
+}
+
+function buildPersonTrends(games: TrendGame[]): PersonTrendRow[] {
+  const people = new Map<string, PersonTrendRow>();
+
+  const addVoter = (
+    voter: PublicVoter,
+    game: TrendGame,
+    outcomeLabel: string,
+    outcomeType: OutcomeType
+  ) => {
+    const key = getVoterKey(voter);
+    const name = getVoterName(voter);
+    const managerName = getVoterManager(voter);
+    const predictedScore = getVoterScore(voter);
+
+    if (!key || !name) return;
+
+    if (!people.has(key)) {
+      people.set(key, {
+        key,
+        name,
+        managerName,
+        predictions: [],
+      });
+    }
+
+    people.get(key)?.predictions.push({
+      gameId: game.gameId,
+      homeTeam: game.homeTeam,
+      awayTeam: game.awayTeam,
+      outcomeLabel,
+      outcomeType,
+      predictedScore,
+    });
+  };
+
+  games.forEach((game) => {
+    getVotersList(game.homeVoters).forEach((voter) =>
+      addVoter(voter, game, `Vitória ${game.homeTeam}`, "home")
+    );
+
+    getVotersList(game.drawVoters).forEach((voter) =>
+      addVoter(voter, game, "Empate", "draw")
+    );
+
+    getVotersList(game.awayVoters).forEach((voter) =>
+      addVoter(voter, game, `Vitória ${game.awayTeam}`, "away")
+    );
+  });
+
+  return Array.from(people.values()).sort((a, b) => {
+    if (b.predictions.length !== a.predictions.length) {
+      return b.predictions.length - a.predictions.length;
+    }
+
+    return a.name.localeCompare(b.name);
+  });
+}
+
 export default function TendenciasPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   const [activeTab, setActiveTab] = useState<PageTab>("picks");
+  const [gameTrendView, setGameTrendView] = useState<GameTrendView>("byGame");
+  const [personSearch, setPersonSearch] = useState("");
 
   const [loadingTrends, setLoadingTrends] = useState(true);
   const [roundDocs, setRoundDocs] = useState<TrendRoundDoc[]>([]);
@@ -126,6 +310,8 @@ export default function TendenciasPage() {
   const [loadingPicks, setLoadingPicks] = useState(true);
   const [pickDashboard, setPickDashboard] = useState<PickDashboard | null>(null);
   const [pickError, setPickError] = useState("");
+
+  const [openGameKey, setOpenGameKey] = useState<string>("");
 
   useEffect(() => {
     const unsubscribe = listenToAuth((authUser) => {
@@ -164,7 +350,7 @@ export default function TendenciasPage() {
       console.error(error);
       setLoadError(
         error?.message ||
-          "Erro ao carregar tendências. Verifica se a collection publicPredictionTrends existe."
+          "Erro ao carregar tendências. Verifica se publicPredictionTrends existe."
       );
     } finally {
       setLoadingTrends(false);
@@ -246,6 +432,35 @@ export default function TendenciasPage() {
     );
   }, [selectedRound]);
 
+  const personTrends = useMemo(() => {
+    return buildPersonTrends(selectedGames);
+  }, [selectedGames]);
+
+  const filteredPersonTrends = useMemo(() => {
+    const search = personSearch.trim().toLowerCase();
+
+    if (!search) return personTrends;
+
+    return personTrends.filter((person) => {
+      const name = person.name.toLowerCase();
+      const managerName = person.managerName.toLowerCase();
+
+      const predictionsText = person.predictions
+        .map(
+          (prediction) =>
+            `${prediction.homeTeam} ${prediction.awayTeam} ${prediction.outcomeLabel} ${prediction.predictedScore}`
+        )
+        .join(" ")
+        .toLowerCase();
+
+      return (
+        name.includes(search) ||
+        managerName.includes(search) ||
+        predictionsText.includes(search)
+      );
+    });
+  }, [personTrends, personSearch]);
+
   const roundTotalPredictions = useMemo(() => {
     return selectedGames.reduce(
       (sum, game) => sum + Number(game.totalPredictions || 0),
@@ -274,10 +489,7 @@ export default function TendenciasPage() {
                 .join(" | ")
             : "Sem dados suficientes";
 
-        return `⚽ ${game.homeTeam} vs ${game.awayTeam}
-${game.homeTeam}: ${game.homePct}% (${game.homeWins}) | Empate: ${game.drawPct}% (${game.draws}) | ${game.awayTeam}: ${game.awayPct}% (${game.awayWins})
-Favorito: ${favorite.label} ${favorite.pct}%
-Top 3 resultados: ${topResultsText}`;
+        return `⚽ ${game.homeTeam} vs ${game.awayTeam}\n${game.homeTeam}: ${game.homePct}% (${game.homeWins}) | Empate: ${game.drawPct}% (${game.draws}) | ${game.awayTeam}: ${game.awayPct}% (${game.awayWins})\nFavorito: ${favorite.label} ${favorite.pct}%\nTop 3 resultados: ${topResultsText}`;
       }),
     ];
 
@@ -292,66 +504,94 @@ Top 3 resultados: ${topResultsText}`;
   };
 
   return (
-    <main className="min-h-screen bg-[#f4f6fb] text-gray-900">
+    <main
+      className="min-h-screen"
+      style={{ backgroundColor: "#2f2140", color: "#111827" }}
+    >
       <SiteHeader />
 
-      <div className="mx-auto max-w-7xl px-4 pb-12 pt-5 sm:px-6 lg:px-8">
-        <section className="overflow-hidden rounded-[34px] bg-slate-950 shadow-xl">
-          <div className="relative p-6 sm:p-8 lg:p-10">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(124,58,237,0.48),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.40),_transparent_32%),linear-gradient(135deg,_#111827_0%,_#312e81_52%,_#581c87_100%)]" />
-
-            <div className="relative z-10 grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
+      <div className="mx-auto max-w-7xl px-3 py-5 sm:px-4 md:px-6 md:py-7">
+        <section
+          className="overflow-hidden rounded-[30px] shadow-2xl"
+          style={{
+            background:
+              "linear-gradient(135deg, #ffffff 0%, #f8fafc 56%, #f5f3ff 100%)",
+            border: "1px solid rgba(255,255,255,0.22)",
+          }}
+        >
+          <div className="p-5 sm:p-7">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-violet-200">
+                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-violet-600">
                   Fantasy Mundial 2026
                 </p>
 
-                <h1 className="mt-3 max-w-3xl text-4xl font-black tracking-tight text-white sm:text-5xl lg:text-6xl">
-                  Tendências do grupo
+                <h1 className="mt-2 text-4xl font-black tracking-tight text-gray-950 sm:text-5xl">
+                  Tendências
                 </h1>
 
-                <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-slate-200 sm:text-base">
-                  Vê as escolhas mais populares e como o grupo está a apostar em
-                  cada jogo. Tudo aparece de forma agregada, sem mostrar picks
-                  individuais.
+                <p className="mt-3 max-w-2xl text-sm font-semibold leading-7 text-gray-500 sm:text-base">
+                  Vê as apostas mais populares por jogo ou por pessoa. Nas
+                  listas, cada equipa aparece com o resultado exato apostado em
+                  pequeno.
                 </p>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 rounded-3xl border border-white/15 bg-white/10 p-3 backdrop-blur-md">
-                <div className="rounded-2xl bg-white/10 p-3 text-white">
-                  <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/60">
-                    Equipas
-                  </p>
-                  <p className="mt-2 text-2xl font-black">
-                    {pickDashboard?.totalTeams ?? "—"}
-                  </p>
-                </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={refreshAll}
+                    disabled={loadingTrends || loadingPicks}
+                    className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-black disabled:opacity-60"
+                    style={{
+                      backgroundColor: "#2f2140",
+                      color: "#ffffff",
+                      border: "1px solid #2f2140",
+                    }}
+                  >
+                    {loadingTrends || loadingPicks
+                      ? "A atualizar..."
+                      : "Atualizar dados"}
+                  </button>
+                )}
 
-                <div className="rounded-2xl bg-white/10 p-3 text-white">
-                  <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/60">
-                    Etapas
-                  </p>
-                  <p className="mt-2 text-2xl font-black">
-                    {visibleRounds.length}
-                  </p>
-                </div>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPreview((value) => !value)}
+                    className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-black"
+                    style={{
+                      backgroundColor: showPreview ? "#fee2e2" : "#ffffff",
+                      color: showPreview ? "#991b1b" : "#374151",
+                      border: showPreview
+                        ? "1px solid #fca5a5"
+                        : "1px solid #e5e7eb",
+                    }}
+                  >
+                    {showPreview ? "Desligar teste" : "Ver antes das datas"}
+                  </button>
+                )}
 
-                <div className="rounded-2xl bg-white/10 p-3 text-white">
-                  <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/60">
-                    Jogos
-                  </p>
-                  <p className="mt-2 text-2xl font-black">
-                    {selectedGames.length}
-                  </p>
-                </div>
+                {activeTab === "games" && (
+                  <button
+                    type="button"
+                    onClick={copySummary}
+                    disabled={!selectedRound || selectedGames.length === 0}
+                    className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50"
+                    style={{
+                      backgroundColor: "#7c3aed",
+                      color: "#ffffff",
+                      border: "1px solid #6d28d9",
+                    }}
+                  >
+                    {copied ? "Resumo copiado ✅" : "Copiar resumo"}
+                  </button>
+                )}
               </div>
             </div>
-          </div>
-        </section>
 
-        <section className="mt-4 rounded-[28px] border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="mt-6 flex flex-wrap gap-2 rounded-2xl bg-white/70 p-1 ring-1 ring-gray-200">
               <TabButton
                 active={activeTab === "picks"}
                 onClick={() => setActiveTab("picks")}
@@ -365,57 +605,17 @@ Top 3 resultados: ${topResultsText}`;
               />
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row">
-              {activeTab === "games" && (
-                <button
-                  type="button"
-                  onClick={copySummary}
-                  disabled={!selectedRound || selectedGames.length === 0}
-                  className="inline-flex h-11 items-center justify-center rounded-2xl bg-violet-600 px-4 text-sm font-black text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-45"
-                >
-                  {copied ? "Resumo copiado ✅" : "Copiar resumo"}
-                </button>
-              )}
-
-              {isAdmin && (
-                <>
-                  <button
-                    type="button"
-                    onClick={refreshAll}
-                    disabled={loadingTrends || loadingPicks}
-                    className="inline-flex h-11 items-center justify-center rounded-2xl bg-slate-950 px-4 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-60"
-                  >
-                    {loadingTrends || loadingPicks
-                      ? "A atualizar..."
-                      : "Atualizar dados"}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowPreview((value) => !value)}
-                    className={`inline-flex h-11 items-center justify-center rounded-2xl border px-4 text-sm font-black transition ${
-                      showPreview
-                        ? "border-red-200 bg-red-50 text-red-700"
-                        : "border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    {showPreview ? "Desligar teste" : "Ver antes das datas"}
-                  </button>
-                </>
-              )}
-            </div>
+            {isAdmin && showPreview && (
+              <div className="mt-4 rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm font-bold text-orange-800">
+                Modo teste ligado: só tu consegues ver jornadas/fases antes de
+                começarem.
+              </div>
+            )}
           </div>
-
-          {isAdmin && showPreview && (
-            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
-              Modo teste ligado: só tu consegues ver jornadas/fases antes de
-              começarem.
-            </div>
-          )}
         </section>
 
         {activeTab === "picks" && (
-          <section className="mt-5">
+          <section className="mt-4">
             {loadingPicks || loadingAuth ? (
               <InfoBox text="A carregar picks do grupo..." />
             ) : pickError ? (
@@ -424,46 +624,41 @@ Top 3 resultados: ${topResultsText}`;
               <InfoBox text="Ainda não existe dashboard dos picks publicado. Vai a /admin/gerar-dashboard-picks e gera os dados." />
             ) : (
               <>
-                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-violet-600">
-                      Picks do grupo
-                    </p>
+                <section className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-xl sm:p-6">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-violet-600">
+                        Picks do grupo
+                      </p>
 
-                    <h2 className="mt-1 text-3xl font-black tracking-tight text-gray-950 sm:text-4xl">
-                      As escolhas mais populares
-                    </h2>
+                      <h2 className="mt-1 text-2xl font-black text-gray-950 sm:text-3xl">
+                        As escolhas mais populares
+                      </h2>
+                    </div>
 
-                    <p className="mt-2 text-sm font-semibold text-gray-500">
-                      Total de equipas: {pickDashboard.totalTeams}
-                    </p>
+                    <div className="rounded-2xl bg-violet-50 px-4 py-2 text-sm font-black text-violet-700 ring-1 ring-violet-100">
+                      {pickDashboard.totalTeams} equipas
+                    </div>
                   </div>
+                </section>
 
-                  <div className="rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3 text-sm font-black text-violet-700">
-                    Dados agregados
-                  </div>
-                </div>
-
-                <div className="grid gap-4 lg:grid-cols-3">
+                <div className="mt-4 grid gap-4 lg:grid-cols-3">
                   <RankingCard
-                    title="Marcadores escolhidos"
+                    title="Marcadores"
                     emoji="⚽"
-                    items={pickDashboard.topScorers}
-                    tone="amber"
+                    items={pickDashboard.topScorers || []}
                   />
 
                   <RankingCard
-                    title="Assistentes escolhidos"
+                    title="Assistentes"
                     emoji="🎯"
-                    items={pickDashboard.topAssisters}
-                    tone="blue"
+                    items={pickDashboard.topAssisters || []}
                   />
 
                   <RankingCard
-                    title="Campeões escolhidos"
+                    title="Campeões"
                     emoji="🏆"
-                    items={pickDashboard.champions}
-                    tone="violet"
+                    items={pickDashboard.champions || []}
                   />
                 </div>
               </>
@@ -472,19 +667,23 @@ Top 3 resultados: ${topResultsText}`;
         )}
 
         {activeTab === "games" && (
-          <section className="mt-5">
-            <div className="rounded-[28px] border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <>
+            <section className="mt-4 rounded-[28px] border border-gray-200 bg-white p-4 shadow-xl sm:p-5">
+              <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
                 <div>
-                  <label className="block text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
+                  <label className="block text-xs font-black uppercase tracking-[0.16em] text-gray-500">
                     Jornada/fase disponível
                   </label>
 
                   <select
                     value={selectedRoundId}
-                    onChange={(e) => setSelectedRoundId(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedRoundId(e.target.value);
+                      setOpenGameKey("");
+                      setPersonSearch("");
+                    }}
                     disabled={visibleRounds.length === 0}
-                    className="mt-2 h-12 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 text-sm font-bold text-gray-950 outline-none transition focus:border-violet-500 focus:bg-white focus:ring-4 focus:ring-violet-100"
+                    className="mt-2 h-11 w-full rounded-2xl border border-gray-200 bg-white px-3 text-sm font-bold text-gray-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
                   >
                     {visibleRounds.length === 0 ? (
                       <option value="">Ainda não há jornadas disponíveis</option>
@@ -500,10 +699,35 @@ Top 3 resultados: ${topResultsText}`;
                 </div>
 
                 {selectedRound && (
-                  <div className="rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3 text-sm font-black text-violet-700">
+                  <div className="rounded-2xl bg-violet-50 px-4 py-3 text-sm font-black text-violet-700 ring-1 ring-violet-100">
                     {selectedRound.games?.length || 0} jogos ·{" "}
-                    {roundTotalPredictions} predictions
+                    {roundTotalPredictions} apostas
                   </div>
+                )}
+              </div>
+
+              <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="inline-flex rounded-2xl bg-gray-100 p-1 ring-1 ring-gray-200">
+                  <ViewToggle
+                    active={gameTrendView === "byGame"}
+                    onClick={() => setGameTrendView("byGame")}
+                    label="Por jogo"
+                  />
+
+                  <ViewToggle
+                    active={gameTrendView === "byPerson"}
+                    onClick={() => setGameTrendView("byPerson")}
+                    label="Por pessoa"
+                  />
+                </div>
+
+                {gameTrendView === "byPerson" && (
+                  <input
+                    value={personSearch}
+                    onChange={(e) => setPersonSearch(e.target.value)}
+                    placeholder="Pesquisar pessoa, equipa, jogo ou resultado..."
+                    className="h-11 w-full rounded-2xl border border-gray-200 bg-white px-3 text-sm font-bold text-gray-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100 lg:max-w-md"
+                  />
                 )}
               </div>
 
@@ -520,46 +744,474 @@ Top 3 resultados: ${topResultsText}`;
                   )}.`}
                 />
               ) : null}
-            </div>
+            </section>
 
             {selectedRound && (
-              <div className="mt-5">
-                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-violet-600">
-                      Tendências dos jogos
-                    </p>
-
-                    <h2 className="mt-1 text-3xl font-black tracking-tight text-gray-950 sm:text-4xl">
-                      {selectedRound.round}
-                    </h2>
-
-                    <p className="mt-2 text-sm font-semibold text-gray-500">
-                      {selectedRound.games?.length || 0} jogos ·{" "}
-                      {roundTotalPredictions} predictions contabilizadas
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-black text-gray-700 shadow-sm">
-                    Percentagens do grupo
-                  </div>
-                </div>
-
+              <section className="mt-4">
                 {selectedGames.length === 0 ? (
                   <InfoBox text="Ainda não há dados para esta jornada/fase." />
-                ) : (
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    {selectedGames.map((game) => (
-                      <GameTrendCard key={game.gameId} game={game} />
-                    ))}
+                ) : gameTrendView === "byGame" ? (
+                  <div className="grid gap-4">
+                    {selectedGames.map((game) => {
+                      const gameKey = `${selectedRound.id}-${game.gameId}`;
+                      const isOpen = openGameKey === gameKey;
+
+                      return (
+                        <TrendGameCard
+                          key={gameKey}
+                          game={game}
+                          isOpen={isOpen}
+                          onToggle={() =>
+                            setOpenGameKey(isOpen ? "" : gameKey)
+                          }
+                        />
+                      );
+                    })}
                   </div>
+                ) : (
+                  <PersonTrendsView
+                    people={filteredPersonTrends}
+                    totalPeople={personTrends.length}
+                  />
                 )}
-              </div>
+              </section>
             )}
-          </section>
+          </>
         )}
       </div>
     </main>
+  );
+}
+
+function TrendGameCard({
+  game,
+  isOpen,
+  onToggle,
+}: {
+  game: TrendGame;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  const homeFlag = getFlagByCountry(game.homeTeam);
+  const awayFlag = getFlagByCountry(game.awayTeam);
+  const favorite = getFavorite(game);
+
+  const homePct = safePct(game.homePct);
+  const drawPct = safePct(game.drawPct);
+  const awayPct = safePct(game.awayPct);
+
+  const homeVoters = getVotersList(game.homeVoters);
+  const drawVoters = getVotersList(game.drawVoters);
+  const awayVoters = getVotersList(game.awayVoters);
+
+  const hasAnyVoters =
+    homeVoters.length > 0 || drawVoters.length > 0 || awayVoters.length > 0;
+
+  return (
+    <article
+      className="overflow-hidden rounded-[26px] border bg-white shadow-xl transition"
+      style={{
+        borderColor: isOpen ? "#c4b5fd" : "#e5e7eb",
+        boxShadow: isOpen
+          ? "0 16px 34px rgba(124, 58, 237, 0.16)"
+          : "0 10px 26px rgba(17, 24, 39, 0.07)",
+      }}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full p-4 text-left sm:p-5"
+      >
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-600">
+              Jogo #{game.gameId}
+            </p>
+
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xl font-black text-gray-950 sm:text-2xl">
+              <TeamName flag={homeFlag} name={game.homeTeam} />
+              <span className="text-base font-black text-gray-300">vs</span>
+              <TeamName flag={awayFlag} name={game.awayTeam} />
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="rounded-full bg-gray-50 px-3 py-1.5 text-xs font-black text-gray-600 ring-1 ring-gray-200">
+              {game.totalPredictions} apostas
+            </span>
+
+            <span className="rounded-full bg-violet-50 px-3 py-1.5 text-xs font-black text-violet-700 ring-1 ring-violet-100">
+              {isOpen ? "Fechar" : "Ver listas"}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-2xl bg-gray-50 p-3 ring-1 ring-gray-100">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-500">
+              Tendência do resultado
+            </p>
+
+            <p className="text-xs font-black text-gray-900">
+              Favorito: <span className="text-violet-700">{favorite.label}</span>
+            </p>
+          </div>
+
+          <SegmentedBar
+            homePct={homePct}
+            drawPct={drawPct}
+            awayPct={awayPct}
+          />
+
+          <div className="mt-3 grid gap-2 md:grid-cols-3">
+            <OutcomePill
+              label={`Vitória ${game.homeTeam}`}
+              count={game.homeWins}
+              pct={game.homePct}
+              color="#2563eb"
+              flag={homeFlag}
+            />
+            <OutcomePill
+              label="Empate"
+              count={game.draws}
+              pct={game.drawPct}
+              color="#64748b"
+            />
+            <OutcomePill
+              label={`Vitória ${game.awayTeam}`}
+              count={game.awayWins}
+              pct={game.awayPct}
+              color="#7c3aed"
+              flag={awayFlag}
+            />
+          </div>
+        </div>
+
+        {game.topResults && game.topResults.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {game.topResults.slice(0, 3).map((result, index) => (
+              <span
+                key={`${game.gameId}-${result.score}`}
+                className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-black text-gray-800 ring-1 ring-gray-200"
+              >
+                <span className="text-violet-600">#{index + 1}</span>
+                <span>{result.score}</span>
+                <span className="text-gray-400">·</span>
+                <span className="text-gray-500">{result.count}x</span>
+              </span>
+            ))}
+          </div>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="border-t border-gray-200 bg-[#fbfbff] p-4 sm:p-5">
+          <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-600">
+                Lista do jogo
+              </p>
+              <h3 className="text-lg font-black text-gray-950">
+                Pessoas por tendência
+              </h3>
+            </div>
+
+            <p className="text-xs font-bold text-gray-500">
+              O badge à direita é o resultado apostado.
+            </p>
+          </div>
+
+          {!hasAnyVoters ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold leading-6 text-amber-800">
+              A lista de pessoas ainda não está publicada nos agregados. Vai a{" "}
+              <span className="font-black">/admin/gerar-tendencias</span> e
+              volta a gerar as tendências.
+            </div>
+          ) : (
+            <div className="grid gap-3 xl:grid-cols-3">
+              <VoterGroup
+                title={`Vitória ${game.homeTeam}`}
+                count={game.homeWins}
+                voters={homeVoters}
+                accent="#2563eb"
+              />
+
+              <VoterGroup
+                title="Empate"
+                count={game.draws}
+                voters={drawVoters}
+                accent="#64748b"
+              />
+
+              <VoterGroup
+                title={`Vitória ${game.awayTeam}`}
+                count={game.awayWins}
+                voters={awayVoters}
+                accent="#7c3aed"
+              />
+            </div>
+          )}
+        </div>
+      )}
+    </article>
+  );
+}
+
+function PersonTrendsView({
+  people,
+  totalPeople,
+}: {
+  people: PersonTrendRow[];
+  totalPeople: number;
+}) {
+  if (totalPeople === 0) {
+    return (
+      <InfoBox text="Ainda não há listas por pessoa publicadas nos agregados. Vai a /admin/gerar-tendencias e volta a gerar as tendências." />
+    );
+  }
+
+  if (people.length === 0) {
+    return <InfoBox text="Não foram encontradas pessoas com esse filtro." />;
+  }
+
+  return (
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {people.map((person) => (
+        <article
+          key={person.key}
+          className="rounded-[22px] border border-gray-200 bg-white p-4 shadow-lg"
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#2f2140] text-xs font-black text-white">
+              {getInitials(person.name)}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <h3 className="truncate text-sm font-black text-gray-950">
+                {person.name}
+              </h3>
+              {person.managerName && (
+                <p className="truncate text-xs font-bold text-gray-500">
+                  {person.managerName}
+                </p>
+              )}
+            </div>
+
+            <span className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100">
+              {person.predictions.length}
+            </span>
+          </div>
+
+          <div className="mt-3 space-y-2">
+            {person.predictions.map((prediction, index) => {
+              const meta = getOutcomeMeta(prediction.outcomeType);
+
+              return (
+                <div
+                  key={`${person.key}-${prediction.gameId}-${index}`}
+                  className="rounded-2xl bg-gray-50 p-3 ring-1 ring-gray-100"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="min-w-0 truncate text-xs font-black text-gray-900">
+                      {prediction.homeTeam} vs {prediction.awayTeam}
+                    </p>
+
+                    <ScoreBadge score={prediction.predictedScore} />
+                  </div>
+
+                  <div className="mt-2 flex items-center gap-2">
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: meta.dot }}
+                    />
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[10px] font-black"
+                      style={{ backgroundColor: meta.bg, color: meta.text }}
+                    >
+                      {prediction.outcomeLabel}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function TeamName({ flag, name }: { flag?: string; name: string }) {
+  return (
+    <span className="inline-flex min-w-0 items-center gap-2">
+      {flag ? (
+        <img
+          src={flag}
+          alt={name}
+          className="h-5 w-8 rounded object-cover shadow-sm"
+        />
+      ) : (
+        <span className="h-5 w-8 rounded bg-gray-200" />
+      )}
+      <span className="truncate">{name}</span>
+    </span>
+  );
+}
+
+function SegmentedBar({
+  homePct,
+  drawPct,
+  awayPct,
+}: {
+  homePct: number;
+  drawPct: number;
+  awayPct: number;
+}) {
+  const empty = homePct + drawPct + awayPct <= 0;
+
+  if (empty) {
+    return <div className="h-3 rounded-full bg-gray-200" />;
+  }
+
+  return (
+    <div className="flex h-3 overflow-hidden rounded-full bg-gray-200 ring-1 ring-gray-200">
+      <div
+        className="h-full"
+        style={{
+          width: `${homePct}%`,
+          background: "linear-gradient(90deg, #38bdf8 0%, #2563eb 100%)",
+        }}
+      />
+      <div
+        className="h-full"
+        style={{
+          width: `${drawPct}%`,
+          backgroundColor: "#94a3b8",
+        }}
+      />
+      <div
+        className="h-full"
+        style={{
+          width: `${awayPct}%`,
+          background: "linear-gradient(90deg, #a78bfa 0%, #7c3aed 100%)",
+        }}
+      />
+    </div>
+  );
+}
+
+function OutcomePill({
+  label,
+  count,
+  pct,
+  color,
+  flag,
+}: {
+  label: string;
+  count: number;
+  pct: number;
+  color: string;
+  flag?: string;
+}) {
+  return (
+    <div className="rounded-2xl bg-white px-3 py-2 ring-1 ring-gray-200">
+      <div className="flex items-center gap-2">
+        <span
+          className="h-2.5 w-2.5 rounded-full"
+          style={{ backgroundColor: color }}
+        />
+        {flag && (
+          <img src={flag} alt={label} className="h-4 w-6 rounded object-cover" />
+        )}
+        <p className="min-w-0 truncate text-xs font-black text-gray-700">
+          {label}
+        </p>
+      </div>
+
+      <p className="mt-1 text-sm font-black text-gray-950">
+        {count}{" "}
+        <span className="text-xs font-bold text-gray-400">({pct}%)</span>
+      </p>
+    </div>
+  );
+}
+
+function VoterGroup({
+  title,
+  count,
+  voters,
+  accent,
+}: {
+  title: string;
+  count: number;
+  voters: PublicVoter[];
+  accent: string;
+}) {
+  return (
+    <section className="rounded-2xl border border-gray-200 bg-white p-3">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-black text-gray-950">{title}</p>
+          <p className="text-xs font-bold text-gray-400">{count} aposta(s)</p>
+        </div>
+
+        <div
+          className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-black text-white"
+          style={{ backgroundColor: accent }}
+        >
+          {count}
+        </div>
+      </div>
+
+      {voters.length === 0 ? (
+        <p className="rounded-xl bg-gray-50 p-3 text-xs font-bold text-gray-400">
+          Sem apostas nesta opção.
+        </p>
+      ) : (
+        <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+          {voters.map((voter, index) => {
+            const name = getVoterName(voter);
+            const managerName = getVoterManager(voter);
+            const score = getVoterScore(voter);
+
+            return (
+              <div
+                key={`${title}-${name}-${index}`}
+                className="flex items-center gap-2 rounded-xl bg-gray-50 p-2 ring-1 ring-gray-100"
+              >
+                <div
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-black text-white"
+                  style={{ backgroundColor: accent }}
+                >
+                  {getInitials(name)}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-black text-gray-900">
+                    {name}
+                  </p>
+                  {managerName && (
+                    <p className="truncate text-[10px] font-bold text-gray-400">
+                      {managerName}
+                    </p>
+                  )}
+                </div>
+
+                <ScoreBadge score={score} />
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ScoreBadge({ score }: { score?: string }) {
+  return (
+    <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[11px] font-black text-gray-900 ring-1 ring-gray-200">
+      {score || "—"}
+    </span>
   );
 }
 
@@ -576,11 +1228,35 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-black transition ${
-        active
-          ? "bg-slate-950 text-white shadow-sm"
-          : "bg-gray-50 text-gray-700 ring-1 ring-gray-200 hover:bg-gray-100"
-      }`}
+      className="inline-flex h-10 flex-1 items-center justify-center rounded-xl px-4 text-sm font-black sm:flex-none"
+      style={{
+        backgroundColor: active ? "#2f2140" : "transparent",
+        color: active ? "#ffffff" : "#374151",
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function ViewToggle({
+  active,
+  onClick,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex h-10 flex-1 items-center justify-center rounded-xl px-4 text-sm font-black transition sm:flex-none"
+      style={{
+        backgroundColor: active ? "#2f2140" : "transparent",
+        color: active ? "#ffffff" : "#374151",
+      }}
     >
       {label}
     </button>
@@ -591,366 +1267,85 @@ function RankingCard({
   title,
   emoji,
   items,
-  tone,
 }: {
   title: string;
   emoji: string;
   items: CountItem[];
-  tone: "amber" | "blue" | "violet";
 }) {
-  const visibleItems = items.slice(0, 15);
-
-  const toneClasses = {
-    amber: {
-      badge: "bg-amber-100 text-amber-700",
-      bar: "#f59e0b",
-      soft: "from-amber-50 to-white",
-    },
-    blue: {
-      badge: "bg-blue-100 text-blue-700",
-      bar: "#3b82f6",
-      soft: "from-blue-50 to-white",
-    },
-    violet: {
-      badge: "bg-violet-100 text-violet-700",
-      bar: "#7c3aed",
-      soft: "from-violet-50 to-white",
-    },
-  }[tone];
+  const visibleItems = (items || []).slice(0, 15);
 
   return (
-    <section className="overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-sm">
-      <div className={`bg-gradient-to-br ${toneClasses.soft} border-b border-gray-100 p-5`}>
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm ring-1 ring-gray-100">
-            {emoji}
-          </div>
-
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">
-              Ranking
-            </p>
-
-            <h2 className="text-xl font-black text-gray-950">{title}</h2>
-          </div>
+    <section className="rounded-[28px] border border-gray-200 bg-white p-4 shadow-xl sm:p-5">
+      <div className="mb-4 flex items-center gap-3">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-100 text-xl">
+          {emoji}
         </div>
-      </div>
 
-      <div className="p-4">
-        {visibleItems.length === 0 ? (
-          <p className="rounded-2xl bg-gray-50 p-4 text-sm font-semibold text-gray-500">
-            Ainda não existem dados.
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-violet-600">
+            Ranking
           </p>
-        ) : (
-          <div className="space-y-2.5">
-            {visibleItems.map((item, index) => (
-              <div
-                key={`${item.name}-${item.team || ""}`}
-                className="rounded-2xl border border-gray-100 bg-gray-50 p-3"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-black text-violet-600">
-                      #{index + 1}
-                    </p>
 
-                    <h3 className="mt-0.5 truncate text-sm font-black text-gray-950">
-                      {item.name}
-                    </h3>
-
-                    {item.team && (
-                      <p className="mt-0.5 truncate text-xs font-bold text-gray-500">
-                        {item.team}
-                      </p>
-                    )}
-                  </div>
-
-                  <div
-                    className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-black ${toneClasses.badge}`}
-                  >
-                    {item.pct}%
-                  </div>
-                </div>
-
-                <div className="mt-2 flex items-center gap-3">
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${Math.max(0, Math.min(100, item.pct))}%`,
-                        backgroundColor: toneClasses.bar,
-                      }}
-                    />
-                  </div>
-
-                  <p className="min-w-[62px] text-right text-xs font-black text-gray-600">
-                    {item.count} picks
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function TrendBar({
-  label,
-  percentage,
-  count,
-  color,
-}: {
-  label: string;
-  percentage: number;
-  count: number;
-  color: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <p className="truncate text-sm font-black text-gray-950">{label}</p>
-
-        <div className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[11px] font-black text-gray-600 ring-1 ring-gray-200">
-          {count} votos
+          <h2 className="text-lg font-black text-gray-950">{title}</h2>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-gray-200">
-          <div
-            className="h-full rounded-full"
-            style={{
-              width: `${Math.max(0, Math.min(100, percentage))}%`,
-              backgroundColor: color,
-            }}
-          />
-        </div>
-
-        <p className="w-12 text-right text-sm font-black text-gray-950">
-          {percentage}%
+      {visibleItems.length === 0 ? (
+        <p className="text-sm font-semibold text-gray-500">
+          Ainda não existem dados.
         </p>
-      </div>
-    </div>
-  );
-}
-
-function GameTrendCard({ game }: { game: TrendGame }) {
-  const favorite = getFavorite(game);
-  const homeFlag = getFlagByCountry(game.homeTeam);
-  const awayFlag = getFlagByCountry(game.awayTeam);
-
-  const homePct = safePct(game.homePct);
-  const drawPct = safePct(game.drawPct);
-  const awayPct = safePct(game.awayPct);
-
-  return (
-    <article className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
-      <div className="relative overflow-hidden bg-slate-950 p-4 text-white sm:p-5">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(103,199,232,0.32),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(139,44,245,0.30),_transparent_34%),linear-gradient(135deg,_#0f172a_0%,_#1e1b4b_55%,_#312e81_100%)]" />
-
-        <div className="relative z-10">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-cyan-200/90">
-                Jogo #{game.gameId}
-              </p>
-
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-xl font-black tracking-tight sm:text-2xl">
-                <TeamTitle flag={homeFlag} name={game.homeTeam} />
-                <span className="text-xs font-black uppercase tracking-[0.16em] text-white/35">
-                  vs
-                </span>
-                <TeamTitle flag={awayFlag} name={game.awayTeam} />
-              </div>
-            </div>
-
-            <div className="shrink-0 rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-right backdrop-blur-md">
-              <p className="text-[8px] font-black uppercase tracking-[0.16em] text-white/55">
-                Apostas
-              </p>
-              <p className="text-xl font-black text-white">
-                {game.totalPredictions}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-white/10 p-1 shadow-inner">
-            <div className="flex h-10 overflow-hidden rounded-[14px] bg-slate-800">
-              <div
-                className="flex min-w-[28px] items-center justify-center bg-gradient-to-r from-cyan-500 to-blue-500 text-xs font-black text-white"
-                style={{ width: `${homePct}%` }}
-              >
-                {homePct >= 18 ? `${homePct}%` : ""}
-              </div>
-
-              <div
-                className="flex min-w-[24px] items-center justify-center bg-slate-400/80 text-xs font-black text-white"
-                style={{ width: `${drawPct}%` }}
-              >
-                {drawPct >= 18 ? `${drawPct}%` : ""}
-              </div>
-
-              <div
-                className="flex min-w-[24px] items-center justify-center bg-gradient-to-r from-violet-500 to-fuchsia-500 text-xs font-black text-white"
-                style={{ width: `${awayPct}%` }}
-              >
-                {awayPct >= 18 ? `${awayPct}%` : ""}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            <OutcomePill
-              dot="bg-cyan-400"
-              flag={homeFlag}
-              label={game.homeTeam}
-              count={game.homeWins}
-              pct={game.homePct}
-            />
-
-            <OutcomePill
-              dot="bg-slate-300"
-              label="Empate"
-              count={game.draws}
-              pct={game.drawPct}
-            />
-
-            <OutcomePill
-              dot="bg-violet-400"
-              flag={awayFlag}
-              label={game.awayTeam}
-              count={game.awayWins}
-              pct={game.awayPct}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="p-3 sm:p-4">
-        <div className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-violet-600">
-                Top 3 resultados exatos
-              </p>
-              <h4 className="truncate text-base font-black text-slate-950 sm:text-lg">
-                Mais escolhidos pelos participantes
-              </h4>
-            </div>
-
-            <span className="hidden shrink-0 rounded-full bg-violet-50 px-3 py-1 text-[10px] font-black text-violet-700 ring-1 ring-violet-100 sm:inline-flex">
-              {favorite.label} lidera
-            </span>
-          </div>
-
-          {game.topResults && game.topResults.length > 0 ? (
-            <div className="grid gap-2 sm:grid-cols-3">
-              {game.topResults.slice(0, 3).map((result, index) => (
-                <TopResultCard
-                  key={`${game.gameId}-${result.score}`}
-                  index={index}
-                  result={result}
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-500">
-              Ainda não existem resultados suficientes.
-            </p>
-          )}
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function TeamTitle({ flag, name }: { flag?: string; name: string }) {
-  return (
-    <span className="inline-flex min-w-0 items-center gap-2">
-      {flag ? (
-        <img
-          src={flag}
-          alt={name}
-          className="h-6 w-9 rounded-md object-cover shadow-sm ring-1 ring-white/20"
-        />
       ) : (
-        <span className="h-6 w-9 rounded-md bg-white/15 ring-1 ring-white/20" />
+        <div className="space-y-2">
+          {visibleItems.map((item, index) => (
+            <div
+              key={`${item.name}-${item.team || ""}`}
+              className="rounded-2xl bg-gray-50 p-3 ring-1 ring-gray-100"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black text-violet-600">
+                    #{index + 1}
+                  </p>
+
+                  <h3 className="mt-0.5 truncate text-sm font-black text-gray-950">
+                    {item.name}
+                  </h3>
+
+                  {item.team && (
+                    <p className="mt-0.5 truncate text-xs font-bold text-gray-500">
+                      {item.team}
+                    </p>
+                  )}
+                </div>
+
+                <div className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-black text-violet-700">
+                  {item.pct}%
+                </div>
+              </div>
+
+              <div className="mt-2 flex items-center gap-3">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
+                  <div
+                    className="h-full rounded-full bg-violet-600"
+                    style={{ width: `${safePct(item.pct)}%` }}
+                  />
+                </div>
+
+                <p className="min-w-[58px] text-right text-xs font-black text-gray-600">
+                  {item.count}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
-      <span className="truncate">{name}</span>
-    </span>
-  );
-}
-
-function OutcomePill({
-  dot,
-  flag,
-  label,
-  count,
-  pct,
-}: {
-  dot: string;
-  flag?: string;
-  label: string;
-  count: number;
-  pct: number;
-}) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/10 px-2.5 py-2 backdrop-blur-md">
-      <div className="flex items-center gap-2">
-        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${dot}`} />
-        {flag && (
-          <img src={flag} alt={label} className="h-4 w-6 rounded object-cover" />
-        )}
-        <p className="min-w-0 truncate text-xs font-black text-white">
-          {label}
-        </p>
-      </div>
-      <p className="mt-1 text-xs font-black text-white/75">
-        {count} voto(s) · {pct}%
-      </p>
-    </div>
-  );
-}
-
-function TopResultCard({ index, result }: { index: number; result: TopResult }) {
-  const styles = [
-    "border-yellow-200 bg-yellow-50 text-yellow-700",
-    "border-slate-200 bg-slate-50 text-slate-700",
-    "border-orange-200 bg-orange-50 text-orange-700",
-  ];
-
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-2.5">
-      <div className="flex items-center justify-between gap-2">
-        <span
-          className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${
-            styles[index] || styles[1]
-          }`}
-        >
-          #{index + 1}
-        </span>
-
-        <span className="text-[10px] font-black text-slate-500">
-          {result.pct}%
-        </span>
-      </div>
-
-      <p className="mt-1.5 text-xl font-black tracking-tight text-slate-950">
-        {result.score}
-      </p>
-
-      <p className="mt-0.5 text-[11px] font-bold text-slate-500">
-        {result.count} aposta(s)
-      </p>
-    </div>
+    </section>
   );
 }
 
 function InfoBox({ text }: { text: string }) {
   return (
-    <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 text-sm font-semibold text-gray-600 shadow-sm">
+    <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 text-sm font-bold text-gray-600 shadow-sm">
       {text}
     </div>
   );
@@ -958,7 +1353,7 @@ function InfoBox({ text }: { text: string }) {
 
 function ErrorBox({ text }: { text: string }) {
   return (
-    <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
+    <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">
       {text}
     </div>
   );

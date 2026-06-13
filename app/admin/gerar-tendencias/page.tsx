@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
 import {
   collection,
+  doc,
   getDocs,
   serverTimestamp,
   setDoc,
-  doc,
 } from "firebase/firestore";
 import SiteHeader from "@/components/SiteHeader";
 import { games } from "@/data/games";
-import { db } from "@/lib/firebase";
 import { listenToAuth } from "@/lib/auth";
+import { db } from "@/lib/firebase";
 
 const ADMIN_EMAIL = "zmrolapereira@gmail.com";
 
@@ -23,21 +23,43 @@ type PredictionDoc = {
   predictedAwayScore?: string | number;
 };
 
+type Voter = {
+  userId: string;
+  teamName: string;
+  managerName: string;
+  predictedScore?: string;
+  predictedHomeScore?: number;
+  predictedAwayScore?: number;
+};
+
+type ResultBucket = {
+  count: number;
+  voters: Voter[];
+};
+
 type TrendGame = {
   gameId: string;
   homeTeam: string;
   awayTeam: string;
   totalPredictions: number;
+
   homeWins: number;
   draws: number;
   awayWins: number;
+
   homePct: number;
   drawPct: number;
   awayPct: number;
+
+  homeVoters: Voter[];
+  drawVoters: Voter[];
+  awayVoters: Voter[];
+
   topResults: {
     score: string;
     count: number;
     pct: number;
+    voters: Voter[];
   }[];
 };
 
@@ -111,9 +133,7 @@ function getRoundLabel(game: any) {
 }
 
 function getGameDateTime(game: any) {
-  const rawDate =
-    game.date || game.gameDate || game.matchDate || game.day || "";
-
+  const rawDate = game.date || game.gameDate || game.matchDate || game.day || "";
   const rawTime =
     game.time || game.hour || game.kickoffTime || game.startTime || "00:00";
 
@@ -140,15 +160,41 @@ function pct(value: number, total: number) {
   return total > 0 ? Math.round((value / total) * 100) : 0;
 }
 
+function cleanNumber(value: string | number | undefined) {
+  const numberValue = Number(value);
+
+  if (!Number.isFinite(numberValue)) {
+    return null;
+  }
+
+  return numberValue;
+}
+
+function getVoterLabel(entry: any, userId: string): Voter {
+  return {
+    userId,
+    teamName:
+      String(entry?.teamName || entry?.name || entry?.entryName || "").trim() ||
+      "Equipa sem nome",
+    managerName:
+      String(entry?.managerName || entry?.userName || entry?.ownerName || "").trim() ||
+      "Manager",
+  };
+}
+
 async function buildAndSavePredictionTrends() {
   const teamsSnapshot = await getDocs(collection(db, "fantasyEntries"));
   const predictionsSnapshot = await getDocs(collection(db, "predictions"));
 
   const registeredTeamUserIds = new Set<string>();
+  const votersByUserId = new Map<string, Voter>();
 
   teamsSnapshot.forEach((docSnap) => {
-    const data = docSnap.data() as { userId?: string };
-    registeredTeamUserIds.add(String(data.userId || docSnap.id));
+    const data = docSnap.data() as any;
+    const userId = String(data.userId || docSnap.id);
+
+    registeredTeamUserIds.add(userId);
+    votersByUserId.set(userId, getVoterLabel(data, userId));
   });
 
   const groupedGames = new Map<string, any[]>();
@@ -167,10 +213,16 @@ async function buildAndSavePredictionTrends() {
     string,
     {
       countedUsers: Set<string>;
+
       homeWins: number;
       draws: number;
       awayWins: number;
-      resultCounts: Map<string, number>;
+
+      homeVoters: Voter[];
+      drawVoters: Voter[];
+      awayVoters: Voter[];
+
+      resultCounts: Map<string, ResultBucket>;
     }
   >();
 
@@ -184,13 +236,24 @@ async function buildAndSavePredictionTrends() {
 
     if (!registeredTeamUserIds.has(userId)) return;
 
+    const predictedHome = cleanNumber(data.predictedHomeScore);
+    const predictedAway = cleanNumber(data.predictedAwayScore);
+
+    if (predictedHome === null || predictedAway === null) return;
+
     if (!predictionsByGame.has(gameId)) {
       predictionsByGame.set(gameId, {
         countedUsers: new Set<string>(),
+
         homeWins: 0,
         draws: 0,
         awayWins: 0,
-        resultCounts: new Map<string, number>(),
+
+        homeVoters: [],
+        drawVoters: [],
+        awayVoters: [],
+
+        resultCounts: new Map<string, ResultBucket>(),
       });
     }
 
@@ -202,19 +265,41 @@ async function buildAndSavePredictionTrends() {
 
     current.countedUsers.add(userId);
 
-    const predictedHome = Number(data.predictedHomeScore);
-    const predictedAway = Number(data.predictedAwayScore);
+    const baseVoter = votersByUserId.get(userId) ?? {
+      userId,
+      teamName: "Equipa sem nome",
+      managerName: "Manager",
+    };
+
+    const score = `${predictedHome}-${predictedAway}`;
+
+    const voter: Voter = {
+      ...baseVoter,
+      predictedScore: score,
+      predictedHomeScore: predictedHome,
+      predictedAwayScore: predictedAway,
+    };
 
     if (predictedHome > predictedAway) {
       current.homeWins += 1;
+      current.homeVoters.push(voter);
     } else if (predictedHome < predictedAway) {
       current.awayWins += 1;
+      current.awayVoters.push(voter);
     } else {
       current.draws += 1;
+      current.drawVoters.push(voter);
     }
 
-    const score = `${predictedHome}-${predictedAway}`;
-    current.resultCounts.set(score, (current.resultCounts.get(score) || 0) + 1);
+    const existingScore = current.resultCounts.get(score) ?? {
+      count: 0,
+      voters: [],
+    };
+
+    current.resultCounts.set(score, {
+      count: existingScore.count + 1,
+      voters: [...existingScore.voters, voter],
+    });
   });
 
   const docsToSave: TrendRoundDoc[] = [];
@@ -229,21 +314,29 @@ async function buildAndSavePredictionTrends() {
 
     const trendGames: TrendGame[] = sortedGames.map((game: any) => {
       const gameId = getGameId(game);
+
       const predictionData = predictionsByGame.get(gameId) ?? {
         countedUsers: new Set<string>(),
+
         homeWins: 0,
         draws: 0,
         awayWins: 0,
-        resultCounts: new Map<string, number>(),
+
+        homeVoters: [],
+        drawVoters: [],
+        awayVoters: [],
+
+        resultCounts: new Map<string, ResultBucket>(),
       };
 
       const totalPredictions = predictionData.countedUsers.size;
 
       const topResults = Array.from(predictionData.resultCounts.entries())
-        .map(([score, count]) => ({
+        .map(([score, bucket]) => ({
           score,
-          count,
-          pct: pct(count, totalPredictions),
+          count: bucket.count,
+          pct: pct(bucket.count, totalPredictions),
+          voters: bucket.voters,
         }))
         .sort((a, b) => {
           if (b.count !== a.count) return b.count - a.count;
@@ -256,12 +349,19 @@ async function buildAndSavePredictionTrends() {
         homeTeam: game.homeTeam,
         awayTeam: game.awayTeam,
         totalPredictions,
+
         homeWins: predictionData.homeWins,
         draws: predictionData.draws,
         awayWins: predictionData.awayWins,
+
         homePct: pct(predictionData.homeWins, totalPredictions),
         drawPct: pct(predictionData.draws, totalPredictions),
         awayPct: pct(predictionData.awayWins, totalPredictions),
+
+        homeVoters: predictionData.homeVoters,
+        drawVoters: predictionData.drawVoters,
+        awayVoters: predictionData.awayVoters,
+
         topResults,
       };
     });
@@ -279,10 +379,14 @@ async function buildAndSavePredictionTrends() {
   });
 
   for (const trendDoc of docsToSave) {
-    await setDoc(doc(db, "publicPredictionTrends", trendDoc.roundKey), {
-      ...trendDoc,
-      updatedAt: serverTimestamp(),
-    });
+    await setDoc(
+      doc(db, "publicPredictionTrends", trendDoc.roundKey),
+      {
+        ...trendDoc,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
   }
 
   return docsToSave.length;
@@ -313,7 +417,7 @@ export default function GenerateTrendsPage() {
       const totalDocs = await buildAndSavePredictionTrends();
 
       setMessage(
-        `Tendências atualizadas com sucesso. Foram guardadas ${totalDocs} jornadas/fases.`
+        `Tendências atualizadas com sucesso. Foram guardadas ${totalDocs} jornadas/fases com listas de apostas.`
       );
     } catch (error: any) {
       console.error(error);
@@ -366,9 +470,16 @@ export default function GenerateTrendsPage() {
           <p className="mt-3 text-sm leading-7 text-gray-600">
             Este botão lê as fantasyEntries e predictions uma única vez, calcula
             as percentagens e grava tudo na collection publicPredictionTrends.
-            Depois, a página pública de tendências lê apenas estes dados
-            resumidos.
+            Agora também grava as listas de equipas que apostaram em vitória da
+            casa, empate, vitória fora e nos Top 3 resultados.
           </p>
+
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold leading-7 text-amber-900">
+            Depois de trocares este ficheiro, tens mesmo de clicar novamente em
+            “Gerar / atualizar tendências”. Só aí os campos homeVoters,
+            drawVoters, awayVoters e voters dos resultados passam a existir nos
+            agregados públicos.
+          </div>
 
           <button
             type="button"
