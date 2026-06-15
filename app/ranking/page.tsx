@@ -913,28 +913,36 @@ export default function RankingPage() {
   const myEntry = leaderboardMode === "overall" ? myOverallEntry : myStageEntry;
 
   const handleSelectUser = (userId: string, shouldScroll = false) => {
-    setRankingSearch("");
-    setSelectedUserId(userId);
+  const hadSearch = rankingSearch.trim().length > 0;
 
-    setExpandedMobileUserId((currentUserId) => {
-      if (!shouldScroll && currentUserId === userId) {
-        return "";
-      }
+  setRankingSearch("");
+  setSelectedUserId(userId);
 
-      return userId;
-    });
-
-    if (shouldScroll) {
-      window.setTimeout(() => {
-        const element = document.getElementById(`ranking-row-${userId}`);
-
-        element?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-      }, 120);
+  setExpandedMobileUserId((currentUserId) => {
+    // Sem pesquisa: clicar na mesma pessoa fecha o detalhe no telemóvel
+    if (!shouldScroll && !hadSearch && currentUserId === userId) {
+      return "";
     }
-  };
+
+    // Com pesquisa: abre/mantém aberto
+    return userId;
+  });
+
+  if (shouldScroll || hadSearch) {
+    window.setTimeout(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const element = document.getElementById(`ranking-row-${userId}`);
+
+          element?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        });
+      });
+    }, hadSearch ? 350 : 120);
+  }
+};
 
   const renderMobileSelectedStats = () => {
     if (!activeEntry) return null;
