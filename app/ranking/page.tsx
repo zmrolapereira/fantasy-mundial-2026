@@ -913,35 +913,28 @@ export default function RankingPage() {
   const myEntry = leaderboardMode === "overall" ? myOverallEntry : myStageEntry;
 
   const handleSelectUser = (userId: string, shouldScroll = false) => {
-  const hadSearch = rankingSearch.trim().length > 0;
+    setRankingSearch("");
+    setSelectedUserId(userId);
 
-  setRankingSearch("");
-  setSelectedUserId(userId);
+    setExpandedMobileUserId((currentUserId) => {
+      if (!shouldScroll && currentUserId === userId) {
+        return "";
+      }
 
-  setExpandedMobileUserId((currentUserId) => {
-    // Se carregares na mesma pessoa sem pesquisa, fecha o detalhe no mobile
-    if (!shouldScroll && !hadSearch && currentUserId === userId) {
-      return "";
-    }
+      return userId;
+    });
 
-    // Se vieste de uma pesquisa, mantém aberto
-    return userId;
-  });
-
-  if (shouldScroll || hadSearch) {
-    window.setTimeout(
-      () => {
+    if (shouldScroll) {
+      window.setTimeout(() => {
         const element = document.getElementById(`ranking-row-${userId}`);
 
         element?.scrollIntoView({
           behavior: "smooth",
           block: "center",
         });
-      },
-      hadSearch ? 250 : 120
-    );
-  }
-};
+      }, 120);
+    }
+  };
 
   const renderMobileSelectedStats = () => {
     if (!activeEntry) return null;
@@ -959,7 +952,7 @@ export default function RankingPage() {
 
 
     return (
-      <div className="mt-2 rounded-2xl border border-violet-200 bg-violet-50 p-2.5 lg:hidden">
+      <div className="rounded-2xl border border-violet-200 bg-violet-50 p-2.5 lg:hidden">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[9px] font-black uppercase tracking-[0.14em] text-violet-700">
             Pontos
@@ -1526,7 +1519,7 @@ export default function RankingPage() {
       )}
 
       <div className="mx-auto max-w-7xl px-4 pb-10 sm:px-6">
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.82fr_0.8fr]">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.82fr_0.8fr] xl:items-start">
           <section>
             {podium.length > 0 && (
               <div className="mb-3 grid gap-3 md:grid-cols-3">
@@ -1542,15 +1535,15 @@ export default function RankingPage() {
                       : (entry as StageRankedEntry).stagePoints ?? 0;
 
                   return (
-                    <button
-                      key={entry.userId}
-                      onClick={() => handleSelectUser(entry.userId)}
-                      className={`rounded-[18px] border px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 ${
-                        isSelected
-                          ? "border-violet-300 bg-violet-50"
-                          : "border-gray-200 bg-white"
-                      }`}
-                    >
+                    <div key={entry.userId}>
+                      <button
+                        onClick={() => handleSelectUser(entry.userId)}
+                        className={`w-full rounded-[18px] border px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 ${
+                          isSelected
+                            ? "border-violet-300 bg-violet-50"
+                            : "border-gray-200 bg-white"
+                        }`}
+                      >
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-[11px] font-black text-gray-700">
@@ -1630,8 +1623,14 @@ export default function RankingPage() {
                         )}
                       </div>
 
-                      {expandedMobileUserId === entry.userId && renderMobileSelectedStats()}
-                    </button>
+                      </button>
+
+                      {expandedMobileUserId === entry.userId && (
+                        <div className="px-1 pb-2 lg:hidden">
+                          {renderMobileSelectedStats()}
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -1687,18 +1686,17 @@ export default function RankingPage() {
                       : (entry as StageRankedEntry).stagePoints ?? 0;
 
                   return (
-                    <button
-                      key={entry.userId}
-                      id={`ranking-row-${entry.userId}`}
-                      onClick={() => handleSelectUser(entry.userId)}
-                      className={`w-full text-left transition ${
-                        isSelected
-                          ? "bg-violet-50"
-                          : isMine
-                          ? "bg-blue-50"
-                          : "bg-white hover:bg-gray-50"
-                      }`}
-                    >
+                    <div key={entry.userId} id={`ranking-row-${entry.userId}`}>
+                      <button
+                        onClick={() => handleSelectUser(entry.userId)}
+                        className={`w-full text-left transition ${
+                          isSelected
+                            ? "bg-violet-50"
+                            : isMine
+                            ? "bg-blue-50"
+                            : "bg-white hover:bg-gray-50"
+                        }`}
+                      >
                       <div className="hidden items-center grid-cols-[62px_1.55fr_1fr_82px_112px_20px] px-3 py-2 lg:grid">
                         <div className="flex items-center gap-1.5">
                           <RankingBadge rank={entry.rank} isMine={isMine} />
@@ -1794,9 +1792,15 @@ export default function RankingPage() {
                           )}
                         </div>
 
-                        {expandedMobileUserId === entry.userId && renderMobileSelectedStats()}
                       </div>
                     </button>
+
+                    {expandedMobileUserId === entry.userId && (
+                      <div className="px-2.5 pb-2.5 lg:hidden">
+                        {renderMobileSelectedStats()}
+                      </div>
+                    )}
+                  </div>
                   );
                 })}
 
@@ -1813,7 +1817,7 @@ export default function RankingPage() {
             </div>
           </section>
 
-          <aside className="hidden self-start rounded-[18px] border border-gray-200 bg-white p-4 shadow-sm xl:sticky xl:top-24 xl:block"> 
+          <aside className="hidden h-fit self-start rounded-[18px] border border-gray-200 bg-white p-4 shadow-sm xl:sticky xl:top-24 xl:block xl:max-h-[calc(100vh-7rem)] xl:overflow-y-auto">
             {!activeEntry ? (
               <p className="text-gray-500">Ainda não existem entradas.</p>
             ) : (
