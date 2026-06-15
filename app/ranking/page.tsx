@@ -346,6 +346,8 @@ export default function RankingPage() {
     useState<string>("ALL");
   const [selectedPhaseFilter, setSelectedPhaseFilter] =
     useState<string>("ALL");
+  const [mobileGameStageFilter, setMobileGameStageFilter] =
+    useState<string>("ALL");
 
   const [leaderboardMode, setLeaderboardMode] =
     useState<LeaderboardMode>("overall");
@@ -844,9 +846,43 @@ export default function RankingPage() {
     });
   }, [stageFilteredPredictions, selectedRoundFilter, selectedPhaseFilter]);
 
+  const mobileGameStageOptions = useMemo(() => {
+    const options = finishedPredictionsWithGameData
+      .map((prediction) => getStageLabel(prediction.game))
+      .filter(Boolean) as string[];
+
+    return [
+      "ALL",
+      ...Array.from(new Set(options)).sort(
+        (a, b) => getStageOrder(a) - getStageOrder(b)
+      ),
+    ];
+  }, [finishedPredictionsWithGameData]);
+
+  const mobileGameHistoryPredictions = useMemo(() => {
+    return finishedPredictionsWithGameData
+      .filter((prediction) => {
+        if (mobileGameStageFilter === "ALL") return true;
+        return getStageLabel(prediction.game) === mobileGameStageFilter;
+      })
+      .sort((a, b) => {
+        const dateA = a.game ? new Date(`${a.game.date}T${a.game.time}:00`).getTime() : 0;
+        const dateB = b.game ? new Date(`${b.game.date}T${b.game.time}:00`).getTime() : 0;
+        return dateA - dateB;
+      });
+  }, [finishedPredictionsWithGameData, mobileGameStageFilter]);
+
+  const mobileGameHistoryTotal = useMemo(() => {
+    return mobileGameHistoryPredictions.reduce(
+      (sum, prediction) => sum + Number(prediction.points || 0),
+      0
+    );
+  }, [mobileGameHistoryPredictions]);
+
   useEffect(() => {
     setSelectedRoundFilter("ALL");
     setSelectedPhaseFilter("ALL");
+    setMobileGameStageFilter("ALL");
   }, [leaderboardMode, selectedStageId, selectedUserId]);
 
   const activeLeaderboard =
@@ -914,11 +950,6 @@ export default function RankingPage() {
     const exactCount =
       leaderboardMode === "overall" ? exactResultsCount : stageExactResultsCount;
 
-    const compactHistoryRows = selectedHistory.slice(-4);
-    const compactHistoryTotal = compactHistoryRows.reduce(
-      (sum, row) => sum + Number(row.points || 0),
-      0
-    );
 
     return (
       <div className="mt-2 rounded-2xl border border-violet-200 bg-violet-50 p-2.5 lg:hidden">
@@ -1063,51 +1094,153 @@ export default function RankingPage() {
           </>
         )}
 
-        {compactHistoryRows.length > 0 && (
-          <div className="mt-2 rounded-xl border border-gray-200 bg-white px-3 py-2">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-gray-600">
-                Histórico
-              </p>
+        {selectedHistory.length > 0 && (
+          <div className="mt-2 overflow-hidden rounded-xl border border-gray-200 bg-white">
+            <div className="flex items-center justify-between gap-2 border-b border-gray-100 px-3 py-2">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.12em] text-gray-600">
+                  Histórico por jornada
+                </p>
+                <p className="mt-0.5 text-[8px] font-semibold text-gray-400">
+                  Evolução dos pontos da equipa
+                </p>
+              </div>
 
-              <p className="text-[10px] font-black text-gray-900">
-                {compactHistoryTotal} pts
+              <p className="rounded-full bg-gray-900 px-2.5 py-1 text-[10px] font-black text-white">
+                {selectedHistoryTotal} pts
               </p>
             </div>
 
-            <div className="mt-2 grid grid-cols-2 gap-1.5">
-              {compactHistoryRows.map((row) => (
+            <div className="grid grid-cols-2 gap-1.5 p-2">
+              {selectedHistory.map((row) => (
                 <div
                   key={row.label}
-                  className="rounded-lg border border-gray-100 bg-gray-50 px-2 py-1.5"
+                  className="rounded-xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white px-2.5 py-2"
                 >
-                  <div className="flex items-center justify-between gap-1.5">
-                    <p className="truncate text-[9px] font-bold text-gray-600">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-[9px] font-black text-gray-700">
                       {row.label}
                     </p>
-                    <p className="shrink-0 text-[11px] font-black text-gray-900">
-                      {row.points}
+                    <p className="shrink-0 text-xs font-black text-gray-950">
+                      {row.points} pts
                     </p>
                   </div>
 
                   {typeof row.predictionPoints === "number" &&
                     row.selectedTeamBonus &&
                     row.selectedTeamBonus > 0 && (
-                      <p className="mt-0.5 truncate text-[8px] font-semibold text-gray-400">
+                      <p className="mt-1 truncate text-[8px] font-semibold text-gray-400">
                         {row.predictionPoints} palpites + {row.selectedTeamBonus} seleção
                       </p>
                     )}
                 </div>
               ))}
             </div>
-
-            {selectedHistory.length > compactHistoryRows.length && (
-              <p className="mt-1.5 text-[8px] font-semibold text-gray-400">
-                A mostrar as últimas {compactHistoryRows.length} etapas
-              </p>
-            )}
           </div>
         )}
+
+        <div className="mt-2 overflow-hidden rounded-xl border border-gray-200 bg-white">
+          <div className="flex items-center justify-between gap-2 border-b border-gray-100 px-3 py-2">
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-gray-600">
+                Jogos da equipa
+              </p>
+              <p className="mt-0.5 text-[8px] font-semibold text-gray-400">
+                Palpite, resultado real e pontos
+              </p>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <span className="rounded-full bg-violet-50 px-2 py-1 text-[9px] font-black text-violet-700">
+                {mobileGameHistoryTotal} pts
+              </span>
+
+              <select
+                value={mobileGameStageFilter}
+                onClick={(event) => event.stopPropagation()}
+                onChange={(event) => {
+                  event.stopPropagation();
+                  setMobileGameStageFilter(event.target.value);
+                }}
+                className="h-7 max-w-[120px] rounded-full border border-gray-200 bg-gray-50 px-2 text-[9px] font-black text-gray-700 outline-none"
+              >
+                {mobileGameStageOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option === "ALL" ? "Todas" : option}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="max-h-[230px] space-y-1.5 overflow-y-auto p-2">
+            {mobileGameHistoryPredictions.length === 0 && !loadingPredictions ? (
+              <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-3 py-3 text-center text-[10px] font-semibold text-gray-500">
+                Ainda não há jogos concluídos para este filtro.
+              </div>
+            ) : (
+              mobileGameHistoryPredictions.map((prediction) => {
+                const realScore =
+                  prediction.game &&
+                  typeof prediction.game.homeScore === "number" &&
+                  typeof prediction.game.awayScore === "number"
+                    ? `${prediction.game.homeScore}-${prediction.game.awayScore}`
+                    : "—";
+
+                const pointsColor =
+                  prediction.points === 3
+                    ? "bg-violet-600 text-white"
+                    : prediction.points === 1
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-gray-100 text-gray-500";
+
+                return (
+                  <div
+                    key={prediction.id}
+                    className="rounded-xl border border-gray-100 bg-gray-50 px-2.5 py-2"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-[9px] font-black text-gray-800">
+                          {prediction.game?.homeTeam || "Equipa A"} vs {prediction.game?.awayTeam || "Equipa B"}
+                        </p>
+                        <p className="mt-0.5 truncate text-[8px] font-semibold text-gray-400">
+                          {prediction.game
+                            ? `${getStageLabel(prediction.game)} • ${formatDate(prediction.game.date)}`
+                            : `Jogo ${prediction.gameId}`}
+                        </p>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <div className="rounded-lg bg-white px-2 py-1 text-center ring-1 ring-gray-100">
+                          <p className="text-[7px] font-black uppercase text-gray-400">
+                            Palpite
+                          </p>
+                          <p className="text-[10px] font-black text-gray-900">
+                            {prediction.predictedHomeScore}-{prediction.predictedAwayScore}
+                          </p>
+                        </div>
+
+                        <div className="rounded-lg bg-white px-2 py-1 text-center ring-1 ring-gray-100">
+                          <p className="text-[7px] font-black uppercase text-gray-400">
+                            Real
+                          </p>
+                          <p className="text-[10px] font-black text-gray-900">
+                            {realScore}
+                          </p>
+                        </div>
+
+                        <span className={`rounded-full px-2 py-1 text-[10px] font-black ${pointsColor}`}>
+                          +{prediction.points}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
 
         <p className="mt-1.5 truncate text-[10px] font-semibold text-gray-600">
           🏆 {activeEntry.championPick?.teamName || "Sem seleção campeã"}
