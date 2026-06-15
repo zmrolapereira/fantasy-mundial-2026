@@ -1043,6 +1043,12 @@ export default function RankingPage() {
                   🎯 {activeEntry.topAssistPick?.playerName || "Sem assistente"}
                 </p>
               </div>
+
+              <div className="col-span-2 rounded-xl border border-gray-200 bg-white px-2 py-1.5">
+                <p className="truncate text-[9px] font-bold text-gray-500">
+                  🏆 {activeEntry.championPick?.teamName || "Sem seleção campeã"}
+                </p>
+              </div>
             </div>
           </>
         ) : (
@@ -1241,10 +1247,6 @@ export default function RankingPage() {
             )}
           </div>
         </div>
-
-        <p className="mt-1.5 truncate text-[10px] font-semibold text-gray-600">
-          🏆 {activeEntry.championPick?.teamName || "Sem seleção campeã"}
-        </p>
       </div>
     );
   };
