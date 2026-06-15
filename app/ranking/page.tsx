@@ -913,28 +913,35 @@ export default function RankingPage() {
   const myEntry = leaderboardMode === "overall" ? myOverallEntry : myStageEntry;
 
   const handleSelectUser = (userId: string, shouldScroll = false) => {
-    setRankingSearch("");
-    setSelectedUserId(userId);
+  const hadSearch = rankingSearch.trim().length > 0;
 
-    setExpandedMobileUserId((currentUserId) => {
-      if (!shouldScroll && currentUserId === userId) {
-        return "";
-      }
+  setRankingSearch("");
+  setSelectedUserId(userId);
 
-      return userId;
-    });
+  setExpandedMobileUserId((currentUserId) => {
+    // Se carregares na mesma pessoa sem pesquisa, fecha o detalhe no mobile
+    if (!shouldScroll && !hadSearch && currentUserId === userId) {
+      return "";
+    }
 
-    if (shouldScroll) {
-      window.setTimeout(() => {
+    // Se vieste de uma pesquisa, mantém aberto
+    return userId;
+  });
+
+  if (shouldScroll || hadSearch) {
+    window.setTimeout(
+      () => {
         const element = document.getElementById(`ranking-row-${userId}`);
 
         element?.scrollIntoView({
           behavior: "smooth",
           block: "center",
         });
-      }, 120);
-    }
-  };
+      },
+      hadSearch ? 250 : 120
+    );
+  }
+};
 
   const renderMobileSelectedStats = () => {
     if (!activeEntry) return null;
@@ -1806,7 +1813,7 @@ export default function RankingPage() {
             </div>
           </section>
 
-          <aside className="hidden rounded-[18px] border border-gray-200 bg-white p-4 shadow-sm xl:block">
+          <aside className="hidden self-start rounded-[18px] border border-gray-200 bg-white p-4 shadow-sm xl:sticky xl:top-24 xl:block"> 
             {!activeEntry ? (
               <p className="text-gray-500">Ainda não existem entradas.</p>
             ) : (
