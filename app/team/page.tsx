@@ -8,7 +8,7 @@ import { listenToAuth } from "@/lib/auth";
 import { db } from "@/lib/firebase";
 import { type Player } from "@/data/players";
 import { subscribeToLivePlayers } from "@/lib/player-stats";
-import { games, type Game } from "@/data/games";
+import { games as baseGames, type Game } from "@/data/games";
 import { teams } from "@/data/teams";
 import {
   getFantasyEntryByUserId,
@@ -25,6 +25,7 @@ import {
 } from "@/lib/fantasy-deadlines";
 import { getUserProfile, submitPaymentRequest } from "@/lib/users";
 import SiteHeader from "@/components/SiteHeader";
+import { getGamesWithResults } from "@/lib/game-results";
 
 type PredictionMap = Record<number, { home: string; away: string }>;
 type PositionFilter = "ALL" | "GR" | "DEF" | "MED" | "ATA";
@@ -38,12 +39,54 @@ function formatDate(dateString: string) {
   });
 }
 
+function getOutcome(home: number, away: number) {
+  if (home > away) return "HOME";
+  if (away > home) return "AWAY";
+  return "DRAW";
+}
+
+function getPredictionPointsForGame(
+  prediction: { home: string; away: string },
+  game: Game
+) {
+  if (
+    game.status !== "FT" ||
+    game.homeScore == null ||
+    game.awayScore == null ||
+    prediction.home === "" ||
+    prediction.away === ""
+  ) {
+    return null;
+  }
+
+  const predictedHome = Number(prediction.home);
+  const predictedAway = Number(prediction.away);
+
+  if (!Number.isFinite(predictedHome) || !Number.isFinite(predictedAway)) {
+    return null;
+  }
+
+  if (predictedHome === game.homeScore && predictedAway === game.awayScore) {
+    return 3;
+  }
+
+  if (
+    getOutcome(predictedHome, predictedAway) ===
+    getOutcome(Number(game.homeScore), Number(game.awayScore))
+  ) {
+    return 1;
+  }
+
+  return 0;
+}
+
 export default function TeamPage() {
   const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [nowTick, setNowTick] = useState(Date.now());
+  const [games, setGames] = useState<Game[]>(baseGames);
 
   const [savingPicks, setSavingPicks] = useState(false);
   const [savingRoundLabel, setSavingRoundLabel] = useState<string | null>(null);
@@ -96,6 +139,20 @@ export default function TeamPage() {
     });
 
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const loadGames = async () => {
+      try {
+        const mergedGames = await getGamesWithResults(baseGames);
+        setGames(mergedGames);
+      } catch (error) {
+        console.error(error);
+        setGames(baseGames);
+      }
+    };
+
+    loadGames();
   }, []);
 
   useEffect(() => {
@@ -165,7 +222,7 @@ export default function TeamPage() {
     loadEverything();
   }, [user]);
 
-  const firstTournamentGame = useMemo(() => getFirstTournamentGame(games), []);
+  const firstTournamentGame = useMemo(() => getFirstTournamentGame(games), [games]);
   const picksLockDate = useMemo(
     () => getLockDateFromGame(firstTournamentGame),
     [firstTournamentGame]
@@ -218,7 +275,7 @@ export default function TeamPage() {
       return ia - ib;
     });
     
-  }, []);
+  }, [games]);
 
   useEffect(() => {
   if (!activePredictionRound && gamesByRound.length > 0) {
@@ -1153,50 +1210,65 @@ const activeRoundGames = useMemo(() => {
               away: "",
             };
 
+            const predictionPoints = getPredictionPointsForGame(prediction, game);
+            const hasRealResult =
+              game.status === "FT" &&
+              game.homeScore != null &&
+              game.awayScore != null &&
+              predictionPoints !== null;
+
             return (
               <article
                 key={game.id}
-                className={`rounded-2xl border p-4 ${
+                className={`rounded-2xl border p-3 ${
                   roundLocked || blockedByPayment
                     ? "border-gray-200 bg-gray-50"
                     : "border-gray-100 bg-[#fcfcfd]"
                 }`}
               >
-                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wide text-gray-400">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
                       {formatDate(game.date)} • {game.time}
                     </p>
 
-                    <div className="mt-2 flex flex-wrap gap-2">
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
                       {game.group && (
-                        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                        <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
                           Grupo {game.group}
                         </span>
                       )}
 
-                      <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
+                      <span className="rounded-full bg-violet-50 px-2.5 py-0.5 text-[11px] font-semibold text-violet-700">
                         {game.phase}
                       </span>
                     </div>
                   </div>
 
-                  <span className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-600">
-                    {game.status}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
+                    {hasRealResult && (
+                      <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-black text-emerald-700 ring-1 ring-emerald-100">
+                        Real {game.homeScore}-{game.awayScore} · +{predictionPoints} pts
+                      </span>
+                    )}
+
+                    <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-bold text-gray-600">
+                      {game.status}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
                       {homeTeam?.flag ? (
                         <img
                           src={homeTeam.flag}
                           alt={game.homeTeam}
-                          className="h-6 w-9 rounded object-cover"
+                          className="h-5 w-8 rounded object-cover"
                         />
                       ) : (
-                        <div className="h-6 w-9 rounded bg-gray-200" />
+                        <div className="h-5 w-8 rounded bg-gray-200" />
                       )}
 
                       <span className="truncate text-sm font-bold text-gray-900">
@@ -1217,12 +1289,12 @@ const activeRoundGames = useMemo(() => {
                           roundLocked
                         )
                       }
-                      className="h-12 w-14 rounded-xl border border-gray-200 bg-white text-center text-lg font-bold text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                      className="h-9 w-12 rounded-xl border border-gray-200 bg-white text-center text-base font-bold text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                     />
                   </div>
 
                   <div className="flex items-center justify-center">
-                    <span className="text-xl font-extrabold text-violet-900">
+                    <span className="text-base font-extrabold text-violet-900">
                       -
                     </span>
                   </div>
@@ -1233,10 +1305,10 @@ const activeRoundGames = useMemo(() => {
                         <img
                           src={awayTeam.flag}
                           alt={game.awayTeam}
-                          className="h-6 w-9 rounded object-cover"
+                          className="h-5 w-8 rounded object-cover"
                         />
                       ) : (
-                        <div className="h-6 w-9 rounded bg-gray-200" />
+                        <div className="h-5 w-8 rounded bg-gray-200" />
                       )}
 
                       <span className="truncate text-sm font-bold text-gray-900">
@@ -1257,7 +1329,7 @@ const activeRoundGames = useMemo(() => {
                           roundLocked
                         )
                       }
-                      className="h-12 w-14 rounded-xl border border-gray-200 bg-white text-center text-lg font-bold text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                      className="h-9 w-12 rounded-xl border border-gray-200 bg-white text-center text-base font-bold text-gray-900 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                     />
                   </div>
                 </div>

@@ -87,6 +87,8 @@ type PredictionWithGame = MatchPrediction & {
 type HistoryRow = {
   label: string;
   points: number;
+  predictionPoints?: number;
+  selectedTeamBonus?: number;
 };
 
 type LeaderboardMode = "overall" | "stage";
@@ -304,9 +306,24 @@ function buildTotalHistoryFromSnapshots({
         currentSnapshot.label ??
         stageId;
 
+      const rawStagePoints = Number(currentRow.stagePoints ?? 0);
+      const predictionPoints = Number(
+        currentRow.predictionStagePoints ?? rawStagePoints
+      );
+      const selectedTeamBonus = Number(currentRow.selectedTeamStageBonus ?? 0);
+
+      // Compatibilidade com snapshots antigos: se stagePoints guardou só palpites,
+      // mostramos o total da etapa incluindo bónus da seleção.
+      const totalStagePoints = Math.max(
+        rawStagePoints,
+        predictionPoints + selectedTeamBonus
+      );
+
       return {
         label,
-        points: Number(currentRow.stagePoints ?? 0),
+        points: totalStagePoints,
+        predictionPoints,
+        selectedTeamBonus,
       };
     })
     .filter(Boolean) as HistoryRow[];
@@ -317,6 +334,7 @@ export default function RankingPage() {
   const [games, setGames] = useState<Game[]>(baseGames);
   const [entries, setEntries] = useState<FantasyEntry[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [expandedMobileUserId, setExpandedMobileUserId] = useState<string>("");
   const [rankingSearch, setRankingSearch] = useState("");
 
   const [selectedPredictions, setSelectedPredictions] = useState<
@@ -726,17 +744,57 @@ export default function RankingPage() {
       stageOptions,
     });
 
-    if (snapshotHistory.length > 0) {
-      return snapshotHistory;
+    const baseHistory =
+      snapshotHistory.length > 0
+        ? snapshotHistory
+        : buildPredictionHistory(finishedPredictionsWithGameData);
+
+    if (baseHistory.length === 0) {
+      return baseHistory;
     }
 
-    return buildPredictionHistory(finishedPredictionsWithGameData);
+    // Garante que o histórico bate certo com a pontuação total visível.
+    // Isto corrige snapshots antigos em que a jornada guardou só pontos de palpites.
+    if (leaderboardMode !== "overall" || !activeEntry) {
+      return baseHistory;
+    }
+
+    const visibleTotal =
+      Number(activeEntry.predictionPoints ?? 0) +
+      Number(activeEntry.topScorerPoints ?? 0) +
+      Number(activeEntry.topAssistPoints ?? 0) +
+      Number(activeEntry.selectedTeamPoints ?? 0);
+
+    const historyTotal = baseHistory.reduce(
+      (sum, row) => sum + Number(row.points || 0),
+      0
+    );
+
+    const missingPoints = visibleTotal - historyTotal;
+
+    if (!Number.isFinite(missingPoints) || missingPoints === 0) {
+      return baseHistory;
+    }
+
+    return baseHistory.map((row, index) => {
+      if (index !== baseHistory.length - 1) return row;
+
+      return {
+        ...row,
+        points: Number(row.points || 0) + missingPoints,
+      };
+    });
   }, [
     orderedStageIds,
     snapshotsByStageId,
     selectedUserId,
     stageOptions,
     finishedPredictionsWithGameData,
+    leaderboardMode,
+    activeEntry?.predictionPoints,
+    activeEntry?.topScorerPoints,
+    activeEntry?.topAssistPoints,
+    activeEntry?.selectedTeamPoints,
   ]);
 
   const selectedHistoryTotal = useMemo(() => {
@@ -822,6 +880,14 @@ export default function RankingPage() {
     setRankingSearch("");
     setSelectedUserId(userId);
 
+    setExpandedMobileUserId((currentUserId) => {
+      if (!shouldScroll && currentUserId === userId) {
+        return "";
+      }
+
+      return userId;
+    });
+
     if (shouldScroll) {
       window.setTimeout(() => {
         const element = document.getElementById(`ranking-row-${userId}`);
@@ -847,6 +913,12 @@ export default function RankingPage() {
 
     const exactCount =
       leaderboardMode === "overall" ? exactResultsCount : stageExactResultsCount;
+
+    const compactHistoryRows = selectedHistory.slice(-4);
+    const compactHistoryTotal = compactHistoryRows.reduce(
+      (sum, row) => sum + Number(row.points || 0),
+      0
+    );
 
     return (
       <div className="mt-2 rounded-2xl border border-violet-200 bg-violet-50 p-2.5 lg:hidden">
@@ -923,7 +995,7 @@ export default function RankingPage() {
               </div>
 
               <p className="mt-1 text-[9px] font-semibold leading-4 text-gray-500">
-                Isto é uma contagem de resultados certos. Os pontos desses exatos
+                Isto é uma contagem de placares certos. Os pontos desses exatos
                 já estão incluídos nos pontos de Palpites.
               </p>
             </div>
@@ -985,10 +1057,56 @@ export default function RankingPage() {
               </div>
 
               <p className="mt-1 text-[9px] font-semibold leading-4 text-gray-500">
-                Isto é uma contagem de resultados certos, não uma categoria de pontos.
+                Isto é uma contagem de placares certos, não uma categoria de pontos.
               </p>
             </div>
           </>
+        )}
+
+        {compactHistoryRows.length > 0 && (
+          <div className="mt-2 rounded-xl border border-gray-200 bg-white px-3 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-gray-600">
+                Histórico
+              </p>
+
+              <p className="text-[10px] font-black text-gray-900">
+                {compactHistoryTotal} pts
+              </p>
+            </div>
+
+            <div className="mt-2 grid grid-cols-2 gap-1.5">
+              {compactHistoryRows.map((row) => (
+                <div
+                  key={row.label}
+                  className="rounded-lg border border-gray-100 bg-gray-50 px-2 py-1.5"
+                >
+                  <div className="flex items-center justify-between gap-1.5">
+                    <p className="truncate text-[9px] font-bold text-gray-600">
+                      {row.label}
+                    </p>
+                    <p className="shrink-0 text-[11px] font-black text-gray-900">
+                      {row.points}
+                    </p>
+                  </div>
+
+                  {typeof row.predictionPoints === "number" &&
+                    row.selectedTeamBonus &&
+                    row.selectedTeamBonus > 0 && (
+                      <p className="mt-0.5 truncate text-[8px] font-semibold text-gray-400">
+                        {row.predictionPoints} palpites + {row.selectedTeamBonus} seleção
+                      </p>
+                    )}
+                </div>
+              ))}
+            </div>
+
+            {selectedHistory.length > compactHistoryRows.length && (
+              <p className="mt-1.5 text-[8px] font-semibold text-gray-400">
+                A mostrar as últimas {compactHistoryRows.length} etapas
+              </p>
+            )}
+          </div>
         )}
 
         <p className="mt-1.5 truncate text-[10px] font-semibold text-gray-600">
@@ -1370,7 +1488,7 @@ export default function RankingPage() {
                         )}
                       </div>
 
-                      {isSelected && renderMobileSelectedStats()}
+                      {expandedMobileUserId === entry.userId && renderMobileSelectedStats()}
                     </button>
                   );
                 })}
@@ -1534,7 +1652,7 @@ export default function RankingPage() {
                           )}
                         </div>
 
-                        {isSelected && renderMobileSelectedStats()}
+                        {expandedMobileUserId === entry.userId && renderMobileSelectedStats()}
                       </div>
                     </button>
                   );
@@ -1652,7 +1770,7 @@ export default function RankingPage() {
                         </div>
 
                         <p className="mt-1 text-[10px] font-semibold leading-4 text-gray-500">
-                          Contagem de resultados certos. (Os pontos já estão incluídos em Palpites)
+                          Contagem de placares certos. Os pontos já estão incluídos em Palpites.
                         </p>
                       </div>
                     </div>
@@ -1702,7 +1820,7 @@ export default function RankingPage() {
                         </div>
 
                         <p className="mt-1 text-[10px] font-semibold leading-4 text-gray-500">
-                          Contagem de resultados certos, não uma categoria de pontos.
+                          Contagem de placares certos, não uma categoria de pontos.
                         </p>
                       </div>
 
