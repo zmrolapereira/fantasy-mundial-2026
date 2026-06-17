@@ -221,6 +221,10 @@ export default function AdminPage() {
   const [goals, setGoals] = useState("");
   const [assists, setAssists] = useState("");
   const [loadingSave, setLoadingSave] = useState(false);
+  const [draftStats, setDraftStats] = useState<
+    Record<string, { goals: string; assists: string }>
+  >({});
+  const [savingBulkStats, setSavingBulkStats] = useState(false);
 
   const [playerStats, setPlayerStats] = useState<PlayerTournamentStat[]>([]);
   const [loadingPlayerStats, setLoadingPlayerStats] = useState(true);
@@ -318,6 +322,44 @@ export default function AdminPage() {
     return players.find((player) => String(player.id) === selectedPlayerId);
   }, [selectedPlayerId]);
 
+  const playerStatsById = useMemo(() => {
+    const map = new Map<string, PlayerTournamentStat>();
+
+    playerStats.forEach((stat) => {
+      map.set(String(stat.playerId), stat);
+    });
+
+    return map;
+  }, [playerStats]);
+
+  const getDraftStat = (playerId: string | number) => {
+    const id = String(playerId);
+    const currentStat = playerStatsById.get(id);
+
+    return (
+      draftStats[id] ?? {
+        goals: String(currentStat?.goals ?? 0),
+        assists: String(currentStat?.assists ?? 0),
+      }
+    );
+  };
+
+  const changedDraftCount = useMemo(() => {
+    return filteredPlayers.filter((player) => {
+      const id = String(player.id);
+      const draft = draftStats[id];
+      if (!draft) return false;
+
+      const currentStat = playerStatsById.get(id);
+      const currentGoals = Number(currentStat?.goals ?? 0);
+      const currentAssists = Number(currentStat?.assists ?? 0);
+      const draftGoals = Number(draft.goals || 0);
+      const draftAssists = Number(draft.assists || 0);
+
+      return draftGoals !== currentGoals || draftAssists !== currentAssists;
+    }).length;
+  }, [draftStats, filteredPlayers, playerStatsById]);
+
   const loadPayments = async () => {
     try {
       setLoadingPayments(true);
@@ -389,17 +431,32 @@ export default function AdminPage() {
     if (isAdmin) {
       loadPayments();
       loadPlayerStats();
+      loadPredictionStats();
+      loadParticipationStats();
     }
   }, [isAdmin]);
 
   useEffect(() => {
-    const stat = playerStats.find(
-      (item) => String(item.playerId) === selectedPlayerId
-    );
+    const stat = playerStatsById.get(selectedPlayerId);
 
     setGoals(String(stat?.goals ?? 0));
     setAssists(String(stat?.assists ?? 0));
-  }, [selectedPlayerId, playerStats]);
+  }, [selectedPlayerId, playerStatsById]);
+
+  useEffect(() => {
+    const nextDrafts: Record<string, { goals: string; assists: string }> = {};
+
+    players.forEach((player) => {
+      const stat = playerStatsById.get(String(player.id));
+
+      nextDrafts[String(player.id)] = {
+        goals: String(stat?.goals ?? 0),
+        assists: String(stat?.assists ?? 0),
+      };
+    });
+
+    setDraftStats(nextDrafts);
+  }, [playerStatsById]);
 
   const loadHistory = async () => {
     if (!selectedPlayerId) return;
@@ -477,6 +534,75 @@ export default function AdminPage() {
     }
   };
 
+  const handleDraftStatChange = (
+    playerId: string | number,
+    field: "goals" | "assists",
+    value: string
+  ) => {
+    const cleanValue = value === "" ? "" : String(Math.max(0, Number(value || 0)));
+
+    setDraftStats((current) => {
+      const id = String(playerId);
+      const currentStat = getDraftStat(id);
+
+      return {
+        ...current,
+        [id]: {
+          ...currentStat,
+          [field]: cleanValue,
+        },
+      };
+    });
+  };
+
+  const handleSaveBulkStats = async () => {
+    const changedPlayers = filteredPlayers.filter((player) => {
+      const id = String(player.id);
+      const draft = draftStats[id];
+      if (!draft) return false;
+
+      const currentStat = playerStatsById.get(id);
+      const currentGoals = Number(currentStat?.goals ?? 0);
+      const currentAssists = Number(currentStat?.assists ?? 0);
+      const draftGoals = Number(draft.goals || 0);
+      const draftAssists = Number(draft.assists || 0);
+
+      return draftGoals !== currentGoals || draftAssists !== currentAssists;
+    });
+
+    if (changedPlayers.length === 0) {
+      alert("Não há alterações para guardar.");
+      return;
+    }
+
+    try {
+      setSavingBulkStats(true);
+
+      for (const player of changedPlayers) {
+        const draft = draftStats[String(player.id)];
+
+        await savePlayerTournamentStat(
+          Number(player.id),
+          player.name,
+          Number(draft?.goals || 0),
+          Number(draft?.assists || 0)
+        );
+      }
+
+      await loadPlayerStats();
+      await recalculateAllFantasyPoints();
+
+      alert(
+        `${changedPlayers.length} jogador(es) atualizado(s) e pontos recalculados.`
+      );
+    } catch (error: any) {
+      console.error("SAVE BULK STATS ERROR:", error);
+      alert(error?.message || "Erro ao guardar as stats em lista.");
+    } finally {
+      setSavingBulkStats(false);
+    }
+  };
+
   const handleRecalculatePoints = async () => {
     try {
       setLoadingSave(true);
@@ -491,18 +617,20 @@ export default function AdminPage() {
   };
 
   const handleApprove = async (userId: string) => {
-  try {
-    setActionUserId(userId);
-    await approvePayment(userId);
-    await loadPayments();
-    alert("Pagamento aprovado com sucesso.");
-  } catch (error) {
-    console.error(error);
-    alert("Erro ao aprovar pagamento.");
-  } finally {
-    setActionUserId(null);
-  }
-};
+    try {
+      setActionUserId(userId);
+      await approvePayment(userId);
+      await loadPayments();
+      await loadPredictionStats();
+      await loadParticipationStats();
+      alert("Pagamento aprovado com sucesso.");
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao aprovar pagamento.");
+    } finally {
+      setActionUserId(null);
+    }
+  };
 
   const handleReject = async (userId: string) => {
     try {
@@ -1021,250 +1149,69 @@ export default function AdminPage() {
               </div>
             </div>
           </section>
-          <section className="grid gap-4 lg:grid-cols-4">
-            <a
-              href="/admin/missing-team"
-              className="rounded-2xl p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-              style={{
-                backgroundColor: "#ffffff",
-                border: "1px solid #e5e7eb",
-                color: "#111827",
-                textDecoration: "none",
-              }}
-            >
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.16em",
-                  color: "#7c3aed",
-                }}
-              >
-                Controlo
-              </p>
+          <section
+            className="rounded-2xl p-5 shadow-sm"
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid #e5e7eb",
+              color: "#111827",
+            }}
+          >
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.16em",
+                    color: "#7c3aed",
+                  }}
+                >
+                  Controlo
+                </p>
 
-              <h2
-                style={{
-                  marginTop: 8,
-                  marginBottom: 0,
-                  fontSize: 24,
-                  fontWeight: 900,
-                  color: "#111827",
-                }}
-              >
-                Equipas e predictions em falta
-              </h2>
+                <h2
+                  style={{
+                    marginTop: 8,
+                    marginBottom: 0,
+                    fontSize: 26,
+                    fontWeight: 900,
+                    color: "#111827",
+                  }}
+                >
+                  Equipas e predictions em falta
+                </h2>
 
-              <p
-                style={{
-                  marginTop: 8,
-                  marginBottom: 0,
-                  fontSize: 14,
-                  color: "#6b7280",
-                  lineHeight: 1.7,
-                }}
-              >
-                Vê quem já pagou mas ainda não criou equipa e quem ainda não
-                preencheu as predictions de cada jornada ou fase.
-              </p>
+                <p
+                  style={{
+                    marginTop: 8,
+                    marginBottom: 0,
+                    fontSize: 14,
+                    color: "#6b7280",
+                    lineHeight: 1.7,
+                  }}
+                >
+                  Vê quem já pagou mas ainda não criou equipa e quem ainda não
+                  preencheu as predictions de cada jornada ou fase.
+                </p>
+              </div>
 
-              <div
-                className="mt-4 inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold"
+              <a
+                href="/admin/missing-team"
+                className="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold transition hover:scale-[1.02]"
                 style={{
                   backgroundColor: "#2f2140",
                   color: "#ffffff",
                   border: "1px solid #2f2140",
                   boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+                  minWidth: 210,
                 }}
               >
                 Abrir painel →
-              </div>
-            </a>
-            
-            <a
-  href="/admin/resultados"
-  className="rounded-2xl p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-  style={{
-    backgroundColor: "#ffffff",
-    border: "1px solid #e5e7eb",
-    color: "#111827",
-    textDecoration: "none",
-  }}
->
-  <p
-    style={{
-      margin: 0,
-      fontSize: 11,
-      fontWeight: 700,
-      textTransform: "uppercase",
-      letterSpacing: "0.16em",
-      color: "#7c3aed",
-    }}
-  >
-    Resultados
-  </p>
-
-  <h2
-    style={{
-      marginTop: 8,
-      marginBottom: 0,
-      fontSize: 24,
-      fontWeight: 900,
-      color: "#111827",
-    }}
-  >
-    Atualizar resultados
-  </h2>
-
-  <p
-    style={{
-      marginTop: 8,
-      marginBottom: 0,
-      fontSize: 14,
-      color: "#6b7280",
-      lineHeight: 1.7,
-    }}
-  >
-    Atualiza os resultados dos jogos pelo admin e recalcula os pontos sem
-    precisares de mexer no VS Code.
-  </p>
-
-  <div
-    className="mt-4 inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold"
-    style={{
-      backgroundColor: "#dc2626",
-      color: "#ffffff",
-      border: "1px solid #b91c1c",
-      boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
-    }}
-  >
-    Atualizar resultados →
-  </div>
-</a>
-
-            <a
-              href="/admin/gerar-tendencias"
-              className="rounded-2xl p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-              style={{
-                backgroundColor: "#ffffff",
-                border: "1px solid #e5e7eb",
-                color: "#111827",
-                textDecoration: "none",
-              }}
-            >
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.16em",
-                  color: "#7c3aed",
-                }}
-              >
-                Tendências
-              </p>
-
-              <h2
-                style={{
-                  marginTop: 8,
-                  marginBottom: 0,
-                  fontSize: 24,
-                  fontWeight: 900,
-                  color: "#111827",
-                }}
-              >
-                Gerar tendências públicas
-              </h2>
-
-              <p
-                style={{
-                  marginTop: 8,
-                  marginBottom: 0,
-                  fontSize: 14,
-                  color: "#6b7280",
-                  lineHeight: 1.7,
-                }}
-              >
-                Atualiza os dados agregados das predictions para a página pública
-                de tendências sem fazer o público ler todas as predictions.
-              </p>
-
-              <div
-                className="mt-4 inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold"
-                style={{
-                  backgroundColor: "#7c3aed",
-                  color: "#ffffff",
-                  border: "1px solid #6d28d9",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
-                }}
-              >
-                Gerar tendências →
-              </div>
-            </a>
-
-            <a
-              href="/admin/gerar-dashboard-picks"
-              className="rounded-2xl p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-              style={{
-                backgroundColor: "#ffffff",
-                border: "1px solid #e5e7eb",
-                color: "#111827",
-                textDecoration: "none",
-              }}
-            >
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.16em",
-                  color: "#7c3aed",
-                }}
-              >
-                Picks
-              </p>
-
-              <h2
-                style={{
-                  marginTop: 8,
-                  marginBottom: 0,
-                  fontSize: 24,
-                  fontWeight: 900,
-                  color: "#111827",
-                }}
-              >
-                Gerar dashboard dos picks
-              </h2>
-
-              <p
-                style={{
-                  marginTop: 8,
-                  marginBottom: 0,
-                  fontSize: 14,
-                  color: "#6b7280",
-                  lineHeight: 1.7,
-                }}
-              >
-                Conta os marcadores, assistentes e seleções campeãs mais
-                escolhidos e guarda o resumo para aparecer dentro das tendências.
-              </p>
-
-              <div
-                className="mt-4 inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold"
-                style={{
-                  backgroundColor: "#16a34a",
-                  color: "#ffffff",
-                  border: "1px solid #15803d",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
-                }}
-              >
-                Gerar picks →
-              </div>
-            </a>
+              </a>
+            </div>
           </section>
           <section
             className="rounded-2xl p-4 shadow-sm"
@@ -1511,10 +1458,7 @@ export default function AdminPage() {
 
                   <button
                     type="button"
-                    onClick={async () => {
-                      await loadPredictionStats();
-                      await loadParticipationStats();
-                    }}
+                    onClick={loadPredictionStats}
                     disabled={loadingPredictionStats}
                     className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                     style={{
@@ -1886,6 +1830,125 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              <div className="mt-5 rounded-2xl border border-gray-200 bg-[#f8fafc] p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
+                      Edição rápida
+                    </p>
+                    <p className="mt-1 text-sm text-gray-600">
+                      Altera vários jogadores na lista e guarda tudo de uma vez.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveBulkStats}
+                    disabled={
+                      savingBulkStats ||
+                      loadingPlayerStats ||
+                      filteredPlayers.length === 0 ||
+                      changedDraftCount === 0
+                    }
+                    className="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{
+                      backgroundColor: "#16a34a",
+                      color: "#ffffff",
+                      border: "1px solid #15803d",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+                      minWidth: 210,
+                    }}
+                  >
+                    {savingBulkStats
+                      ? "A guardar alterações..."
+                      : changedDraftCount > 0
+                      ? `Guardar ${changedDraftCount} alteração(ões)`
+                      : "Sem alterações"}
+                  </button>
+                </div>
+
+                <div className="mt-4 max-h-[520px] space-y-2 overflow-y-auto pr-1">
+                  {filteredPlayers.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-gray-300 bg-white p-4 text-sm text-gray-500">
+                      Nenhum jogador encontrado com estes filtros.
+                    </div>
+                  ) : (
+                    filteredPlayers.map((player) => {
+                      const draft = getDraftStat(player.id);
+                      const currentStat = playerStatsById.get(String(player.id));
+                      const changed =
+                        Number(draft.goals || 0) !== Number(currentStat?.goals ?? 0) ||
+                        Number(draft.assists || 0) !== Number(currentStat?.assists ?? 0);
+
+                      return (
+                        <div
+                          key={player.id}
+                          className="grid gap-3 rounded-xl border bg-white p-3 md:grid-cols-[minmax(0,1fr)_90px_110px_90px] md:items-center"
+                          style={{
+                            borderColor: changed ? "#86efac" : "#e5e7eb",
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPlayerId(String(player.id))}
+                            className="min-w-0 text-left"
+                          >
+                            <p className="truncate text-sm font-extrabold text-gray-900">
+                              {player.name}
+                            </p>
+                            <p className="mt-0.5 text-xs font-semibold text-gray-500">
+                              {player.team} • {player.position}
+                            </p>
+                          </button>
+
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 md:hidden">
+                              Golos
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={draft.goals}
+                              onChange={(e) =>
+                                handleDraftStatChange(player.id, "goals", e.target.value)
+                              }
+                              className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold text-gray-900 outline-none focus:border-green-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 md:hidden">
+                              Assistências
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={draft.assists}
+                              onChange={(e) =>
+                                handleDraftStatChange(player.id, "assists", e.target.value)
+                              }
+                              className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold text-gray-900 outline-none focus:border-green-500"
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-end gap-2">
+                            {changed ? (
+                              <span className="rounded-full bg-green-100 px-2.5 py-1 text-[10px] font-extrabold uppercase text-green-700">
+                                Alterado
+                              </span>
+                            ) : (
+                              <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-bold uppercase text-gray-500">
+                                Atual
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
               <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
                 <div className="md:col-span-2 lg:col-span-4">
                   <label
@@ -1977,7 +2040,12 @@ export default function AdminPage() {
                   <button
                     type="button"
                     onClick={handleSaveStats}
-                    disabled={loadingSave || loadingPlayerStats || !selectedPlayerId}
+                    disabled={
+                      loadingSave ||
+                      savingBulkStats ||
+                      loadingPlayerStats ||
+                      !selectedPlayerId
+                    }
                     className="inline-flex h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                     style={{
                       backgroundColor: "#2f2140",

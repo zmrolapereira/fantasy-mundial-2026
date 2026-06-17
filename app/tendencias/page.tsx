@@ -315,6 +315,7 @@ export default function TendenciasPage() {
 
   const [activeTab, setActiveTab] = useState<PageTab>("picks");
   const [gameTrendView, setGameTrendView] = useState<GameTrendView>("byGame");
+  const [selectedPersonKey, setSelectedPersonKey] = useState("");
   const [personSearch, setPersonSearch] = useState("");
 
   const [loadingTrends, setLoadingTrends] = useState(true);
@@ -455,30 +456,33 @@ export default function TendenciasPage() {
     return buildPersonTrends(selectedGames);
   }, [selectedGames]);
 
-  const filteredPersonTrends = useMemo(() => {
-    const search = personSearch.trim().toLowerCase();
+  const personFilterOptions = useMemo(() => {
+    return [...personTrends].sort((a, b) => {
+      const nameDiff = a.name.localeCompare(b.name, "pt-PT");
+      if (nameDiff !== 0) return nameDiff;
 
-    if (!search) return personTrends;
-
-    return personTrends.filter((person) => {
-      const name = person.name.toLowerCase();
-      const managerName = person.managerName.toLowerCase();
-
-      const predictionsText = person.predictions
-        .map(
-          (prediction) =>
-            `${prediction.homeTeam} ${prediction.awayTeam} ${prediction.outcomeLabel} ${prediction.predictedScore}`,
-        )
-        .join(" ")
-        .toLowerCase();
-
-      return (
-        name.includes(search) ||
-        managerName.includes(search) ||
-        predictionsText.includes(search)
-      );
+      return a.managerName.localeCompare(b.managerName, "pt-PT");
     });
-  }, [personTrends, personSearch]);
+  }, [personTrends]);
+
+  const selectedPersonTrend = useMemo(() => {
+    if (!selectedPersonKey) return null;
+
+    return (
+      personTrends.find((person) => person.key === selectedPersonKey) ?? null
+    );
+  }, [personTrends, selectedPersonKey]);
+
+  useEffect(() => {
+    if (gameTrendView !== "byPerson") return;
+
+    if (
+      selectedPersonKey &&
+      !personTrends.some((person) => person.key === selectedPersonKey)
+    ) {
+      setSelectedPersonKey("");
+    }
+  }, [gameTrendView, personTrends, selectedPersonKey]);
 
   const roundTotalPredictions = useMemo(() => {
     return selectedGames.reduce(
@@ -737,24 +741,38 @@ export default function TendenciasPage() {
                 <div className="inline-flex rounded-2xl bg-gray-100 p-1 ring-1 ring-gray-200">
                   <ViewToggle
                     active={gameTrendView === "byGame"}
-                    onClick={() => setGameTrendView("byGame")}
+                    onClick={() => {
+                      setGameTrendView("byGame");
+                      setSelectedPersonKey("");
+                    }}
                     label="Por jogo"
                   />
 
                   <ViewToggle
                     active={gameTrendView === "byPerson"}
-                    onClick={() => setGameTrendView("byPerson")}
+                    onClick={() => {
+                      setGameTrendView("byPerson");
+                      setSelectedPersonKey("");
+                    }}
                     label="Por pessoa"
                   />
                 </div>
 
                 {gameTrendView === "byPerson" && (
-                  <input
-                    value={personSearch}
-                    onChange={(e) => setPersonSearch(e.target.value)}
-                    placeholder="Pesquisar pessoa, equipa, jogo ou resultado..."
+                  <select
+                    value={selectedPersonKey}
+                    onChange={(e) => setSelectedPersonKey(e.target.value)}
                     className="h-11 w-full rounded-2xl border border-gray-200 bg-white px-3 text-sm font-bold text-gray-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100 lg:max-w-md"
-                  />
+                  >
+                    <option value="">Escolhe uma pessoa</option>
+                    {personFilterOptions.map((person) => (
+                      <option key={person.key} value={person.key}>
+                        {person.managerName
+                          ? `${person.name} — ${person.managerName}`
+                          : person.name}
+                      </option>
+                    ))}
+                  </select>
                 )}
               </div>
 
@@ -795,8 +813,9 @@ export default function TendenciasPage() {
                   </div>
                 ) : (
                   <PersonTrendsView
-                    people={filteredPersonTrends}
+                    people={selectedPersonTrend ? [selectedPersonTrend] : []}
                     totalPeople={personTrends.length}
+                    hasSelectedPerson={Boolean(selectedPersonKey)}
                   />
                 )}
               </section>
@@ -982,9 +1001,11 @@ function TrendGameCard({
 function PersonTrendsView({
   people,
   totalPeople,
+  hasSelectedPerson,
 }: {
   people: PersonTrendRow[];
   totalPeople: number;
+  hasSelectedPerson: boolean;
 }) {
   if (totalPeople === 0) {
     return (
@@ -992,8 +1013,14 @@ function PersonTrendsView({
     );
   }
 
+  if (!hasSelectedPerson) {
+    return (
+      <InfoBox text="Escolhe uma pessoa no filtro para veres os resultados dela." />
+    );
+  }
+
   if (people.length === 0) {
-    return <InfoBox text="Não foram encontradas pessoas com esse filtro." />;
+    return <InfoBox text="Não foram encontrados resultados para essa pessoa." />;
   }
 
   return (

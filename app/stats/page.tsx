@@ -12,7 +12,8 @@ export default function StatsPage() {
   const [livePlayers, setLivePlayers] = useState<Player[]>([]);
   const [selectedStat, setSelectedStat] = useState<StatType>("goals");
   const [selectedTeam, setSelectedTeam] = useState<string>("ALL");
-  const [selectedPosition, setSelectedPosition] = useState<PositionType>("ALL");
+  const [selectedPosition, setSelectedPosition] =
+    useState<PositionType>("ALL");
 
   useEffect(() => {
     const unsubscribe = subscribeToLivePlayers((updatedPlayers) => {
@@ -23,24 +24,65 @@ export default function StatsPage() {
   }, []);
 
   const uniqueTeams = useMemo(() => {
-    return ["ALL", ...Array.from(new Set(livePlayers.map((player) => player.team)))];
+    const teams = Array.from(new Set(livePlayers.map((player) => player.team)))
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b, "pt-PT"));
+
+    return ["ALL", ...teams];
   }, [livePlayers]);
 
   const filteredAndSortedPlayers = useMemo(() => {
     return [...livePlayers]
       .filter((player) => {
-        const matchesTeam = selectedTeam === "ALL" || player.team === selectedTeam;
+        const hasGoalOrAssist =
+          Number(player.goals || 0) > 0 || Number(player.assists || 0) > 0;
+
+        const matchesTeam =
+          selectedTeam === "ALL" || player.team === selectedTeam;
+
         const matchesPosition =
           selectedPosition === "ALL" || player.position === selectedPosition;
 
-        return matchesTeam && matchesPosition;
+        return hasGoalOrAssist && matchesTeam && matchesPosition;
       })
-      .sort((a, b) => b[selectedStat] - a[selectedStat]);
+      .sort((a, b) => {
+        if (selectedStat === "goals") {
+          if (b.goals !== a.goals) return b.goals - a.goals;
+          if (b.assists !== a.assists) return b.assists - a.assists;
+          return a.name.localeCompare(b.name, "pt-PT");
+        }
+
+        if (selectedStat === "assists") {
+          if (b.assists !== a.assists) return b.assists - a.assists;
+          if (b.goals !== a.goals) return b.goals - a.goals;
+          return a.name.localeCompare(b.name, "pt-PT");
+        }
+
+        if (selectedStat === "points") {
+          if (b.points !== a.points) return b.points - a.points;
+          if (b.goals !== a.goals) return b.goals - a.goals;
+          if (b.assists !== a.assists) return b.assists - a.assists;
+          return a.name.localeCompare(b.name, "pt-PT");
+        }
+
+        return a.name.localeCompare(b.name, "pt-PT");
+      });
   }, [livePlayers, selectedStat, selectedTeam, selectedPosition]);
 
-  const totalGoals = livePlayers.reduce((sum, player) => sum + player.goals, 0);
-  const totalAssists = livePlayers.reduce((sum, player) => sum + player.assists, 0);
-  const totalPoints = livePlayers.reduce((sum, player) => sum + player.points, 0);
+  const totalGoals = livePlayers.reduce(
+    (sum, player) => sum + Number(player.goals || 0),
+    0
+  );
+
+  const totalAssists = livePlayers.reduce(
+    (sum, player) => sum + Number(player.assists || 0),
+    0
+  );
+
+  const totalPoints = livePlayers.reduce(
+    (sum, player) => sum + Number(player.points || 0),
+    0
+  );
 
   return (
     <main className="min-h-screen bg-[#f4f5f7] text-gray-900">
@@ -57,18 +99,24 @@ export default function StatsPage() {
         <div className="mb-6 grid gap-4 md:grid-cols-2">
           <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
             <p className="text-sm text-gray-500">Total de golos</p>
-            <p className="mt-2 text-3xl font-extrabold text-blue-600">{totalGoals}</p>
+            <p className="mt-2 text-3xl font-extrabold text-blue-600">
+              {totalGoals}
+            </p>
           </div>
 
           <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
             <p className="text-sm text-gray-500">Total de assistências</p>
-            <p className="mt-2 text-3xl font-extrabold text-purple-600">{totalAssists}</p>
+            <p className="mt-2 text-3xl font-extrabold text-purple-600">
+              {totalAssists}
+            </p>
           </div>
         </div>
 
         <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <h2 className="text-xl font-bold sm:text-2xl">Tabela de jogadores</h2>
+            <h2 className="text-xl font-bold sm:text-2xl">
+              Tabela de jogadores
+            </h2>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:flex xl:flex-wrap">
               <select
@@ -95,7 +143,9 @@ export default function StatsPage() {
 
               <select
                 value={selectedPosition}
-                onChange={(e) => setSelectedPosition(e.target.value as PositionType)}
+                onChange={(e) =>
+                  setSelectedPosition(e.target.value as PositionType)
+                }
                 className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium outline-none focus:border-blue-500"
               >
                 <option value="ALL">Todas as posições</option>
@@ -124,12 +174,28 @@ export default function StatsPage() {
               <tbody>
                 {filteredAndSortedPlayers.map((player, index) => (
                   <tr key={player.id} className="bg-gray-50">
-                    <td className="rounded-l-2xl px-4 py-4 font-bold">{index + 1}</td>
+                    <td className="rounded-l-2xl px-4 py-4 font-bold">
+                      {index + 1}
+                    </td>
+
                     <td className="px-4 py-4 font-bold">{player.name}</td>
-                    <td className="px-4 py-4 text-gray-600">{player.team}</td>
-                    <td className="px-4 py-4 text-gray-600">{player.position}</td>
-                    <td className="px-4 py-4 font-semibold text-blue-600">{player.goals}</td>
-                    <td className="px-4 py-4 font-semibold text-purple-600">{player.assists}</td>
+
+                    <td className="px-4 py-4 text-gray-600">
+                      {player.team}
+                    </td>
+
+                    <td className="px-4 py-4 text-gray-600">
+                      {player.position}
+                    </td>
+
+                    <td className="px-4 py-4 font-semibold text-blue-600">
+                      {player.goals}
+                    </td>
+
+                    <td className="px-4 py-4 font-semibold text-purple-600">
+                      {player.assists}
+                    </td>
+
                     <td className="rounded-r-2xl px-4 py-4 font-semibold text-emerald-600">
                       {player.points}
                     </td>
