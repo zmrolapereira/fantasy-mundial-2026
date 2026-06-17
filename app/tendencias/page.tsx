@@ -22,6 +22,7 @@ type PublicVoter =
       score?: string;
       predictedHomeScore?: number | string;
       predictedAwayScore?: number | string;
+      selectedTeamPoints?: number | string;
     };
 
 type TopResult = {
@@ -62,6 +63,10 @@ type CountItem = {
   team?: string;
   count: number;
   pct: number;
+  goals?: number;
+  assists?: number;
+  points?: number;
+  voters?: PublicVoter[];
 };
 
 type PickDashboard = {
@@ -183,12 +188,24 @@ function getVoterScore(voter: PublicVoter) {
   return "";
 }
 
+function getVoterSelectedTeamPoints(voter: PublicVoter) {
+  if (typeof voter === "string") return null;
+
+  const value = voter.selectedTeamPoints;
+
+  if (value === undefined || value === null || value === "") return null;
+
+  const numberValue = Number(value);
+
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
 function getVoterKey(voter: PublicVoter) {
   if (typeof voter === "string") return voter.trim().toLowerCase();
 
   return String(
     voter.userId ||
-      `${voter.teamName || voter.name || ""}-${voter.managerName || ""}`
+      `${voter.teamName || voter.name || ""}-${voter.managerName || ""}`,
   )
     .trim()
     .toLowerCase();
@@ -241,7 +258,7 @@ function buildPersonTrends(games: TrendGame[]): PersonTrendRow[] {
     voter: PublicVoter,
     game: TrendGame,
     outcomeLabel: string,
-    outcomeType: OutcomeType
+    outcomeType: OutcomeType,
   ) => {
     const key = getVoterKey(voter);
     const name = getVoterName(voter);
@@ -271,15 +288,15 @@ function buildPersonTrends(games: TrendGame[]): PersonTrendRow[] {
 
   games.forEach((game) => {
     getVotersList(game.homeVoters).forEach((voter) =>
-      addVoter(voter, game, `Vitória ${game.homeTeam}`, "home")
+      addVoter(voter, game, `Vitória ${game.homeTeam}`, "home"),
     );
 
     getVotersList(game.drawVoters).forEach((voter) =>
-      addVoter(voter, game, "Empate", "draw")
+      addVoter(voter, game, "Empate", "draw"),
     );
 
     getVotersList(game.awayVoters).forEach((voter) =>
-      addVoter(voter, game, `Vitória ${game.awayTeam}`, "away")
+      addVoter(voter, game, `Vitória ${game.awayTeam}`, "away"),
     );
   });
 
@@ -308,7 +325,9 @@ export default function TendenciasPage() {
   const [loadError, setLoadError] = useState("");
 
   const [loadingPicks, setLoadingPicks] = useState(true);
-  const [pickDashboard, setPickDashboard] = useState<PickDashboard | null>(null);
+  const [pickDashboard, setPickDashboard] = useState<PickDashboard | null>(
+    null,
+  );
   const [pickError, setPickError] = useState("");
 
   const [openGameKey, setOpenGameKey] = useState<string>("");
@@ -350,7 +369,7 @@ export default function TendenciasPage() {
       console.error(error);
       setLoadError(
         error?.message ||
-          "Erro ao carregar tendências. Verifica se publicPredictionTrends existe."
+          "Erro ao carregar tendências. Verifica se publicPredictionTrends existe.",
       );
     } finally {
       setLoadingTrends(false);
@@ -374,7 +393,7 @@ export default function TendenciasPage() {
       console.error(error);
       setPickError(
         error?.message ||
-          "Erro ao carregar dashboard dos picks. Verifica se publicPickDashboard/main existe."
+          "Erro ao carregar dashboard dos picks. Verifica se publicPickDashboard/main existe.",
       );
     } finally {
       setLoadingPicks(false);
@@ -412,7 +431,7 @@ export default function TendenciasPage() {
     }
 
     const stillVisible = visibleRounds.some(
-      (round) => round.id === selectedRoundId
+      (round) => round.id === selectedRoundId,
     );
 
     if (!selectedRoundId || !stillVisible) {
@@ -428,7 +447,7 @@ export default function TendenciasPage() {
     if (!selectedRound) return [];
 
     return [...(selectedRound.games || [])].sort(
-      (a, b) => Number(a.gameId) - Number(b.gameId)
+      (a, b) => Number(a.gameId) - Number(b.gameId),
     );
   }, [selectedRound]);
 
@@ -448,7 +467,7 @@ export default function TendenciasPage() {
       const predictionsText = person.predictions
         .map(
           (prediction) =>
-            `${prediction.homeTeam} ${prediction.awayTeam} ${prediction.outcomeLabel} ${prediction.predictedScore}`
+            `${prediction.homeTeam} ${prediction.awayTeam} ${prediction.outcomeLabel} ${prediction.predictedScore}`,
         )
         .join(" ")
         .toLowerCase();
@@ -464,7 +483,7 @@ export default function TendenciasPage() {
   const roundTotalPredictions = useMemo(() => {
     return selectedGames.reduce(
       (sum, game) => sum + Number(game.totalPredictions || 0),
-      0
+      0,
     );
   }, [selectedGames]);
 
@@ -484,7 +503,7 @@ export default function TendenciasPage() {
             ? game.topResults
                 .map(
                   (result, index) =>
-                    `${index + 1}) ${result.score} — ${result.count} voto(s) (${result.pct}%)`
+                    `${index + 1}) ${result.score} — ${result.count} voto(s) (${result.pct}%)`,
                 )
                 .join(" | ")
             : "Sem dados suficientes";
@@ -647,18 +666,24 @@ export default function TendenciasPage() {
                     title="Marcadores"
                     emoji="⚽"
                     items={pickDashboard.topScorers || []}
+                    statKey="goals"
+                    statLabel="golos"
                   />
 
                   <RankingCard
                     title="Assistentes"
                     emoji="🎯"
                     items={pickDashboard.topAssisters || []}
+                    statKey="assists"
+                    statLabel="assistências"
                   />
 
                   <RankingCard
                     title="Campeões"
                     emoji="🏆"
                     items={pickDashboard.champions || []}
+                    statKey="points"
+                    statLabel="pts seleção"
                   />
                 </div>
               </>
@@ -686,7 +711,9 @@ export default function TendenciasPage() {
                     className="mt-2 h-11 w-full rounded-2xl border border-gray-200 bg-white px-3 text-sm font-bold text-gray-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
                   >
                     {visibleRounds.length === 0 ? (
-                      <option value="">Ainda não há jornadas disponíveis</option>
+                      <option value="">
+                        Ainda não há jornadas disponíveis
+                      </option>
                     ) : (
                       visibleRounds.map((round) => (
                         <option key={round.id} value={round.id}>
@@ -740,7 +767,7 @@ export default function TendenciasPage() {
               ) : visibleRounds.length === 0 && nextRound ? (
                 <InfoBox
                   text={`Ainda não há tendências disponíveis. A primeira a desbloquear é ${nextRound.round}, em ${formatUnlockDate(
-                    nextRound.availableAt
+                    nextRound.availableAt,
                   )}.`}
                 />
               ) : null}
@@ -761,9 +788,7 @@ export default function TendenciasPage() {
                           key={gameKey}
                           game={game}
                           isOpen={isOpen}
-                          onToggle={() =>
-                            setOpenGameKey(isOpen ? "" : gameKey)
-                          }
+                          onToggle={() => setOpenGameKey(isOpen ? "" : gameKey)}
                         />
                       );
                     })}
@@ -853,15 +878,12 @@ function TrendGameCard({
             </p>
 
             <p className="text-xs font-black text-gray-900">
-              Favorito: <span className="text-violet-700">{favorite.label}</span>
+              Favorito:{" "}
+              <span className="text-violet-700">{favorite.label}</span>
             </p>
           </div>
 
-          <SegmentedBar
-            homePct={homePct}
-            drawPct={drawPct}
-            awayPct={awayPct}
-          />
+          <SegmentedBar homePct={homePct} drawPct={drawPct} awayPct={awayPct} />
 
           <div className="mt-3 grid gap-2 md:grid-cols-3">
             <OutcomePill
@@ -1121,7 +1143,11 @@ function OutcomePill({
           style={{ backgroundColor: color }}
         />
         {flag && (
-          <img src={flag} alt={label} className="h-4 w-6 rounded object-cover" />
+          <img
+            src={flag}
+            alt={label}
+            className="h-4 w-6 rounded object-cover"
+          />
         )}
         <p className="min-w-0 truncate text-xs font-black text-gray-700">
           {label}
@@ -1267,11 +1293,16 @@ function RankingCard({
   title,
   emoji,
   items,
+  statKey,
+  statLabel,
 }: {
   title: string;
   emoji: string;
   items: CountItem[];
+  statKey?: "goals" | "assists" | "points";
+  statLabel?: string;
 }) {
+  const [openItemKey, setOpenItemKey] = useState("");
   const visibleItems = (items || []).slice(0, 15);
 
   return (
@@ -1296,47 +1327,130 @@ function RankingCard({
         </p>
       ) : (
         <div className="space-y-2">
-          {visibleItems.map((item, index) => (
-            <div
-              key={`${item.name}-${item.team || ""}`}
-              className="rounded-2xl bg-gray-50 p-3 ring-1 ring-gray-100"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-black text-violet-600">
-                    #{index + 1}
-                  </p>
+          {visibleItems.map((item, index) => {
+            const itemKey = `${item.name}-${item.team || ""}`;
+            const isOpen = openItemKey === itemKey;
+            const voters = item.voters || [];
+            const statValue = statKey ? Number(item[statKey] || 0) : null;
 
-                  <h3 className="mt-0.5 truncate text-sm font-black text-gray-950">
-                    {item.name}
-                  </h3>
+            return (
+              <article
+                key={itemKey}
+                className="rounded-2xl bg-gray-50 p-3 ring-1 ring-gray-100"
+              >
+                <button
+                  type="button"
+                  onClick={() => setOpenItemKey(isOpen ? "" : itemKey)}
+                  className="w-full text-left"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-black text-violet-600">
+                        #{index + 1}
+                      </p>
 
-                  {item.team && (
-                    <p className="mt-0.5 truncate text-xs font-bold text-gray-500">
-                      {item.team}
+                      <h3 className="mt-0.5 truncate text-sm font-black text-gray-950">
+                        {item.name}
+                      </h3>
+
+                      {item.team && (
+                        <p className="mt-0.5 truncate text-xs font-bold text-gray-500">
+                          {item.team}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      <div className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-black text-violet-700">
+                        {item.pct}%
+                      </div>
+
+                      {statLabel && (
+                        <div className="rounded-full bg-gray-900 px-2.5 py-1 text-[10px] font-black text-white">
+                          {statValue} {statLabel}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 flex items-center gap-3">
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
+                      <div
+                        className="h-full rounded-full bg-violet-600"
+                        style={{ width: `${safePct(item.pct)}%` }}
+                      />
+                    </div>
+
+                    <p className="min-w-[58px] text-right text-xs font-black text-gray-600">
+                      {item.count}
                     </p>
-                  )}
-                </div>
+                  </div>
 
-                <div className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-black text-violet-700">
-                  {item.pct}%
-                </div>
-              </div>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-bold text-gray-400">
+                      Carrega para ver quem escolheu
+                    </p>
 
-              <div className="mt-2 flex items-center gap-3">
-                <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
-                  <div
-                    className="h-full rounded-full bg-violet-600"
-                    style={{ width: `${safePct(item.pct)}%` }}
-                  />
-                </div>
+                    <span className="text-sm font-black text-gray-400">
+                      {isOpen ? "−" : "+"}
+                    </span>
+                  </div>
+                </button>
 
-                <p className="min-w-[58px] text-right text-xs font-black text-gray-600">
-                  {item.count}
-                </p>
-              </div>
-            </div>
-          ))}
+                {isOpen && (
+                  <div className="mt-3 rounded-2xl border border-violet-100 bg-white p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-violet-700">
+                        Pessoas que escolheram
+                      </p>
+
+                      <span className="rounded-full bg-violet-50 px-2 py-1 text-[10px] font-black text-violet-700">
+                        {voters.length}{" "}
+                        {voters.length === 1 ? "pessoa" : "pessoas"}
+                      </span>
+                    </div>
+
+                    {voters.length === 0 ? (
+                      <p className="mt-3 text-xs font-semibold leading-5 text-gray-500">
+                        Ainda não há lista de pessoas neste agregado. Vai a
+                        /admin/gerar-dashboard-picks e volta a gerar.
+                      </p>
+                    ) : (
+                      <div className="mt-3 max-h-[220px] space-y-1.5 overflow-y-auto pr-1">
+                        {voters.map((voter, voterIndex) => (
+                          <div
+                            key={`${itemKey}-${getVoterName(voter)}-${voterIndex}`}
+                            className="flex items-center justify-between gap-3 rounded-xl bg-gray-50 px-3 py-2 ring-1 ring-gray-100"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-xs font-black text-gray-900">
+                                {getVoterName(voter)}
+                              </p>
+
+                              {getVoterManager(voter) && (
+                                <p className="truncate text-[10px] font-semibold text-gray-400">
+                                  {getVoterManager(voter)}
+                                </p>
+                              )}
+                            </div>
+
+                            {statLabel && (
+                              <span className="shrink-0 rounded-full bg-gray-900 px-2 py-1 text-[10px] font-black text-white">
+                                {statKey === "points"
+                                  ? getVoterSelectedTeamPoints(voter) ?? statValue
+                                  : statValue}{" "}
+                                {statLabel}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </article>
+            );
+          })}
         </div>
       )}
     </section>

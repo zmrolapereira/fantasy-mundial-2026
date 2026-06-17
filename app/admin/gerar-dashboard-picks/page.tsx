@@ -16,11 +16,22 @@ import { players } from "@/data/players";
 
 const ADMIN_EMAIL = "zmrolapereira@gmail.com";
 
+type PickVoter = {
+  userId?: string;
+  teamName: string;
+  managerName?: string;
+  selectedTeamPoints?: number;
+};
+
 type CountItem = {
   name: string;
   team?: string;
   count: number;
   pct: number;
+  goals?: number;
+  assists?: number;
+  points?: number;
+  voters?: PickVoter[];
 };
 
 type DashboardDoc = {
@@ -101,7 +112,7 @@ function findDeepValue(
   object: any,
   matcher: (key: string, value: unknown) => boolean,
   path = "",
-  depth = 0
+  depth = 0,
 ): FoundValue | null {
   if (!object || typeof object !== "object") return null;
   if (depth > 5) return null;
@@ -153,6 +164,7 @@ function getPlayerLabel(value: unknown) {
 
     if (playerFromId) {
       return {
+        playerId: String((playerFromId as any).id ?? id),
         name: normalizeText((playerFromId as any).name),
         team: normalizeText((playerFromId as any).team),
       };
@@ -176,6 +188,7 @@ function getPlayerLabel(value: unknown) {
 
   if (playerFromId) {
     return {
+      playerId: String((playerFromId as any).id ?? value),
       name: normalizeText((playerFromId as any).name),
       team: normalizeText((playerFromId as any).team),
     };
@@ -185,6 +198,7 @@ function getPlayerLabel(value: unknown) {
 
   if (playerFromName) {
     return {
+      playerId: String((playerFromName as any).id ?? ""),
       name: normalizeText((playerFromName as any).name),
       team: normalizeText((playerFromName as any).team),
     };
@@ -232,9 +246,55 @@ function getChampionLabel(value: unknown) {
   };
 }
 
+type CounterItem = {
+  playerId?: string;
+  name: string;
+  team?: string;
+  count: number;
+  voters: PickVoter[];
+  points?: number;
+};
+
+type PlayerStatsItem = {
+  goals: number;
+  assists: number;
+};
+
+function getSelectedTeamPoints(entry: any) {
+  const value =
+    entry.selectedTeamPoints ??
+    entry.championPoints ??
+    entry.selectedTeamChampionPoints ??
+    entry.teamPickPoints ??
+    entry.picks?.selectedTeamPoints ??
+    entry.specialPicks?.selectedTeamPoints ??
+    0;
+
+  const numberValue = Number(value);
+
+  return Number.isFinite(numberValue) ? numberValue : 0;
+}
+
+function getEntryVoter(entry: any): PickVoter {
+  return {
+    userId: String(entry.userId || entry.id || ""),
+    teamName: normalizeText(
+      entry.teamName ||
+        entry.fantasyTeamName ||
+        entry.name ||
+        "Equipa sem nome",
+    ),
+    managerName: normalizeText(
+      entry.managerName || entry.manager || entry.userName || "",
+    ),
+    selectedTeamPoints: getSelectedTeamPoints(entry),
+  };
+}
+
 function addToCounter(
-  map: Map<string, { name: string; team?: string; count: number }>,
-  item: { name: string; team?: string } | null
+  map: Map<string, CounterItem>,
+  item: { playerId?: string; name: string; team?: string; points?: number } | null,
+  voter: PickVoter,
 ) {
   if (!item?.name) return;
 
@@ -243,24 +303,64 @@ function addToCounter(
 
   if (existing) {
     existing.count += 1;
+    existing.voters.push(voter);
+
+    if (typeof item.points === "number") {
+      existing.points = Math.max(Number(existing.points ?? 0), item.points);
+    }
   } else {
     map.set(key, {
+      playerId: item.playerId || "",
       name: item.name,
       team: item.team || "",
       count: 1,
+      voters: [voter],
+      points: typeof item.points === "number" ? item.points : undefined,
     });
   }
 }
 
+function getStatsForCounterItem(
+  item: CounterItem,
+  statsByPlayerId: Map<string, PlayerStatsItem>,
+  statsByPlayerName: Map<string, PlayerStatsItem>,
+) {
+  if (item.playerId && statsByPlayerId.has(item.playerId)) {
+    return statsByPlayerId.get(item.playerId) ?? { goals: 0, assists: 0 };
+  }
+
+  return (
+    statsByPlayerName.get(normalizeKey(item.name)) ?? { goals: 0, assists: 0 }
+  );
+}
+
 function mapToSortedArray(
-  map: Map<string, { name: string; team?: string; count: number }>,
-  totalTeams: number
+  map: Map<string, CounterItem>,
+  totalTeams: number,
+  statsByPlayerId = new Map<string, PlayerStatsItem>(),
+  statsByPlayerName = new Map<string, PlayerStatsItem>(),
 ): CountItem[] {
   return Array.from(map.values())
-    .map((item) => ({
-      ...item,
-      pct: totalTeams > 0 ? Math.round((item.count / totalTeams) * 100) : 0,
-    }))
+    .map((item) => {
+      const stats = getStatsForCounterItem(
+        item,
+        statsByPlayerId,
+        statsByPlayerName,
+      );
+
+      return {
+        name: item.name,
+        team: item.team || "",
+        count: item.count,
+        voters: item.voters.sort((a, b) =>
+          a.teamName.localeCompare(b.teamName, "pt-PT"),
+        ),
+        goals: stats.goals,
+        assists: stats.assists,
+        points: Number(item.points ?? 0),
+        pct: totalTeams > 0 ? Math.round((item.count / totalTeams) * 100) : 0,
+      };
+    })
     .sort((a, b) => {
       if (b.count !== a.count) return b.count - a.count;
       return a.name.localeCompare(b.name);
@@ -473,20 +573,31 @@ async function generatePickDashboard(): Promise<DashboardDoc> {
 
   const totalTeams = entries.length;
 
-  const scorersMap = new Map<
-    string,
-    { name: string; team?: string; count: number }
-  >();
+  const playerStatsSnapshot = await getDocs(
+    collection(db, "playerTournamentStats"),
+  );
 
-  const assistersMap = new Map<
-    string,
-    { name: string; team?: string; count: number }
-  >();
+  const statsByPlayerId = new Map<string, PlayerStatsItem>();
+  const statsByPlayerName = new Map<string, PlayerStatsItem>();
 
-  const championsMap = new Map<
-    string,
-    { name: string; team?: string; count: number }
-  >();
+  playerStatsSnapshot.docs.forEach((docSnap) => {
+    const data = docSnap.data() as any;
+    const playerId = String(data.playerId || data.id || docSnap.id || "");
+    const playerName = normalizeText(data.playerName || data.name || "");
+    const stats = {
+      goals: Number(data.goals || 0),
+      assists: Number(data.assists || 0),
+    };
+
+    if (playerId) statsByPlayerId.set(playerId, stats);
+    if (playerName) statsByPlayerName.set(normalizeKey(playerName), stats);
+  });
+
+  const scorersMap = new Map<string, CounterItem>();
+
+  const assistersMap = new Map<string, CounterItem>();
+
+  const championsMap = new Map<string, CounterItem>();
 
   let missingScorer = 0;
   let missingAssister = 0;
@@ -496,20 +607,40 @@ async function generatePickDashboard(): Promise<DashboardDoc> {
     const scorer = getTopScorer(entry);
     const assister = getTopAssister(entry);
     const champion = getChampion(entry);
+    const voter = getEntryVoter(entry);
 
     if (!scorer) missingScorer++;
     if (!assister) missingAssister++;
     if (!champion) missingChampion++;
 
-    addToCounter(scorersMap, scorer);
-    addToCounter(assistersMap, assister);
-    addToCounter(championsMap, champion);
+    addToCounter(scorersMap, scorer, voter);
+    addToCounter(assistersMap, assister, voter);
+    addToCounter(
+      championsMap,
+      champion
+        ? {
+            ...champion,
+            points: getSelectedTeamPoints(entry),
+          }
+        : null,
+      voter,
+    );
   });
 
   const dashboard: DashboardDoc = {
     totalTeams,
-    topScorers: mapToSortedArray(scorersMap, totalTeams),
-    topAssisters: mapToSortedArray(assistersMap, totalTeams),
+    topScorers: mapToSortedArray(
+      scorersMap,
+      totalTeams,
+      statsByPlayerId,
+      statsByPlayerName,
+    ),
+    topAssisters: mapToSortedArray(
+      assistersMap,
+      totalTeams,
+      statsByPlayerId,
+      statsByPlayerName,
+    ),
     champions: mapToSortedArray(championsMap, totalTeams),
   };
 
@@ -635,7 +766,10 @@ export default function GeneratePickDashboardPage() {
                 title="Assistentes"
                 value={dashboard.topAssisters.length}
               />
-              <PreviewCard title="Campeões" value={dashboard.champions.length} />
+              <PreviewCard
+                title="Campeões"
+                value={dashboard.champions.length}
+              />
             </div>
           )}
         </section>
