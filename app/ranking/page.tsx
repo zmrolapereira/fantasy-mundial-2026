@@ -92,6 +92,7 @@ type HistoryRow = {
 };
 
 type LeaderboardMode = "overall" | "stage";
+type OverallLeaderboardTab = "points" | "exact";
 
 type StageOption = {
   id: string;
@@ -245,6 +246,58 @@ function TinyStat({
   );
 }
 
+
+function getExactResultsFromEntry(entry?: FantasyEntry | null) {
+  if (!entry) return 0;
+
+  const raw = entry as FantasyEntry & {
+    exactResultsCount?: number;
+    exactScoreHits?: number;
+    exactPredictionsCount?: number;
+  };
+
+  return Number(
+    raw.exactResultsCount ?? raw.exactScoreHits ?? raw.exactPredictionsCount ?? 0
+  );
+}
+
+function getLiveTotal(entry?: FantasyEntry | null) {
+  if (!entry) return 0;
+
+  const categoryTotal =
+    Number(entry.predictionPoints ?? 0) +
+    Number(entry.topScorerPoints ?? 0) +
+    Number(entry.topAssistPoints ?? 0) +
+    Number(entry.selectedTeamPoints ?? 0);
+
+  return Math.max(Number(entry.totalPoints ?? 0), categoryTotal);
+}
+
+function getOverallLeaderboardValue(
+  entry: FantasyEntry,
+  tab: OverallLeaderboardTab
+) {
+  if (tab === "exact") return getExactResultsFromEntry(entry);
+  return getLiveTotal(entry);
+}
+
+function getOverallLeaderboardTitle(tab: OverallLeaderboardTab) {
+  if (tab === "exact") return "Ranking • Resultados exatos";
+  return "Ranking Global";
+}
+
+function getOverallLeaderboardDescription(tab: OverallLeaderboardTab) {
+  if (tab === "exact") {
+    return "Leaderboard alternativa ordenada por quem acertou em mais resultados exatos.";
+  }
+
+  return "Vê a classificação geral, o pote total e os prémios finais da fantasy.";
+}
+
+function getOverallLeaderboardColumnLabel(tab: OverallLeaderboardTab) {
+  if (tab === "exact") return "Exatos";
+  return "Pts";
+}
 function buildPredictionHistory(predictions: PredictionWithGame[]) {
   const order = [
     "Jornada 1",
@@ -351,6 +404,8 @@ export default function RankingPage() {
 
   const [leaderboardMode, setLeaderboardMode] =
     useState<LeaderboardMode>("overall");
+  const [overallLeaderboardTab, setOverallLeaderboardTab] =
+    useState<OverallLeaderboardTab>("points");
   const [selectedStageId, setSelectedStageId] = useState<string>("");
 
   const [stageSnapshotEntries, setStageSnapshotEntries] = useState<
@@ -441,31 +496,6 @@ export default function RankingPage() {
     return map;
   }, [allSnapshots]);
 
-  const selectedStageHasSnapshot = useMemo(() => {
-    if (!selectedStageId) return false;
-    return snapshotsByStageId.has(selectedStageId);
-  }, [selectedStageId, snapshotsByStageId]);
-
-  const openLiveStageOption = useMemo(() => {
-    return (
-      stageOptions.find((option) => !snapshotsByStageId.has(option.id)) ??
-      stageOptions[stageOptions.length - 1] ??
-      null
-    );
-  }, [stageOptions, snapshotsByStageId]);
-
-  const getLiveTotal = (entry?: FantasyEntry | null) => {
-    if (!entry) return 0;
-
-    const categoryTotal =
-      Number(entry.predictionPoints ?? 0) +
-      Number(entry.topScorerPoints ?? 0) +
-      Number(entry.topAssistPoints ?? 0) +
-      Number(entry.selectedTeamPoints ?? 0);
-
-    return Math.max(Number(entry.totalPoints ?? 0), categoryTotal);
-  };
-
   const snapshotTotalsByUserId = useMemo(() => {
     const totals = new Map<string, number>();
 
@@ -484,33 +514,16 @@ export default function RankingPage() {
     return totals;
   }, [orderedStageIds, snapshotsByStageId]);
 
-  const previousSnapshotTotalsByUserId = useMemo(() => {
-    const totals = new Map<string, number>();
-    const currentIndex = orderedStageIds.indexOf(selectedStageId);
-
-    if (currentIndex <= 0) return totals;
-
-    orderedStageIds.slice(0, currentIndex).forEach((stageId) => {
-      const snapshot = snapshotsByStageId.get(stageId);
-      if (!snapshot?.entries) return;
-
-      snapshot.entries.forEach((entry) => {
-        totals.set(
-          entry.userId,
-          (totals.get(entry.userId) ?? 0) + Number(entry.stagePoints ?? 0)
-        );
-      });
-    });
-
-    return totals;
-  }, [orderedStageIds, selectedStageId, snapshotsByStageId]);
-
   const leaderboard: RankedEntry[] = useMemo(() => {
     const sorted = [...entries].sort((a, b) => {
-      const aTotal = getLiveTotal(a);
-      const bTotal = getLiveTotal(b);
+      if (overallLeaderboardTab === "exact") {
+        // Leaderboard de exatos: ordena APENAS por resultados exatos.
+        // Sem desempates por pontos, palpites ou nome para não interferir com a geral.
+        return getExactResultsFromEntry(b) - getExactResultsFromEntry(a);
+      }
 
-      const totalDiff = bTotal - aTotal;
+      // Leaderboard geral mantém exatamente a lógica normal por pontos totais.
+      const totalDiff = getLiveTotal(b) - getLiveTotal(a);
       if (totalDiff !== 0) return totalDiff;
 
       return (a.teamName ?? "").localeCompare(b.teamName ?? "");
@@ -523,9 +536,13 @@ export default function RankingPage() {
 
       if (index > 0) {
         const prev = sorted[index - 1];
-        const prevTotal = getLiveTotal(prev);
 
-        if (entryTotal !== prevTotal) currentRank = index + 1;
+        const sameRank =
+          overallLeaderboardTab === "exact"
+            ? getExactResultsFromEntry(entry) === getExactResultsFromEntry(prev)
+            : entryTotal === getLiveTotal(prev);
+
+        if (!sameRank) currentRank = index + 1;
       }
 
       return {
@@ -534,7 +551,7 @@ export default function RankingPage() {
         rank: currentRank,
       };
     });
-  }, [entries]);
+  }, [entries, overallLeaderboardTab]);
 
   const totalTeams = leaderboard.length;
 
@@ -597,6 +614,12 @@ export default function RankingPage() {
     }
   }, [leaderboard, selectedUserId, user?.uid]);
 
+  const previousStageId = useMemo(() => {
+    const currentIndex = orderedStageIds.indexOf(selectedStageId);
+    if (currentIndex <= 0) return null;
+    return orderedStageIds[currentIndex - 1];
+  }, [orderedStageIds, selectedStageId]);
+
   useEffect(() => {
     const loadStageSnapshot = async () => {
       if (leaderboardMode !== "stage" || !selectedStageId) {
@@ -607,85 +630,49 @@ export default function RankingPage() {
       try {
         setLoadingStageSnapshot(true);
 
-        const currentSnapshot =
-          snapshotsByStageId.get(selectedStageId) ??
-          ((await getStageLeaderboardSnapshot(selectedStageId)) as
-            | LeaderboardSnapshot
-            | null);
+        const currentSnapshot = await getStageLeaderboardSnapshot(
+          selectedStageId
+        );
 
-        if (currentSnapshot && Array.isArray((currentSnapshot as any).entries)) {
-          const mapped: StageRankedEntry[] = (currentSnapshot as any).entries.map(
-            (entry: SnapshotEntry) => {
-              const fullEntry = entries.find((e) => e.userId === entry.userId);
-
-              const stagePoints = Number(entry.stagePoints ?? 0);
-
-              return {
-                ...(fullEntry ?? {
-                  userId: entry.userId,
-                  teamName: entry.teamName,
-                  managerName: entry.managerName,
-                  totalPoints: snapshotTotalsByUserId.get(entry.userId) ?? 0,
-                  predictionPoints: 0,
-                  topScorerPoints: 0,
-                  topAssistPoints: 0,
-                  selectedTeamPoints: 0,
-                  topScorerPick: null,
-                  topAssistPick: null,
-                  championPick: null,
-                }),
-                totalPoints: fullEntry
-                  ? getLiveTotal(fullEntry)
-                  : snapshotTotalsByUserId.get(entry.userId) ?? 0,
-                rank: 0,
-                stagePoints,
-              } as StageRankedEntry;
-            }
-          );
-
-          const sorted = mapped.sort((a, b) => {
-            if (b.stagePoints !== a.stagePoints) return b.stagePoints - a.stagePoints;
-            return (b.totalPoints ?? 0) - (a.totalPoints ?? 0);
-          });
-
-          let currentRank = 1;
-
-          const ranked = sorted.map((entry, index) => {
-            if (index > 0) {
-              const prev = sorted[index - 1];
-              const same =
-                entry.stagePoints === prev.stagePoints &&
-                (entry.totalPoints ?? 0) === (prev.totalPoints ?? 0);
-
-              if (!same) currentRank = index + 1;
-            }
-
-            return {
-              ...entry,
-              rank: currentRank,
-            };
-          });
-
-          setStageSnapshotEntries(ranked);
+        if (
+          !currentSnapshot ||
+          !Array.isArray((currentSnapshot as any).entries)
+        ) {
+          setStageSnapshotEntries([]);
           return;
         }
 
-        // LIVE scoring da jornada/fase atual:
-        // pontos da etapa = total atual da equipa - pontos fechados em snapshots anteriores.
-        const liveMapped: StageRankedEntry[] = entries.map((entry) => {
-          const liveTotal = getLiveTotal(entry);
-          const previousClosedTotal = previousSnapshotTotalsByUserId.get(entry.userId) ?? 0;
-          const stagePoints = Math.max(liveTotal - previousClosedTotal, 0);
+        const mapped: StageRankedEntry[] = (currentSnapshot as any).entries.map(
+          (entry: SnapshotEntry) => {
+            const fullEntry = entries.find((e) => e.userId === entry.userId);
 
-          return {
-            ...entry,
-            totalPoints: liveTotal,
-            rank: 0,
-            stagePoints,
-          } as StageRankedEntry;
-        });
+            const stagePoints = Number(entry.stagePoints ?? 0);
 
-        const sorted = liveMapped.sort((a, b) => {
+            return {
+              ...(fullEntry ?? {
+                userId: entry.userId,
+                teamName: entry.teamName,
+                managerName: entry.managerName,
+                totalPoints: snapshotTotalsByUserId.get(entry.userId) ?? 0,
+                predictionPoints: 0,
+                topScorerPoints: 0,
+                topAssistPoints: 0,
+                selectedTeamPoints: 0,
+                topScorerPick: null,
+                topAssistPick: null,
+                championPick: null,
+              }),
+              totalPoints:
+                snapshotTotalsByUserId.get(entry.userId) ??
+                fullEntry?.totalPoints ??
+                0,
+              rank: 0,
+              stagePoints,
+            } as StageRankedEntry;
+          }
+        );
+
+        const sorted = mapped.sort((a, b) => {
           if (b.stagePoints !== a.stagePoints) return b.stagePoints - a.stagePoints;
           return (b.totalPoints ?? 0) - (a.totalPoints ?? 0);
         });
@@ -722,9 +709,9 @@ export default function RankingPage() {
     leaderboardMode,
     selectedStageId,
     entries,
+    previousStageId,
     snapshotsByStageId,
     snapshotTotalsByUserId,
-    previousSnapshotTotalsByUserId,
   ]);
 
   const myStageEntry = useMemo(() => {
@@ -746,6 +733,9 @@ export default function RankingPage() {
   const activeStageLabel =
     stageOptions.find((option) => option.id === selectedStageId)?.label ?? "";
 
+  const overallLeaderboardColumnLabel =
+    getOverallLeaderboardColumnLabel(overallLeaderboardTab);
+
   const podium = useMemo(() => {
     return leaderboardMode === "overall"
       ? leaderboard.slice(0, 3)
@@ -754,7 +744,12 @@ export default function RankingPage() {
 
   useEffect(() => {
     const loadPredictions = async () => {
-      if (!activeEntry?.userId) {
+      const exactLeaderboardOpen =
+        leaderboardMode === "overall" && overallLeaderboardTab === "exact";
+
+      // Na leaderboard de resultados exatos não vamos buscar predictions.
+      // Usamos apenas o campo já guardado em fantasyEntries para não gastar leituras.
+      if (!activeEntry?.userId || exactLeaderboardOpen) {
         setSelectedPredictions([]);
         return;
       }
@@ -772,7 +767,7 @@ export default function RankingPage() {
     };
 
     loadPredictions();
-  }, [activeEntry?.userId]);
+  }, [activeEntry?.userId, leaderboardMode, overallLeaderboardTab]);
 
   const predictionsWithGameData: PredictionWithGame[] = useMemo(() => {
     return selectedPredictions.map((prediction) => {
@@ -793,10 +788,14 @@ export default function RankingPage() {
   }, [predictionsWithGameData]);
 
   const exactResultsCount = useMemo(() => {
+    if (leaderboardMode === "overall") {
+      return getExactResultsFromEntry(activeEntry);
+    }
+
     return finishedPredictionsWithGameData.filter(
       (prediction) => prediction.points === 3
     ).length;
-  }, [finishedPredictionsWithGameData]);
+  }, [activeEntry, finishedPredictionsWithGameData, leaderboardMode]);
 
   const stageFilteredPredictions = useMemo(() => {
     if (leaderboardMode !== "stage") return finishedPredictionsWithGameData;
@@ -825,34 +824,41 @@ export default function RankingPage() {
         ? snapshotHistory
         : buildPredictionHistory(finishedPredictionsWithGameData);
 
+    if (baseHistory.length === 0) {
+      return baseHistory;
+    }
+
+    // Garante que o histórico bate certo com a pontuação total visível.
+    // Isto corrige snapshots antigos em que a jornada guardou só pontos de palpites.
     if (leaderboardMode !== "overall" || !activeEntry) {
       return baseHistory;
     }
 
-    const visibleTotal = getLiveTotal(activeEntry);
+    const visibleTotal =
+      Number(activeEntry.predictionPoints ?? 0) +
+      Number(activeEntry.topScorerPoints ?? 0) +
+      Number(activeEntry.topAssistPoints ?? 0) +
+      Number(activeEntry.selectedTeamPoints ?? 0);
 
     const historyTotal = baseHistory.reduce(
       (sum, row) => sum + Number(row.points || 0),
       0
     );
 
-    const livePoints = visibleTotal - historyTotal;
+    const missingPoints = visibleTotal - historyTotal;
 
-    if (!Number.isFinite(livePoints) || livePoints === 0) {
+    if (!Number.isFinite(missingPoints) || missingPoints === 0) {
       return baseHistory;
     }
 
-    const liveLabel = openLiveStageOption?.label
-      ? `${openLiveStageOption.label} (Live)`
-      : "Live";
+    return baseHistory.map((row, index) => {
+      if (index !== baseHistory.length - 1) return row;
 
-    return [
-      ...baseHistory,
-      {
-        label: liveLabel,
-        points: livePoints,
-      },
-    ];
+      return {
+        ...row,
+        points: Number(row.points || 0) + missingPoints,
+      };
+    });
   }, [
     orderedStageIds,
     snapshotsByStageId,
@@ -860,8 +866,10 @@ export default function RankingPage() {
     stageOptions,
     finishedPredictionsWithGameData,
     leaderboardMode,
-    activeEntry,
-    openLiveStageOption,
+    activeEntry?.predictionPoints,
+    activeEntry?.topScorerPoints,
+    activeEntry?.topAssistPoints,
+    activeEntry?.selectedTeamPoints,
   ]);
 
   const selectedHistoryTotal = useMemo(() => {
@@ -978,28 +986,35 @@ export default function RankingPage() {
   const myEntry = leaderboardMode === "overall" ? myOverallEntry : myStageEntry;
 
   const handleSelectUser = (userId: string, shouldScroll = false) => {
-    setRankingSearch("");
-    setSelectedUserId(userId);
+  const hadSearch = rankingSearch.trim().length > 0;
 
-    setExpandedMobileUserId((currentUserId) => {
-      if (!shouldScroll && currentUserId === userId) {
-        return "";
-      }
+  setRankingSearch("");
+  setSelectedUserId(userId);
 
-      return userId;
-    });
+  setExpandedMobileUserId((currentUserId) => {
+    // Se carregares na mesma pessoa sem pesquisa, fecha o detalhe no mobile
+    if (!shouldScroll && !hadSearch && currentUserId === userId) {
+      return "";
+    }
 
-    if (shouldScroll) {
-      window.setTimeout(() => {
+    // Se vieste de uma pesquisa, mantém aberto
+    return userId;
+  });
+
+  if (shouldScroll || hadSearch) {
+    window.setTimeout(
+      () => {
         const element = document.getElementById(`ranking-row-${userId}`);
 
         element?.scrollIntoView({
           behavior: "smooth",
           block: "center",
         });
-      }, 120);
-    }
-  };
+      },
+      hadSearch ? 250 : 120
+    );
+  }
+};
 
   const renderMobileSelectedStats = () => {
     if (!activeEntry) return null;
@@ -1013,7 +1028,11 @@ export default function RankingPage() {
         : (activeEntry as StageRankedEntry).stagePoints ?? 0;
 
     const exactCount =
-      leaderboardMode === "overall" ? exactResultsCount : stageExactResultsCount;
+      leaderboardMode === "overall"
+        ? overallLeaderboardTab === "exact"
+          ? getExactResultsFromEntry(activeEntry)
+          : exactResultsCount
+        : stageExactResultsCount;
 
 
     return (
@@ -1106,6 +1125,12 @@ export default function RankingPage() {
               <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5">
                 <p className="truncate text-[9px] font-bold text-gray-500">
                   🎯 {activeEntry.topAssistPick?.playerName || "Sem assistente"}
+                </p>
+              </div>
+
+              <div className="col-span-2 rounded-xl border border-gray-200 bg-white px-2 py-1.5">
+                <p className="truncate text-[9px] font-bold text-gray-500">
+                  🏆 {activeEntry.championPick?.teamName || "Sem seleção campeã"}
                 </p>
               </div>
             </div>
@@ -1306,10 +1331,6 @@ export default function RankingPage() {
             )}
           </div>
         </div>
-
-        <p className="mt-1.5 truncate text-[10px] font-semibold text-gray-600">
-          🏆 {activeEntry.championPick?.teamName || "Sem seleção campeã"}
-        </p>
       </div>
     );
   };
@@ -1337,25 +1358,23 @@ export default function RankingPage() {
 
                     <h1 className="mt-3 text-4xl font-black tracking-tight text-white sm:text-5xl lg:text-6xl">
                       {leaderboardMode === "overall"
-                        ? "Ranking Global"
+                        ? getOverallLeaderboardTitle(overallLeaderboardTab)
                         : `Leaderboard • ${activeStageLabel || "Jornada / Fase"}`}
                     </h1>
 
                     <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-white/95 sm:text-base">
                       {leaderboardMode === "overall"
-                        ? "Vê a classificação geral, o pote total e os prémios finais da fantasy."
+                        ? getOverallLeaderboardDescription(overallLeaderboardTab)
                         : "Classificação por jornada ou fase com base nos pontos totais feitos nessa etapa."}
                     </p>
 
                     {leaderboardMode === "stage" && (
                       <p className="mt-2 text-xs font-semibold text-white/85">
                         {loadingStageSnapshot
-                          ? "A carregar leaderboard..."
-                          : selectedStageHasSnapshot
-                          ? "Snapshot histórico guardado"
+                          ? "A carregar snapshot..."
                           : stageSnapshotEntries.length > 0
-                          ? "Live scoring desta etapa"
-                          : "Sem dados para esta etapa"}
+                          ? "Snapshot histórico guardado"
+                          : "Sem snapshot guardado para esta etapa"}
                       </p>
                     )}
                   </div>
@@ -1375,7 +1394,10 @@ export default function RankingPage() {
 
                     <button
                       type="button"
-                      onClick={() => setLeaderboardMode("stage")}
+                      onClick={() => {
+                        setLeaderboardMode("stage");
+                        setOverallLeaderboardTab("points");
+                      }}
                       className={`rounded-full px-6 py-3 text-sm font-black transition ${
                         leaderboardMode === "stage"
                           ? "bg-white text-gray-900 shadow"
@@ -1386,6 +1408,42 @@ export default function RankingPage() {
                     </button>
                   </div>
                 </div>
+
+                {leaderboardMode === "overall" && (
+                  <div className="rounded-[22px] border border-white/25 bg-white/15 p-2 backdrop-blur-md">
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => setOverallLeaderboardTab("points")}
+                        className={`rounded-2xl px-4 py-3 text-left transition ${
+                          overallLeaderboardTab === "points"
+                            ? "bg-white text-gray-950 shadow"
+                            : "bg-white/10 text-white hover:bg-white/20"
+                        }`}
+                      >
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] opacity-70">
+                          Geral
+                        </p>
+                        <p className="mt-1 text-sm font-black">Pontos totais</p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setOverallLeaderboardTab("exact")}
+                        className={`rounded-2xl px-4 py-3 text-left transition ${
+                          overallLeaderboardTab === "exact"
+                            ? "bg-white text-gray-950 shadow"
+                            : "bg-white/10 text-white hover:bg-white/20"
+                        }`}
+                      >
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] opacity-70">
+                          Exatidão
+                        </p>
+                        <p className="mt-1 text-sm font-black">Mais resultados exatos</p>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {leaderboardMode === "stage" && (
                   <div className="w-full max-w-sm">
@@ -1561,11 +1619,16 @@ export default function RankingPage() {
 
                   <div className="rounded-xl border border-gray-200 bg-gray-50 px-2 py-1.5 text-center">
                     <p className="text-[9px] uppercase tracking-wide text-gray-500">
-                      {leaderboardMode === "overall" ? "Pts" : "Fase"}
+                      {leaderboardMode === "overall"
+                        ? overallLeaderboardColumnLabel
+                        : "Fase"}
                     </p>
                     <p className="text-base font-black text-gray-900">
                       {leaderboardMode === "overall"
-                        ? myEntry.totalPoints ?? 0
+                        ? getOverallLeaderboardValue(
+                            myEntry,
+                            overallLeaderboardTab
+                          )
                         : (myEntry as StageRankedEntry).stagePoints ?? 0}
                     </p>
                   </div>
@@ -1596,7 +1659,10 @@ export default function RankingPage() {
 
                   const primaryPoints =
                     leaderboardMode === "overall"
-                      ? entry.totalPoints ?? 0
+                      ? getOverallLeaderboardValue(
+                          entry,
+                          overallLeaderboardTab
+                        )
                       : (entry as StageRankedEntry).stagePoints ?? 0;
 
                   return (
@@ -1624,7 +1690,7 @@ export default function RankingPage() {
 
                         <div className="text-right">
                           <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-gray-500">
-                            {leaderboardMode === "overall" ? "PTS" : "FASE"}
+                            {leaderboardMode === "overall" ? overallLeaderboardColumnLabel : "FASE"}
                           </p>
                           <p className="mt-1 text-2xl font-black text-gray-900">
                             {primaryPoints}
@@ -1725,7 +1791,9 @@ export default function RankingPage() {
                 <div>Equipa</div>
                 <div>Manager</div>
                 <div className="text-center">
-                  {leaderboardMode === "overall" ? "Pts" : "Fase"}
+                  {leaderboardMode === "overall"
+                    ? overallLeaderboardColumnLabel
+                    : "Fase"}
                 </div>
                 <div className="text-center">Picks</div>
                 <div />
@@ -1741,7 +1809,10 @@ export default function RankingPage() {
 
                   const displayedPoints =
                     leaderboardMode === "overall"
-                      ? entry.totalPoints ?? 0
+                      ? getOverallLeaderboardValue(
+                          entry,
+                          overallLeaderboardTab
+                        )
                       : (entry as StageRankedEntry).stagePoints ?? 0;
 
                   return (
@@ -1819,7 +1890,9 @@ export default function RankingPage() {
 
                           <div className="text-right">
                             <p className="text-xs font-bold uppercase text-gray-500">
-                              {leaderboardMode === "overall" ? "Pts" : "Fase"}
+                              {leaderboardMode === "overall"
+                                ? overallLeaderboardColumnLabel
+                                : "Fase"}
                             </p>
                             <p className="text-lg font-black text-gray-900">
                               {displayedPoints}
@@ -1871,7 +1944,7 @@ export default function RankingPage() {
             </div>
           </section>
 
-          <aside className="hidden rounded-[18px] border border-gray-200 bg-white p-4 shadow-sm xl:block">
+          <aside className="hidden self-start rounded-[18px] border border-gray-200 bg-white p-4 shadow-sm xl:sticky xl:top-24 xl:block"> 
             {!activeEntry ? (
               <p className="text-gray-500">Ainda não existem entradas.</p>
             ) : (
@@ -1962,9 +2035,15 @@ export default function RankingPage() {
                           </p>
 
                           <p className="text-lg font-black text-violet-700">
-                            {exactResultsCount}{" "}
+                            {overallLeaderboardTab === "exact"
+                              ? getExactResultsFromEntry(activeEntry)
+                              : exactResultsCount}{" "}
                             <span className="text-xs font-black">
-                              {exactResultsCount === 1 ? "exato" : "exatos"}
+                              {(overallLeaderboardTab === "exact"
+                                ? getExactResultsFromEntry(activeEntry)
+                                : exactResultsCount) === 1
+                                ? "exato"
+                                : "exatos"}
                             </span>
                           </p>
                         </div>
@@ -1999,7 +2078,9 @@ export default function RankingPage() {
                           Total geral
                         </p>
                         <p className="mt-1 text-lg font-black text-gray-900">
-                          {activeOverallEntry?.totalPoints ?? getLiveTotal(activeEntry)}
+                          {snapshotTotalsByUserId.get(activeEntry.userId) ??
+                            activeOverallEntry?.totalPoints ??
+                            0}
                         </p>
                       </div>
 

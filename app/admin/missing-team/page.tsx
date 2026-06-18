@@ -29,9 +29,17 @@ type FantasyEntry = {
 type Prediction = {
   id: string;
   userId?: string;
-  gameId?: number;
-  predictedHomeScore?: number;
-  predictedAwayScore?: number;
+  gameId?: string | number;
+  predictedHomeScore?: string | number;
+  predictedAwayScore?: string | number;
+};
+
+type MissingPredictionUser = PaidUser & {
+  teamName: string;
+  managerName: string;
+  missingGames: Game[];
+  missingCount: number;
+  totalGames: number;
 };
 
 const ADMIN_EMAIL = "zmrolapereira@gmail.com";
@@ -47,13 +55,53 @@ const roundOrder = [
   "Final e 3º Lugar",
 ];
 
+function getRoundLabel(game: Game) {
+  return game.phase === "16 avos"
+    ? "16 avos"
+    : game.phase === "Oitavos"
+      ? "Oitavos"
+      : game.phase === "Quartos"
+        ? "Quartos"
+        : game.phase === "Meias-finais"
+          ? "Meias-finais"
+          : game.phase === "3º lugar" || game.phase === "Final"
+            ? "Final e 3º Lugar"
+            : game.round;
+}
+
+function chunkArray<T>(items: T[], size: number) {
+  const chunks: T[][] = [];
+
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+
+  return chunks;
+}
+
+function hasValidPrediction(prediction: Prediction) {
+  return (
+    prediction.userId &&
+    prediction.gameId !== undefined &&
+    prediction.predictedHomeScore !== undefined &&
+    prediction.predictedHomeScore !== "" &&
+    prediction.predictedAwayScore !== undefined &&
+    prediction.predictedAwayScore !== ""
+  );
+}
+
 export default function MissingTeamPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
-  const [loadingData, setLoadingData] = useState(false);
+  const [loadingBaseData, setLoadingBaseData] = useState(false);
+  const [loadingPredictions, setLoadingPredictions] = useState(false);
+
   const [paidUsers, setPaidUsers] = useState<PaidUser[]>([]);
   const [entries, setEntries] = useState<FantasyEntry[]>([]);
-  const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [roundPredictions, setRoundPredictions] = useState<Prediction[]>([]);
+
+  const [selectedRoundLabel, setSelectedRoundLabel] = useState("Jornada 1");
+  const [loadedRoundLabel, setLoadedRoundLabel] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -67,100 +115,11 @@ export default function MissingTeamPage() {
 
   const isAdmin = user?.email === ADMIN_EMAIL;
 
-  useEffect(() => {
-    const loadData = async () => {
-      if (!user || !isAdmin) return;
-
-      try {
-        setLoadingData(true);
-        setError("");
-
-        const paidUsersQuery = query(
-          collection(db, "users"),
-          where("hasPaidAccess", "==", true)
-        );
-
-        const [usersSnap, entriesSnap, predictionsSnap] = await Promise.all([
-          getDocs(paidUsersQuery),
-          getDocs(collection(db, "fantasyEntries")),
-          getDocs(collection(db, "predictions")),
-        ]);
-
-        const usersData = usersSnap.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        })) as PaidUser[];
-
-        const entriesData = entriesSnap.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        })) as FantasyEntry[];
-
-        const predictionsData = predictionsSnap.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        })) as Prediction[];
-
-        setPaidUsers(usersData);
-        setEntries(entriesData);
-        setPredictions(predictionsData);
-      } catch (err: any) {
-        console.error(err);
-        setError(err?.message || "Erro ao carregar dados.");
-      } finally {
-        setLoadingData(false);
-      }
-    };
-
-    loadData();
-  }, [user, isAdmin]);
-
-  const entryIds = useMemo(() => {
-    return new Set(entries.map((entry) => entry.id));
-  }, [entries]);
-
-  const entriesMap = useMemo(() => {
-    const map = new Map<string, FantasyEntry>();
-
-    entries.forEach((entry) => {
-      map.set(entry.id, entry);
-    });
-
-    return map;
-  }, [entries]);
-
-  const paidUsersWithoutTeam = useMemo(() => {
-    return paidUsers
-      .filter((paidUser) => !entryIds.has(paidUser.id))
-      .sort((a, b) =>
-        (a.displayName || a.email || "").localeCompare(
-          b.displayName || b.email || ""
-        )
-      );
-  }, [paidUsers, entryIds]);
-
-  const paidUsersWithTeam = useMemo(() => {
-    return paidUsers
-      .filter((paidUser) => entryIds.has(paidUser.id))
-      .sort((a, b) =>
-        (a.displayName || a.email || "").localeCompare(
-          b.displayName || b.email || ""
-        )
-      );
-  }, [paidUsers, entryIds]);
-
   const gamesByRound = useMemo<[string, Game[]][]>(() => {
     const grouped: Record<string, Game[]> = {};
 
     games.forEach((game) => {
-      const label =
-        game.phase === "16 avos"
-          ? "16 avos"
-          : game.phase === "Meias-finais"
-          ? "Meias-finais"
-          : game.phase === "3º lugar" || game.phase === "Final"
-          ? "Final e 3º Lugar"
-          : game.round;
+      const label = getRoundLabel(game);
 
       if (!grouped[label]) {
         grouped[label] = [];
@@ -180,62 +139,204 @@ export default function MissingTeamPage() {
     });
   }, []);
 
+  const selectedRoundGames = useMemo(() => {
+    return (
+      gamesByRound.find(([label]) => label === selectedRoundLabel)?.[1] || []
+    );
+  }, [gamesByRound, selectedRoundLabel]);
+
+  useEffect(() => {
+    if (!gamesByRound.some(([label]) => label === selectedRoundLabel)) {
+      setSelectedRoundLabel(gamesByRound[0]?.[0] || "");
+    }
+  }, [gamesByRound, selectedRoundLabel]);
+
+  useEffect(() => {
+    const loadBaseData = async () => {
+      if (!user || !isAdmin) return;
+
+      try {
+        setLoadingBaseData(true);
+        setError("");
+
+        const paidUsersQuery = query(
+          collection(db, "users"),
+          where("hasPaidAccess", "==", true),
+        );
+
+        const [usersSnap, entriesSnap] = await Promise.all([
+          getDocs(paidUsersQuery),
+          getDocs(collection(db, "fantasyEntries")),
+        ]);
+
+        const usersData = usersSnap.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        })) as PaidUser[];
+
+        const entriesData = entriesSnap.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        })) as FantasyEntry[];
+
+        setPaidUsers(usersData);
+        setEntries(entriesData);
+      } catch (err: any) {
+        console.error(err);
+        setError(err?.message || "Erro ao carregar dados.");
+      } finally {
+        setLoadingBaseData(false);
+      }
+    };
+
+    loadBaseData();
+  }, [user, isAdmin]);
+
+  const loadPredictionsForSelectedRound = async () => {
+    if (!selectedRoundLabel || selectedRoundGames.length === 0) {
+      setRoundPredictions([]);
+      setLoadedRoundLabel(selectedRoundLabel);
+      return;
+    }
+
+    try {
+      setLoadingPredictions(true);
+      setError("");
+
+      const numericGameIds = selectedRoundGames.map((game) => Number(game.id));
+      const stringGameIds = selectedRoundGames.map((game) => String(game.id));
+
+      const predictionDocs = new Map<string, Prediction>();
+
+      const numericChunks = chunkArray(numericGameIds, 30);
+      const stringChunks = chunkArray(stringGameIds, 30);
+
+      for (const gameIdChunk of numericChunks) {
+        const predictionsQuery = query(
+          collection(db, "predictions"),
+          where("gameId", "in", gameIdChunk),
+        );
+
+        const predictionsSnap = await getDocs(predictionsQuery);
+
+        predictionsSnap.docs.forEach((docSnap) => {
+          predictionDocs.set(docSnap.id, {
+            id: docSnap.id,
+            ...docSnap.data(),
+          } as Prediction);
+        });
+      }
+
+      for (const gameIdChunk of stringChunks) {
+        const predictionsQuery = query(
+          collection(db, "predictions"),
+          where("gameId", "in", gameIdChunk),
+        );
+
+        const predictionsSnap = await getDocs(predictionsQuery);
+
+        predictionsSnap.docs.forEach((docSnap) => {
+          predictionDocs.set(docSnap.id, {
+            id: docSnap.id,
+            ...docSnap.data(),
+          } as Prediction);
+        });
+      }
+
+      setRoundPredictions(Array.from(predictionDocs.values()));
+      setLoadedRoundLabel(selectedRoundLabel);
+    } catch (err: any) {
+      console.error(err);
+      setError(
+        err?.message || "Erro ao carregar predictions desta jornada/fase.",
+      );
+    } finally {
+      setLoadingPredictions(false);
+    }
+  };
+
+  const entryIds = useMemo(() => {
+    return new Set(entries.map((entry) => entry.id));
+  }, [entries]);
+
+  const entriesMap = useMemo(() => {
+    const map = new Map<string, FantasyEntry>();
+
+    entries.forEach((entry) => {
+      map.set(entry.id, entry);
+      if (entry.userId) map.set(entry.userId, entry);
+    });
+
+    return map;
+  }, [entries]);
+
+  const paidUsersWithoutTeam = useMemo(() => {
+    return paidUsers
+      .filter((paidUser) => !entryIds.has(paidUser.id))
+      .sort((a, b) =>
+        (a.displayName || a.email || "").localeCompare(
+          b.displayName || b.email || "",
+        ),
+      );
+  }, [paidUsers, entryIds]);
+
+  const paidUsersWithTeam = useMemo(() => {
+    return paidUsers
+      .filter((paidUser) => entryIds.has(paidUser.id))
+      .sort((a, b) =>
+        (a.displayName || a.email || "").localeCompare(
+          b.displayName || b.email || "",
+        ),
+      );
+  }, [paidUsers, entryIds]);
+
   const predictionKeys = useMemo(() => {
     const set = new Set<string>();
 
-    predictions.forEach((prediction) => {
-      if (!prediction.userId || prediction.gameId === undefined) return;
+    roundPredictions.forEach((prediction) => {
+      if (!hasValidPrediction(prediction)) return;
       set.add(`${prediction.userId}_${prediction.gameId}`);
+      set.add(`${prediction.userId}_${Number(prediction.gameId)}`);
+      set.add(`${prediction.userId}_${String(prediction.gameId)}`);
     });
 
     return set;
-  }, [predictions]);
+  }, [roundPredictions]);
 
-  const missingPredictionsByRound = useMemo(() => {
-    return gamesByRound.map(([roundLabel, roundGames]) => {
-      const usersMissing = paidUsersWithTeam
-        .map((paidUser) => {
-          const missingGames = roundGames.filter(
-            (game) => !predictionKeys.has(`${paidUser.id}_${game.id}`)
-          );
+  const selectedRoundMissingUsers = useMemo<MissingPredictionUser[]>(() => {
+    if (loadedRoundLabel !== selectedRoundLabel) return [];
 
-          const entry = entriesMap.get(paidUser.id);
-
-          return {
-            ...paidUser,
-            teamName: entry?.teamName || "",
-            managerName: entry?.managerName || paidUser.displayName || "",
-            missingGames,
-            missingCount: missingGames.length,
-            totalGames: roundGames.length,
-          };
-        })
-        .filter((item) => item.missingCount > 0)
-        .sort((a, b) =>
-          (a.displayName || a.email || "").localeCompare(
-            b.displayName || b.email || ""
-          )
+    return paidUsersWithTeam
+      .map((paidUser) => {
+        const missingGames = selectedRoundGames.filter(
+          (game) => !predictionKeys.has(`${paidUser.id}_${game.id}`),
         );
 
-      return {
-        roundLabel,
-        totalGames: roundGames.length,
-        usersMissing,
-      };
-    });
-  }, [gamesByRound, paidUsersWithTeam, predictionKeys, entriesMap]);
+        const entry = entriesMap.get(paidUser.id);
 
-  const totalUsersMissingAnyPrediction = useMemo(() => {
-    const ids = new Set<string>();
-
-    missingPredictionsByRound.forEach((round) => {
-      round.usersMissing.forEach((userItem) => {
-        ids.add(userItem.id);
-      });
-    });
-
-    return ids.size;
-  }, [missingPredictionsByRound]);
+        return {
+          ...paidUser,
+          teamName: entry?.teamName || "",
+          managerName: entry?.managerName || paidUser.displayName || "",
+          missingGames,
+          missingCount: missingGames.length,
+          totalGames: selectedRoundGames.length,
+        };
+      })
+      .filter((item) => item.missingCount > 0)
+      .sort((a, b) =>
+        (a.displayName || a.email || "").localeCompare(
+          b.displayName || b.email || "",
+        ),
+      );
+  }, [
+    paidUsersWithTeam,
+    selectedRoundGames,
+    predictionKeys,
+    entriesMap,
+    loadedRoundLabel,
+    selectedRoundLabel,
+  ]);
 
   const exportMissingTeamsCsv = () => {
     const rows = [
@@ -253,28 +354,31 @@ export default function MissingTeamPage() {
 
   const exportMissingPredictionsCsv = () => {
     const rows = [
-      ["Jornada/Fase", "Nome", "Email", "Equipa", "Jogos em falta", "Total jogos"],
-      ...missingPredictionsByRound.flatMap((round) =>
-        round.usersMissing.map((paidUser) => [
-          round.roundLabel,
-          paidUser.displayName || paidUser.managerName || "",
-          paidUser.email || "",
-          paidUser.teamName || "",
-          String(paidUser.missingCount),
-          String(paidUser.totalGames),
-        ])
-      ),
+      [
+        "Jornada/Fase",
+        "Nome",
+        "Email",
+        "Equipa",
+        "Jogos em falta",
+        "Total jogos",
+      ],
+      ...selectedRoundMissingUsers.map((paidUser) => [
+        selectedRoundLabel,
+        paidUser.displayName || paidUser.managerName || "",
+        paidUser.email || "",
+        paidUser.teamName || "",
+        String(paidUser.missingCount),
+        String(paidUser.totalGames),
+      ]),
     ];
 
-    downloadCsv(rows, "paid-users-missing-predictions.csv");
+    downloadCsv(rows, `missing-predictions-${selectedRoundLabel}.csv`);
   };
 
   const downloadCsv = (rows: string[][], filename: string) => {
     const csv = rows
       .map((row) =>
-        row
-          .map((cell) => `"${String(cell).replaceAll('"', '""')}"`)
-          .join(",")
+        row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","),
       )
       .join("\n");
 
@@ -288,6 +392,8 @@ export default function MissingTeamPage() {
 
     URL.revokeObjectURL(url);
   };
+
+  const hasLoadedSelectedRound = loadedRoundLabel === selectedRoundLabel;
 
   if (loadingAuth) {
     return (
@@ -343,8 +449,9 @@ export default function MissingTeamPage() {
           </h1>
 
           <p className="mt-3 max-w-3xl text-sm leading-7 text-white/85 sm:text-base">
-            Esta página compara automaticamente utilizadores pagos, equipas
-            criadas e predictions submetidas por jornada ou fase.
+            Esta página carrega primeiro só users pagos e equipas. As
+            predictions só são lidas quando escolhes uma jornada/fase e carregas
+            no botão.
           </p>
         </section>
 
@@ -387,7 +494,7 @@ export default function MissingTeamPage() {
               Faltam predictions
             </p>
             <p className="mt-2 text-4xl font-black text-orange-500">
-              {totalUsersMissingAnyPrediction}
+              {hasLoadedSelectedRound ? selectedRoundMissingUsers.length : "—"}
             </p>
           </div>
         </section>
@@ -414,8 +521,8 @@ export default function MissingTeamPage() {
             </button>
           </div>
 
-          {loadingData ? (
-            <p className="text-gray-500">A carregar dados...</p>
+          {loadingBaseData ? (
+            <p className="text-gray-500">A carregar users e equipas...</p>
           ) : paidUsersWithoutTeam.length === 0 ? (
             <div className="rounded-3xl bg-green-50 p-5 text-green-800">
               Todos os users com acesso pago já têm equipa criada.
@@ -462,110 +569,144 @@ export default function MissingTeamPage() {
         </section>
 
         <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h2 className="text-2xl font-black text-gray-900">
                 Predictions em falta por jornada/fase
               </h2>
               <p className="mt-1 text-sm text-gray-500">
-                Mostra users pagos que já fizeram equipa, mas que ainda não
-                preencheram todos os jogos de cada jornada ou fase.
+                Escolhe uma etapa e só depois carrega as predictions dessa
+                etapa. Assim a página não lê o torneio todo.
               </p>
             </div>
 
             <button
               type="button"
               onClick={exportMissingPredictionsCsv}
-              disabled={totalUsersMissingAnyPrediction === 0}
+              disabled={
+                !hasLoadedSelectedRound ||
+                selectedRoundMissingUsers.length === 0
+              }
               className="rounded-2xl bg-violet-900 px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               Exportar CSV
             </button>
           </div>
 
-          {loadingData ? (
-            <p className="text-gray-500">A carregar dados...</p>
+          <div className="mb-5 grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-end">
+            <div>
+              <label className="block text-sm font-bold text-gray-700">
+                Jornada / fase
+              </label>
+              <select
+                value={selectedRoundLabel}
+                onChange={(event) => {
+                  setSelectedRoundLabel(event.target.value);
+                  setRoundPredictions([]);
+                  setLoadedRoundLabel("");
+                }}
+                className="mt-1.5 h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-900 outline-none focus:border-violet-500"
+              >
+                {gamesByRound.map(([roundLabel, roundGames]) => (
+                  <option key={roundLabel} value={roundLabel}>
+                    {roundLabel} • {roundGames.length} jogos
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              type="button"
+              onClick={loadPredictionsForSelectedRound}
+              disabled={
+                loadingPredictions ||
+                loadingBaseData ||
+                selectedRoundGames.length === 0
+              }
+              className="h-12 rounded-2xl bg-violet-900 px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loadingPredictions ? "A carregar..." : "Ver quem falta"}
+            </button>
+
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-bold text-gray-600">
+              {selectedRoundGames.length} jogos nesta etapa
+            </div>
+          </div>
+
+          {!hasLoadedSelectedRound && !loadingPredictions ? (
+            <div className="rounded-3xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm font-semibold text-gray-500">
+              Escolhe uma jornada/fase e clica em “Ver quem falta”. Ainda não
+              foram lidas predictions.
+            </div>
+          ) : loadingPredictions ? (
+            <p className="text-gray-500">
+              A carregar predictions desta etapa...
+            </p>
+          ) : selectedRoundMissingUsers.length === 0 ? (
+            <div className="rounded-2xl bg-green-50 p-4 text-sm font-semibold text-green-800">
+              Todos os users pagos com equipa já preencheram{" "}
+              {selectedRoundLabel}.
+            </div>
           ) : (
-            <div className="space-y-5">
-              {missingPredictionsByRound.map((round) => (
-                <div
-                  key={round.roundLabel}
-                  className="rounded-3xl border border-gray-200 bg-gray-50 p-5"
-                >
-                  <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <h3 className="text-xl font-black text-gray-900">
-                        {round.roundLabel}
-                      </h3>
-                      <p className="mt-1 text-sm text-gray-500">
-                        {round.totalGames} jogos nesta etapa
-                      </p>
-                    </div>
-
-                    <span
-                      className={`rounded-full px-4 py-2 text-sm font-bold ${
-                        round.usersMissing.length === 0
-                          ? "bg-green-100 text-green-700"
-                          : "bg-orange-100 text-orange-700"
-                      }`}
-                    >
-                      {round.usersMissing.length === 0
-                        ? "Tudo preenchido"
-                        : `${round.usersMissing.length} em falta`}
-                    </span>
-                  </div>
-
-                  {round.usersMissing.length === 0 ? (
-                    <div className="rounded-2xl bg-green-50 p-4 text-sm font-semibold text-green-800">
-                      Todos os users pagos com equipa já preencheram esta etapa.
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-[850px] border-separate border-spacing-y-3">
-                        <thead>
-                          <tr className="text-left text-sm text-gray-500">
-                            <th className="px-4">#</th>
-                            <th className="px-4">Nome</th>
-                            <th className="px-4">Email</th>
-                            <th className="px-4">Equipa</th>
-                            <th className="px-4">Jogos em falta</th>
-                            <th className="px-4">UID</th>
-                          </tr>
-                        </thead>
-
-                        <tbody>
-                          {round.usersMissing.map((paidUser, index) => (
-                            <tr key={paidUser.id} className="bg-white">
-                              <td className="rounded-l-2xl px-4 py-4 font-bold">
-                                {index + 1}
-                              </td>
-                              <td className="px-4 py-4 font-bold text-gray-900">
-                                {paidUser.displayName ||
-                                  paidUser.managerName ||
-                                  "Sem nome"}
-                              </td>
-                              <td className="px-4 py-4 text-gray-600">
-                                {paidUser.email || "Sem email"}
-                              </td>
-                              <td className="px-4 py-4 font-semibold text-gray-700">
-                                {paidUser.teamName || "Sem equipa"}
-                              </td>
-                              <td className="px-4 py-4">
-                                <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-700">
-                                  {paidUser.missingCount}/{paidUser.totalGames}
-                                </span>
-                              </td>
-                              <td className="rounded-r-2xl px-4 py-4 font-mono text-xs text-gray-500">
-                                {paidUser.id}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+            <div className="rounded-3xl border border-gray-200 bg-gray-50 p-5">
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-xl font-black text-gray-900">
+                    {selectedRoundLabel}
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {selectedRoundGames.length} jogos nesta etapa
+                  </p>
                 </div>
-              ))}
+
+                <span className="rounded-full bg-orange-100 px-4 py-2 text-sm font-bold text-orange-700">
+                  {selectedRoundMissingUsers.length} em falta
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[850px] border-separate border-spacing-y-3">
+                  <thead>
+                    <tr className="text-left text-sm text-gray-500">
+                      <th className="px-4">#</th>
+                      <th className="px-4">Nome</th>
+                      <th className="px-4">Email</th>
+                      <th className="px-4">Equipa</th>
+                      <th className="px-4">Jogos em falta</th>
+                      <th className="px-4">UID</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {selectedRoundMissingUsers.map((paidUser, index) => (
+                      <tr key={paidUser.id} className="bg-white">
+                        <td className="rounded-l-2xl px-4 py-4 font-bold">
+                          {index + 1}
+                        </td>
+                        <td className="px-4 py-4 font-bold text-gray-900">
+                          {paidUser.displayName ||
+                            paidUser.managerName ||
+                            "Sem nome"}
+                        </td>
+                        <td className="px-4 py-4 text-gray-600">
+                          {paidUser.email || "Sem email"}
+                        </td>
+                        <td className="px-4 py-4 font-semibold text-gray-700">
+                          {paidUser.teamName || "Sem equipa"}
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-700">
+                            {paidUser.missingCount}/{paidUser.totalGames}
+                          </span>
+                        </td>
+                        <td className="rounded-r-2xl px-4 py-4 font-mono text-xs text-gray-500">
+                          {paidUser.id}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </section>

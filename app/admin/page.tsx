@@ -2,10 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { User } from "firebase/auth";
-import { collection, getDocs } from "firebase/firestore";
 import { players } from "@/data/players";
-import { games } from "@/data/games";
-import { db } from "@/lib/firebase";
 import {
   getAllPlayerTournamentStats,
   getPlayerStatHistory,
@@ -35,7 +32,7 @@ type TimestampLike =
   | undefined;
 
 type PaymentMethodFilter = "all" | "mbway" | "revolut";
-type AdminTab = "payments" | "stats" | "predictions";
+type AdminTab = "payments" | "stats";
 type PositionFilter = "ALL" | "GR" | "DEF" | "MED" | "ATA";
 
 type HistoryItemWithDiff = PlayerStatHistoryItem & {
@@ -43,173 +40,6 @@ type HistoryItemWithDiff = PlayerStatHistoryItem & {
   goalsDiff: number | null;
   assistsDiff: number | null;
 };
-
-type PredictionDoc = {
-  gameId?: string | number;
-  userId?: string;
-  predictedHomeScore?: string | number;
-  predictedAwayScore?: string | number;
-};
-
-type PredictionRoundStat = {
-  round: string;
-  totalGames: number;
-  usersAnswered: number;
-  totalUsers: number;
-  percentage: number;
-};
-
-type ParticipationStats = {
-  totalUsers: number;
-  totalTeams: number;
-  percentage: number;
-};
-
-function getGameId(game: any) {
-  return String(game.id);
-}
-
-function getRoundLabel(game: any) {
-  const phase = String(
-    game.phase ||
-      game.fase ||
-      game.stage ||
-      game.phaseName ||
-      game.stageName ||
-      ""
-  ).trim();
-
-  const round = String(game.round || game.jornada || game.roundName || "").trim();
-
-  const normalizedPhase = phase.toLowerCase();
-  const normalizedRound = round.toLowerCase();
-
-  const isGroupStage =
-    normalizedPhase.includes("fase de grupos") ||
-    normalizedPhase.includes("grupos") ||
-    normalizedPhase.includes("group");
-
-  if (isGroupStage) {
-    if (normalizedRound.includes("jornada 1") || normalizedRound === "1") {
-      return "Fase de Grupos - Jornada 1";
-    }
-
-    if (normalizedRound.includes("jornada 2") || normalizedRound === "2") {
-      return "Fase de Grupos - Jornada 2";
-    }
-
-    if (normalizedRound.includes("jornada 3") || normalizedRound === "3") {
-      return "Fase de Grupos - Jornada 3";
-    }
-
-    return round ? `Fase de Grupos - ${round}` : "Fase de Grupos";
-  }
-
-  if (normalizedPhase.includes("3º lugar") || normalizedPhase.includes("final")) {
-    return "Final e 3º lugar";
-  }
-
-  if (phase) return phase;
-  if (round) return round;
-
-  return "Sem fase";
-}
-
-function hasValidPrediction(data: PredictionDoc) {
-  return (
-    data.userId &&
-    data.gameId !== undefined &&
-    data.predictedHomeScore !== undefined &&
-    data.predictedHomeScore !== "" &&
-    data.predictedAwayScore !== undefined &&
-    data.predictedAwayScore !== ""
-  );
-}
-
-async function getParticipationStats(): Promise<ParticipationStats> {
-  const usersSnapshot = await getDocs(collection(db, "users"));
-  const teamsSnapshot = await getDocs(collection(db, "fantasyEntries"));
-
-  const totalUsers = usersSnapshot.size;
-  const totalTeams = teamsSnapshot.size;
-
-  return {
-    totalUsers,
-    totalTeams,
-    percentage: totalUsers > 0 ? Math.round((totalTeams / totalUsers) * 100) : 0,
-  };
-}
-
-async function getPredictionStatsByRound(): Promise<PredictionRoundStat[]> {
-  const teamsSnapshot = await getDocs(collection(db, "fantasyEntries"));
-  const predictionsSnapshot = await getDocs(collection(db, "predictions"));
-
-  const registeredTeamUserIds = new Set<string>();
-
-  teamsSnapshot.forEach((doc) => {
-    const data = doc.data() as { userId?: string };
-    registeredTeamUserIds.add(String(data.userId || doc.id));
-  });
-
-  const totalUsers = registeredTeamUserIds.size;
-  const roundsMap = new Map<string, string[]>();
-  const answeredGamesByUser = new Map<string, Set<string>>();
-
-  games.forEach((game: any) => {
-    const round = getRoundLabel(game);
-    const gameId = getGameId(game);
-
-    if (!roundsMap.has(round)) {
-      roundsMap.set(round, []);
-    }
-
-    roundsMap.get(round)?.push(gameId);
-  });
-
-  predictionsSnapshot.forEach((doc) => {
-    const data = doc.data() as PredictionDoc;
-
-    if (!hasValidPrediction(data)) return;
-
-    const userId = String(data.userId);
-
-    if (!registeredTeamUserIds.has(userId)) return;
-    const gameId = String(data.gameId);
-
-    if (!answeredGamesByUser.has(userId)) {
-      answeredGamesByUser.set(userId, new Set<string>());
-    }
-
-    answeredGamesByUser.get(userId)?.add(gameId);
-  });
-
-  const stats: PredictionRoundStat[] = [];
-
-  roundsMap.forEach((gameIds, round) => {
-    let usersAnswered = 0;
-
-    answeredGamesByUser.forEach((answeredGameIds) => {
-      const answeredAllRound = gameIds.every((gameId) =>
-        answeredGameIds.has(String(gameId))
-      );
-
-      if (answeredAllRound) {
-        usersAnswered++;
-      }
-    });
-
-    stats.push({
-      round,
-      totalGames: gameIds.length,
-      usersAnswered,
-      totalUsers,
-      percentage:
-        totalUsers > 0 ? Math.round((usersAnswered / totalUsers) * 100) : 0,
-    });
-  });
-
-  return stats;
-}
 
 export default function AdminPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -240,18 +70,6 @@ export default function AdminPage() {
   const [snapshotStageId, setSnapshotStageId] = useState("jornada 1");
   const [snapshotLabel, setSnapshotLabel] = useState("Jornada 1");
   const [savingSnapshot, setSavingSnapshot] = useState(false);
-
-  const [predictionStats, setPredictionStats] = useState<PredictionRoundStat[]>(
-    []
-  );
-  const [loadingPredictionStats, setLoadingPredictionStats] = useState(true);
-
-  const [participationStats, setParticipationStats] = useState<ParticipationStats>({
-    totalUsers: 0,
-    totalTeams: 0,
-    percentage: 0,
-  });
-  const [loadingParticipationStats, setLoadingParticipationStats] = useState(true);
 
   const [playerTeamFilter, setPlayerTeamFilter] = useState<string>("ALL");
   const [playerPositionFilter, setPlayerPositionFilter] =
@@ -408,32 +226,6 @@ export default function AdminPage() {
       alert("Erro ao carregar stats dos jogadores.");
     } finally {
       setLoadingPlayerStats(false);
-    }
-  };
-
-  const loadPredictionStats = async () => {
-    try {
-      setLoadingPredictionStats(true);
-      const data = await getPredictionStatsByRound();
-      setPredictionStats(data);
-    } catch (error) {
-      console.error(error);
-      alert("Erro ao carregar estatísticas das predictions.");
-    } finally {
-      setLoadingPredictionStats(false);
-    }
-  };
-
-  const loadParticipationStats = async () => {
-    try {
-      setLoadingParticipationStats(true);
-      const data = await getParticipationStats();
-      setParticipationStats(data);
-    } catch (error) {
-      console.error(error);
-      alert("Erro ao carregar taxa de participação.");
-    } finally {
-      setLoadingParticipationStats(false);
     }
   };
 
@@ -763,18 +555,7 @@ export default function AdminPage() {
   const totalApproved = approvedPayments.length;
   const totalRejected = rejectedPayments.length;
 
-  const totalPredictionRounds = predictionStats.length;
-  const averagePredictionCompletion =
-    predictionStats.length > 0
-      ? Math.round(
-          predictionStats.reduce((sum, item) => sum + item.percentage, 0) /
-            predictionStats.length
-        )
-      : 0;
-
-  const participationDisplayValue = loadingParticipationStats
-    ? "..."
-    : `${participationStats.percentage}%`;
+  const participationDisplayValue = "—";
 
   if (!user) {
     return (
@@ -1397,7 +1178,6 @@ export default function AdminPage() {
             <div className="flex flex-wrap gap-2">
               <TabButton value="payments" label="Pagamentos" />
               <TabButton value="stats" label="Atualizar stats" />
-              <TabButton value="predictions" label="Predictions" />
             </div>
           </section>
 
@@ -1575,265 +1355,6 @@ export default function AdminPage() {
                       </div>
                     )}
                   </div>
-                </div>
-              )}
-            </section>
-          )}
-
-          {activeTab === "predictions" && (
-            <section
-              className="rounded-2xl p-5 shadow-sm"
-              style={{
-                backgroundColor: "#ffffff",
-                border: "1px solid #e5e7eb",
-                color: "#111827",
-              }}
-            >
-              <div style={{ borderBottom: "1px solid #e5e7eb", paddingBottom: 16 }}>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.16em",
-                        color: "#7c3aed",
-                      }}
-                    >
-                      Participação
-                    </p>
-
-                    <h2
-                      style={{
-                        marginTop: 8,
-                        marginBottom: 0,
-                        fontSize: 34,
-                        fontWeight: 800,
-                        color: "#111827",
-                      }}
-                    >
-                      Estatísticas das Predictions
-                    </h2>
-
-                    <p
-                      style={{
-                        marginTop: 8,
-                        fontSize: 15,
-                        color: "#6b7280",
-                      }}
-                    >
-                      Vê quantos utilizadores já responderam a todas as previsões de cada
-                      jornada ou fase.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await loadPredictionStats();
-                      await loadParticipationStats();
-                    }}
-                    disabled={loadingPredictionStats}
-                    className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-                    style={{
-                      backgroundColor: "#2f2140",
-                      color: "#ffffff",
-                      border: "1px solid #2f2140",
-                      minWidth: 150,
-                    }}
-                  >
-                    {loadingPredictionStats ? "A atualizar..." : "Atualizar"}
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <div
-                  className="rounded-2xl p-4"
-                  style={{ backgroundColor: "#f8fafc", border: "1px solid #e5e7eb" }}
-                >
-                  <p style={{ margin: 0, fontSize: 12, color: "#6b7280", fontWeight: 700 }}>
-                    Fases/Jornadas
-                  </p>
-                  <p style={{ marginTop: 5, marginBottom: 0, fontSize: 30, fontWeight: 900 }}>
-                    {totalPredictionRounds}
-                  </p>
-                </div>
-
-                <div
-                  className="rounded-2xl p-4"
-                  style={{ backgroundColor: "#f8fafc", border: "1px solid #e5e7eb" }}
-                >
-                  <p style={{ margin: 0, fontSize: 12, color: "#6b7280", fontWeight: 700 }}>
-                    Média de resposta
-                  </p>
-                  <p style={{ marginTop: 5, marginBottom: 0, fontSize: 30, fontWeight: 900 }}>
-                    {averagePredictionCompletion}%
-                  </p>
-                </div>
-
-                <div
-                  className="rounded-2xl p-4"
-                  style={{ backgroundColor: "#f8fafc", border: "1px solid #e5e7eb" }}
-                >
-                  <p style={{ margin: 0, fontSize: 12, color: "#6b7280", fontWeight: 700 }}>
-                    Utilizadores totais
-                  </p>
-                  <p style={{ marginTop: 5, marginBottom: 0, fontSize: 30, fontWeight: 900 }}>
-                    {predictionStats[0]?.totalUsers ?? 0}
-                  </p>
-                </div>
-              </div>
-
-              {loadingPredictionStats ? (
-                <p className="mt-4" style={{ fontSize: 14, color: "#6b7280" }}>
-                  A carregar estatísticas das predictions...
-                </p>
-              ) : predictionStats.length === 0 ? (
-                <p className="mt-4" style={{ fontSize: 14, color: "#6b7280" }}>
-                  Ainda não existem estatísticas disponíveis.
-                </p>
-              ) : (
-                <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {predictionStats.map((item) => (
-                    <div
-                      key={item.round}
-                      className="rounded-2xl p-5"
-                      style={{
-                        backgroundColor: "#f8fafc",
-                        border: "1px solid #e5e7eb",
-                        color: "#111827",
-                      }}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p
-                            style={{
-                              margin: 0,
-                              fontSize: 12,
-                              fontWeight: 700,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.12em",
-                              color: "#7c3aed",
-                            }}
-                          >
-                            {item.round}
-                          </p>
-
-                          <p
-                            style={{
-                              marginTop: 8,
-                              marginBottom: 0,
-                              fontSize: 36,
-                              fontWeight: 900,
-                              color: "#111827",
-                              lineHeight: 1,
-                            }}
-                          >
-                            {item.usersAnswered}
-                            <span
-                              style={{
-                                fontSize: 16,
-                                fontWeight: 700,
-                                color: "#6b7280",
-                              }}
-                            >
-                              /{item.totalUsers}
-                            </span>
-                          </p>
-
-                          <p
-                            style={{
-                              marginTop: 8,
-                              marginBottom: 0,
-                              fontSize: 14,
-                              color: "#6b7280",
-                            }}
-                          >
-                            utilizadores responderam
-                          </p>
-                        </div>
-
-                        <div
-                          className="rounded-full px-3 py-1"
-                          style={{
-                            backgroundColor:
-                              item.percentage >= 75
-                                ? "#dcfce7"
-                                : item.percentage >= 40
-                                ? "#fef3c7"
-                                : "#fee2e2",
-                            color:
-                              item.percentage >= 75
-                                ? "#166534"
-                                : item.percentage >= 40
-                                ? "#92400e"
-                                : "#991b1b",
-                            fontSize: 12,
-                            fontWeight: 800,
-                          }}
-                        >
-                          {item.percentage}%
-                        </div>
-                      </div>
-
-                      <div
-                        className="mt-4 h-3 overflow-hidden rounded-full"
-                        style={{ backgroundColor: "#e5e7eb" }}
-                      >
-                        <div
-                          style={{
-                            width: `${item.percentage}%`,
-                            height: "100%",
-                            backgroundColor:
-                              item.percentage >= 75
-                                ? "#16a34a"
-                                : item.percentage >= 40
-                                ? "#f59e0b"
-                                : "#dc2626",
-                            borderRadius: 9999,
-                          }}
-                        />
-                      </div>
-
-                      <div
-                        className="mt-4 rounded-xl p-3"
-                        style={{
-                          backgroundColor: "#ffffff",
-                          border: "1px solid #e5e7eb",
-                        }}
-                      >
-                        <p
-                          style={{
-                            margin: 0,
-                            fontSize: 13,
-                            color: "#4b5563",
-                          }}
-                        >
-                          Jogos nesta jornada/fase:{" "}
-                          <span style={{ fontWeight: 800, color: "#111827" }}>
-                            {item.totalGames}
-                          </span>
-                        </p>
-
-                        <p
-                          style={{
-                            marginTop: 4,
-                            marginBottom: 0,
-                            fontSize: 13,
-                            color: "#4b5563",
-                          }}
-                        >
-                          Por responder:{" "}
-                          <span style={{ fontWeight: 800, color: "#111827" }}>
-                            {Math.max(item.totalUsers - item.usersAnswered, 0)}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               )}
             </section>
