@@ -441,6 +441,31 @@ export default function RankingPage() {
     return map;
   }, [allSnapshots]);
 
+  const selectedStageHasSnapshot = useMemo(() => {
+    if (!selectedStageId) return false;
+    return snapshotsByStageId.has(selectedStageId);
+  }, [selectedStageId, snapshotsByStageId]);
+
+  const openLiveStageOption = useMemo(() => {
+    return (
+      stageOptions.find((option) => !snapshotsByStageId.has(option.id)) ??
+      stageOptions[stageOptions.length - 1] ??
+      null
+    );
+  }, [stageOptions, snapshotsByStageId]);
+
+  const getLiveTotal = (entry?: FantasyEntry | null) => {
+    if (!entry) return 0;
+
+    const categoryTotal =
+      Number(entry.predictionPoints ?? 0) +
+      Number(entry.topScorerPoints ?? 0) +
+      Number(entry.topAssistPoints ?? 0) +
+      Number(entry.selectedTeamPoints ?? 0);
+
+    return Math.max(Number(entry.totalPoints ?? 0), categoryTotal);
+  };
+
   const snapshotTotalsByUserId = useMemo(() => {
     const totals = new Map<string, number>();
 
@@ -459,10 +484,31 @@ export default function RankingPage() {
     return totals;
   }, [orderedStageIds, snapshotsByStageId]);
 
+  const previousSnapshotTotalsByUserId = useMemo(() => {
+    const totals = new Map<string, number>();
+    const currentIndex = orderedStageIds.indexOf(selectedStageId);
+
+    if (currentIndex <= 0) return totals;
+
+    orderedStageIds.slice(0, currentIndex).forEach((stageId) => {
+      const snapshot = snapshotsByStageId.get(stageId);
+      if (!snapshot?.entries) return;
+
+      snapshot.entries.forEach((entry) => {
+        totals.set(
+          entry.userId,
+          (totals.get(entry.userId) ?? 0) + Number(entry.stagePoints ?? 0)
+        );
+      });
+    });
+
+    return totals;
+  }, [orderedStageIds, selectedStageId, snapshotsByStageId]);
+
   const leaderboard: RankedEntry[] = useMemo(() => {
     const sorted = [...entries].sort((a, b) => {
-      const aTotal = snapshotTotalsByUserId.get(a.userId) ?? a.totalPoints ?? 0;
-      const bTotal = snapshotTotalsByUserId.get(b.userId) ?? b.totalPoints ?? 0;
+      const aTotal = getLiveTotal(a);
+      const bTotal = getLiveTotal(b);
 
       const totalDiff = bTotal - aTotal;
       if (totalDiff !== 0) return totalDiff;
@@ -473,13 +519,11 @@ export default function RankingPage() {
     let currentRank = 1;
 
     return sorted.map((entry, index) => {
-      const entryTotal =
-        entry.totalPoints ?? 0
+      const entryTotal = getLiveTotal(entry);
 
       if (index > 0) {
         const prev = sorted[index - 1];
-        const prevTotal =
-          snapshotTotalsByUserId.get(prev.userId) ?? prev.totalPoints ?? 0;
+        const prevTotal = getLiveTotal(prev);
 
         if (entryTotal !== prevTotal) currentRank = index + 1;
       }
@@ -490,7 +534,7 @@ export default function RankingPage() {
         rank: currentRank,
       };
     });
-  }, [entries, snapshotTotalsByUserId]);
+  }, [entries]);
 
   const totalTeams = leaderboard.length;
 
@@ -553,12 +597,6 @@ export default function RankingPage() {
     }
   }, [leaderboard, selectedUserId, user?.uid]);
 
-  const previousStageId = useMemo(() => {
-    const currentIndex = orderedStageIds.indexOf(selectedStageId);
-    if (currentIndex <= 0) return null;
-    return orderedStageIds[currentIndex - 1];
-  }, [orderedStageIds, selectedStageId]);
-
   useEffect(() => {
     const loadStageSnapshot = async () => {
       if (leaderboardMode !== "stage" || !selectedStageId) {
@@ -569,49 +607,85 @@ export default function RankingPage() {
       try {
         setLoadingStageSnapshot(true);
 
-        const currentSnapshot = await getStageLeaderboardSnapshot(
-          selectedStageId
-        );
+        const currentSnapshot =
+          snapshotsByStageId.get(selectedStageId) ??
+          ((await getStageLeaderboardSnapshot(selectedStageId)) as
+            | LeaderboardSnapshot
+            | null);
 
-        if (
-          !currentSnapshot ||
-          !Array.isArray((currentSnapshot as any).entries)
-        ) {
-          setStageSnapshotEntries([]);
+        if (currentSnapshot && Array.isArray((currentSnapshot as any).entries)) {
+          const mapped: StageRankedEntry[] = (currentSnapshot as any).entries.map(
+            (entry: SnapshotEntry) => {
+              const fullEntry = entries.find((e) => e.userId === entry.userId);
+
+              const stagePoints = Number(entry.stagePoints ?? 0);
+
+              return {
+                ...(fullEntry ?? {
+                  userId: entry.userId,
+                  teamName: entry.teamName,
+                  managerName: entry.managerName,
+                  totalPoints: snapshotTotalsByUserId.get(entry.userId) ?? 0,
+                  predictionPoints: 0,
+                  topScorerPoints: 0,
+                  topAssistPoints: 0,
+                  selectedTeamPoints: 0,
+                  topScorerPick: null,
+                  topAssistPick: null,
+                  championPick: null,
+                }),
+                totalPoints: fullEntry
+                  ? getLiveTotal(fullEntry)
+                  : snapshotTotalsByUserId.get(entry.userId) ?? 0,
+                rank: 0,
+                stagePoints,
+              } as StageRankedEntry;
+            }
+          );
+
+          const sorted = mapped.sort((a, b) => {
+            if (b.stagePoints !== a.stagePoints) return b.stagePoints - a.stagePoints;
+            return (b.totalPoints ?? 0) - (a.totalPoints ?? 0);
+          });
+
+          let currentRank = 1;
+
+          const ranked = sorted.map((entry, index) => {
+            if (index > 0) {
+              const prev = sorted[index - 1];
+              const same =
+                entry.stagePoints === prev.stagePoints &&
+                (entry.totalPoints ?? 0) === (prev.totalPoints ?? 0);
+
+              if (!same) currentRank = index + 1;
+            }
+
+            return {
+              ...entry,
+              rank: currentRank,
+            };
+          });
+
+          setStageSnapshotEntries(ranked);
           return;
         }
 
-        const mapped: StageRankedEntry[] = (currentSnapshot as any).entries.map(
-          (entry: SnapshotEntry) => {
-            const fullEntry = entries.find((e) => e.userId === entry.userId);
+        // LIVE scoring da jornada/fase atual:
+        // pontos da etapa = total atual da equipa - pontos fechados em snapshots anteriores.
+        const liveMapped: StageRankedEntry[] = entries.map((entry) => {
+          const liveTotal = getLiveTotal(entry);
+          const previousClosedTotal = previousSnapshotTotalsByUserId.get(entry.userId) ?? 0;
+          const stagePoints = Math.max(liveTotal - previousClosedTotal, 0);
 
-            const stagePoints = Number(entry.stagePoints ?? 0);
+          return {
+            ...entry,
+            totalPoints: liveTotal,
+            rank: 0,
+            stagePoints,
+          } as StageRankedEntry;
+        });
 
-            return {
-              ...(fullEntry ?? {
-                userId: entry.userId,
-                teamName: entry.teamName,
-                managerName: entry.managerName,
-                totalPoints: snapshotTotalsByUserId.get(entry.userId) ?? 0,
-                predictionPoints: 0,
-                topScorerPoints: 0,
-                topAssistPoints: 0,
-                selectedTeamPoints: 0,
-                topScorerPick: null,
-                topAssistPick: null,
-                championPick: null,
-              }),
-              totalPoints:
-                snapshotTotalsByUserId.get(entry.userId) ??
-                fullEntry?.totalPoints ??
-                0,
-              rank: 0,
-              stagePoints,
-            } as StageRankedEntry;
-          }
-        );
-
-        const sorted = mapped.sort((a, b) => {
+        const sorted = liveMapped.sort((a, b) => {
           if (b.stagePoints !== a.stagePoints) return b.stagePoints - a.stagePoints;
           return (b.totalPoints ?? 0) - (a.totalPoints ?? 0);
         });
@@ -648,9 +722,9 @@ export default function RankingPage() {
     leaderboardMode,
     selectedStageId,
     entries,
-    previousStageId,
     snapshotsByStageId,
     snapshotTotalsByUserId,
+    previousSnapshotTotalsByUserId,
   ]);
 
   const myStageEntry = useMemo(() => {
@@ -751,41 +825,34 @@ export default function RankingPage() {
         ? snapshotHistory
         : buildPredictionHistory(finishedPredictionsWithGameData);
 
-    if (baseHistory.length === 0) {
-      return baseHistory;
-    }
-
-    // Garante que o histórico bate certo com a pontuação total visível.
-    // Isto corrige snapshots antigos em que a jornada guardou só pontos de palpites.
     if (leaderboardMode !== "overall" || !activeEntry) {
       return baseHistory;
     }
 
-    const visibleTotal =
-      Number(activeEntry.predictionPoints ?? 0) +
-      Number(activeEntry.topScorerPoints ?? 0) +
-      Number(activeEntry.topAssistPoints ?? 0) +
-      Number(activeEntry.selectedTeamPoints ?? 0);
+    const visibleTotal = getLiveTotal(activeEntry);
 
     const historyTotal = baseHistory.reduce(
       (sum, row) => sum + Number(row.points || 0),
       0
     );
 
-    const missingPoints = visibleTotal - historyTotal;
+    const livePoints = visibleTotal - historyTotal;
 
-    if (!Number.isFinite(missingPoints) || missingPoints === 0) {
+    if (!Number.isFinite(livePoints) || livePoints === 0) {
       return baseHistory;
     }
 
-    return baseHistory.map((row, index) => {
-      if (index !== baseHistory.length - 1) return row;
+    const liveLabel = openLiveStageOption?.label
+      ? `${openLiveStageOption.label} (Live)`
+      : "Live";
 
-      return {
-        ...row,
-        points: Number(row.points || 0) + missingPoints,
-      };
-    });
+    return [
+      ...baseHistory,
+      {
+        label: liveLabel,
+        points: livePoints,
+      },
+    ];
   }, [
     orderedStageIds,
     snapshotsByStageId,
@@ -793,10 +860,8 @@ export default function RankingPage() {
     stageOptions,
     finishedPredictionsWithGameData,
     leaderboardMode,
-    activeEntry?.predictionPoints,
-    activeEntry?.topScorerPoints,
-    activeEntry?.topAssistPoints,
-    activeEntry?.selectedTeamPoints,
+    activeEntry,
+    openLiveStageOption,
   ]);
 
   const selectedHistoryTotal = useMemo(() => {
@@ -913,36 +978,28 @@ export default function RankingPage() {
   const myEntry = leaderboardMode === "overall" ? myOverallEntry : myStageEntry;
 
   const handleSelectUser = (userId: string, shouldScroll = false) => {
-  const hadSearch = rankingSearch.trim().length > 0;
+    setRankingSearch("");
+    setSelectedUserId(userId);
 
-  setRankingSearch("");
-  setSelectedUserId(userId);
+    setExpandedMobileUserId((currentUserId) => {
+      if (!shouldScroll && currentUserId === userId) {
+        return "";
+      }
 
-  setExpandedMobileUserId((currentUserId) => {
-    // Sem pesquisa: clicar na mesma pessoa fecha o detalhe no telemóvel
-    if (!shouldScroll && !hadSearch && currentUserId === userId) {
-      return "";
-    }
+      return userId;
+    });
 
-    // Com pesquisa: abre/mantém aberto
-    return userId;
-  });
+    if (shouldScroll) {
+      window.setTimeout(() => {
+        const element = document.getElementById(`ranking-row-${userId}`);
 
-  if (shouldScroll || hadSearch) {
-    window.setTimeout(() => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const element = document.getElementById(`ranking-row-${userId}`);
-
-          element?.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-          });
+        element?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
         });
-      });
-    }, hadSearch ? 350 : 120);
-  }
-};
+      }, 120);
+    }
+  };
 
   const renderMobileSelectedStats = () => {
     if (!activeEntry) return null;
@@ -960,7 +1017,7 @@ export default function RankingPage() {
 
 
     return (
-      <div className="rounded-2xl border border-violet-200 bg-violet-50 p-2.5 lg:hidden">
+      <div className="mt-2 rounded-2xl border border-violet-200 bg-violet-50 p-2.5 lg:hidden">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[9px] font-black uppercase tracking-[0.14em] text-violet-700">
             Pontos
@@ -1049,12 +1106,6 @@ export default function RankingPage() {
               <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5">
                 <p className="truncate text-[9px] font-bold text-gray-500">
                   🎯 {activeEntry.topAssistPick?.playerName || "Sem assistente"}
-                </p>
-              </div>
-
-              <div className="col-span-2 rounded-xl border border-gray-200 bg-white px-2 py-1.5">
-                <p className="truncate text-[9px] font-bold text-gray-500">
-                  🏆 {activeEntry.championPick?.teamName || "Sem seleção campeã"}
                 </p>
               </div>
             </div>
@@ -1255,6 +1306,10 @@ export default function RankingPage() {
             )}
           </div>
         </div>
+
+        <p className="mt-1.5 truncate text-[10px] font-semibold text-gray-600">
+          🏆 {activeEntry.championPick?.teamName || "Sem seleção campeã"}
+        </p>
       </div>
     );
   };
@@ -1295,10 +1350,12 @@ export default function RankingPage() {
                     {leaderboardMode === "stage" && (
                       <p className="mt-2 text-xs font-semibold text-white/85">
                         {loadingStageSnapshot
-                          ? "A carregar snapshot..."
-                          : stageSnapshotEntries.length > 0
+                          ? "A carregar leaderboard..."
+                          : selectedStageHasSnapshot
                           ? "Snapshot histórico guardado"
-                          : "Sem snapshot guardado para esta etapa"}
+                          : stageSnapshotEntries.length > 0
+                          ? "Live scoring desta etapa"
+                          : "Sem dados para esta etapa"}
                       </p>
                     )}
                   </div>
@@ -1527,7 +1584,7 @@ export default function RankingPage() {
       )}
 
       <div className="mx-auto max-w-7xl px-4 pb-10 sm:px-6">
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.82fr_0.8fr] xl:items-start">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.82fr_0.8fr]">
           <section>
             {podium.length > 0 && (
               <div className="mb-3 grid gap-3 md:grid-cols-3">
@@ -1543,15 +1600,15 @@ export default function RankingPage() {
                       : (entry as StageRankedEntry).stagePoints ?? 0;
 
                   return (
-                    <div key={entry.userId}>
-                      <button
-                        onClick={() => handleSelectUser(entry.userId)}
-                        className={`w-full rounded-[18px] border px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 ${
-                          isSelected
-                            ? "border-violet-300 bg-violet-50"
-                            : "border-gray-200 bg-white"
-                        }`}
-                      >
+                    <button
+                      key={entry.userId}
+                      onClick={() => handleSelectUser(entry.userId)}
+                      className={`rounded-[18px] border px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 ${
+                        isSelected
+                          ? "border-violet-300 bg-violet-50"
+                          : "border-gray-200 bg-white"
+                      }`}
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-[11px] font-black text-gray-700">
@@ -1631,14 +1688,8 @@ export default function RankingPage() {
                         )}
                       </div>
 
-                      </button>
-
-                      {expandedMobileUserId === entry.userId && (
-                        <div className="px-1 pb-2 lg:hidden">
-                          {renderMobileSelectedStats()}
-                        </div>
-                      )}
-                    </div>
+                      {expandedMobileUserId === entry.userId && renderMobileSelectedStats()}
+                    </button>
                   );
                 })}
               </div>
@@ -1694,17 +1745,18 @@ export default function RankingPage() {
                       : (entry as StageRankedEntry).stagePoints ?? 0;
 
                   return (
-                    <div key={entry.userId} id={`ranking-row-${entry.userId}`}>
-                      <button
-                        onClick={() => handleSelectUser(entry.userId)}
-                        className={`w-full text-left transition ${
-                          isSelected
-                            ? "bg-violet-50"
-                            : isMine
-                            ? "bg-blue-50"
-                            : "bg-white hover:bg-gray-50"
-                        }`}
-                      >
+                    <button
+                      key={entry.userId}
+                      id={`ranking-row-${entry.userId}`}
+                      onClick={() => handleSelectUser(entry.userId)}
+                      className={`w-full text-left transition ${
+                        isSelected
+                          ? "bg-violet-50"
+                          : isMine
+                          ? "bg-blue-50"
+                          : "bg-white hover:bg-gray-50"
+                      }`}
+                    >
                       <div className="hidden items-center grid-cols-[62px_1.55fr_1fr_82px_112px_20px] px-3 py-2 lg:grid">
                         <div className="flex items-center gap-1.5">
                           <RankingBadge rank={entry.rank} isMine={isMine} />
@@ -1800,15 +1852,9 @@ export default function RankingPage() {
                           )}
                         </div>
 
+                        {expandedMobileUserId === entry.userId && renderMobileSelectedStats()}
                       </div>
                     </button>
-
-                    {expandedMobileUserId === entry.userId && (
-                      <div className="px-2.5 pb-2.5 lg:hidden">
-                        {renderMobileSelectedStats()}
-                      </div>
-                    )}
-                  </div>
                   );
                 })}
 
@@ -1825,7 +1871,7 @@ export default function RankingPage() {
             </div>
           </section>
 
-          <aside className="hidden h-fit self-start rounded-[18px] border border-gray-200 bg-white p-4 shadow-sm xl:sticky xl:top-24 xl:block xl:max-h-[calc(100vh-7rem)] xl:overflow-y-auto">
+          <aside className="hidden rounded-[18px] border border-gray-200 bg-white p-4 shadow-sm xl:block">
             {!activeEntry ? (
               <p className="text-gray-500">Ainda não existem entradas.</p>
             ) : (
@@ -1953,9 +1999,7 @@ export default function RankingPage() {
                           Total geral
                         </p>
                         <p className="mt-1 text-lg font-black text-gray-900">
-                          {snapshotTotalsByUserId.get(activeEntry.userId) ??
-                            activeOverallEntry?.totalPoints ??
-                            0}
+                          {activeOverallEntry?.totalPoints ?? getLiveTotal(activeEntry)}
                         </p>
                       </div>
 
