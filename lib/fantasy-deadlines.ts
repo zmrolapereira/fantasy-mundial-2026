@@ -1,8 +1,14 @@
 import { Game } from "@/data/games";
 
+const PORTUGAL_TIMEZONE_OFFSET = "+01:00";
+
 export function getGameDateTime(game: Game) {
   const time = game.time?.trim() || "00:00";
-  return new Date(`${game.date}T${time}:00`);
+
+  // IMPORTANTE:
+  // Isto força a data/hora a ser interpretada como hora de Portugal,
+  // e não como hora local do utilizador.
+  return new Date(`${game.date}T${time}:00${PORTUGAL_TIMEZONE_OFFSET}`);
 }
 
 export function getFirstTournamentGame(games: Game[]) {
@@ -16,7 +22,7 @@ export function getFirstTournamentGame(games: Game[]) {
 }
 
 export function getLockDateFromGame(game: Game) {
-  // Fecha exatamente à hora do primeiro jogo
+  // Fecha exatamente à hora do primeiro jogo, em hora de Portugal
   return getGameDateTime(game);
 }
 
