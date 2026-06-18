@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { User } from "firebase/auth";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { listenToAuth } from "@/lib/auth";
+import { db } from "@/lib/firebase";
 import { teams } from "@/data/teams";
 import { games as baseGames, type Game } from "@/data/games";
 import {
@@ -413,6 +415,9 @@ export default function RankingPage() {
   >([]);
   const [loadingStageSnapshot, setLoadingStageSnapshot] = useState(false);
   const [allSnapshots, setAllSnapshots] = useState<LeaderboardSnapshot[]>([]);
+  const [stageLeaderboardSource, setStageLeaderboardSource] = useState<
+    "snapshot" | "live" | "none"
+  >("none");
 
   useEffect(() => {
     const unsubscribe = listenToAuth(setUser);
@@ -614,16 +619,11 @@ export default function RankingPage() {
     }
   }, [leaderboard, selectedUserId, user?.uid]);
 
-  const previousStageId = useMemo(() => {
-    const currentIndex = orderedStageIds.indexOf(selectedStageId);
-    if (currentIndex <= 0) return null;
-    return orderedStageIds[currentIndex - 1];
-  }, [orderedStageIds, selectedStageId]);
-
   useEffect(() => {
-    const loadStageSnapshot = async () => {
+    const loadStageLeaderboard = async () => {
       if (leaderboardMode !== "stage" || !selectedStageId) {
         setStageSnapshotEntries([]);
+        setStageLeaderboardSource("none");
         return;
       }
 
@@ -635,46 +635,128 @@ export default function RankingPage() {
         );
 
         if (
-          !currentSnapshot ||
-          !Array.isArray((currentSnapshot as any).entries)
+          currentSnapshot &&
+          Array.isArray((currentSnapshot as any).entries) &&
+          (currentSnapshot as any).entries.length > 0
         ) {
-          setStageSnapshotEntries([]);
+          const mapped: StageRankedEntry[] = (currentSnapshot as any).entries.map(
+            (entry: SnapshotEntry) => {
+              const fullEntry = entries.find((e) => e.userId === entry.userId);
+
+              const stagePoints = Number(entry.stagePoints ?? 0);
+
+              return {
+                ...(fullEntry ?? {
+                  userId: entry.userId,
+                  teamName: entry.teamName,
+                  managerName: entry.managerName,
+                  totalPoints: snapshotTotalsByUserId.get(entry.userId) ?? 0,
+                  predictionPoints: 0,
+                  topScorerPoints: 0,
+                  topAssistPoints: 0,
+                  selectedTeamPoints: 0,
+                  topScorerPick: null,
+                  topAssistPick: null,
+                  championPick: null,
+                }),
+                totalPoints:
+                  snapshotTotalsByUserId.get(entry.userId) ??
+                  fullEntry?.totalPoints ??
+                  0,
+                rank: 0,
+                stagePoints,
+              } as StageRankedEntry;
+            }
+          );
+
+          const sorted = mapped.sort((a, b) => {
+            if (b.stagePoints !== a.stagePoints) {
+              return b.stagePoints - a.stagePoints;
+            }
+
+            return (a.teamName ?? "").localeCompare(b.teamName ?? "");
+          });
+
+          let currentRank = 1;
+
+          const ranked = sorted.map((entry, index) => {
+            if (index > 0) {
+              const prev = sorted[index - 1];
+
+              if (entry.stagePoints !== prev.stagePoints) {
+                currentRank = index + 1;
+              }
+            }
+
+            return {
+              ...entry,
+              rank: currentRank,
+            };
+          });
+
+          setStageSnapshotEntries(ranked);
+          setStageLeaderboardSource("snapshot");
           return;
         }
 
-        const mapped: StageRankedEntry[] = (currentSnapshot as any).entries.map(
-          (entry: SnapshotEntry) => {
-            const fullEntry = entries.find((e) => e.userId === entry.userId);
-
-            const stagePoints = Number(entry.stagePoints ?? 0);
-
-            return {
-              ...(fullEntry ?? {
-                userId: entry.userId,
-                teamName: entry.teamName,
-                managerName: entry.managerName,
-                totalPoints: snapshotTotalsByUserId.get(entry.userId) ?? 0,
-                predictionPoints: 0,
-                topScorerPoints: 0,
-                topAssistPoints: 0,
-                selectedTeamPoints: 0,
-                topScorerPick: null,
-                topAssistPick: null,
-                championPick: null,
-              }),
-              totalPoints:
-                snapshotTotalsByUserId.get(entry.userId) ??
-                fullEntry?.totalPoints ??
-                0,
-              rank: 0,
-              stagePoints,
-            } as StageRankedEntry;
-          }
+        // Se ainda não existe snapshot desta jornada/fase, mostramos a leaderboard LIVE.
+        // Isto só lê as predictions dos jogos já terminados dessa etapa, não lê o torneio inteiro.
+        const selectedStageFinishedGames = finishedGames.filter(
+          (game) => getStageId(getStageLabel(game)) === selectedStageId
         );
 
+        if (selectedStageFinishedGames.length === 0) {
+          setStageSnapshotEntries([]);
+          setStageLeaderboardSource("none");
+          return;
+        }
+
+        const pointsByUserId = new Map<string, number>();
+
+        const predictionSnapshots = await Promise.all(
+          selectedStageFinishedGames.map((game) =>
+            getDocs(
+              query(
+                collection(db, "predictions"),
+                where("gameId", "==", Number(game.id))
+              )
+            ).then((snap) => ({ game, snap }))
+          )
+        );
+
+        predictionSnapshots.forEach(({ game, snap }) => {
+          snap.docs.forEach((docSnap) => {
+            const data = docSnap.data() as MatchPrediction;
+
+            const prediction = {
+              ...data,
+              gameId: Number(data.gameId),
+              predictedHomeScore: Number(data.predictedHomeScore),
+              predictedAwayScore: Number(data.predictedAwayScore),
+            } as MatchPrediction;
+
+            const points = getPredictionPoints(prediction, game);
+
+            pointsByUserId.set(
+              prediction.userId,
+              (pointsByUserId.get(prediction.userId) ?? 0) + points
+            );
+          });
+        });
+
+        const mapped: StageRankedEntry[] = entries.map((entry) => ({
+          ...entry,
+          totalPoints: getLiveTotal(entry),
+          rank: 0,
+          stagePoints: pointsByUserId.get(entry.userId) ?? 0,
+        }));
+
         const sorted = mapped.sort((a, b) => {
-          if (b.stagePoints !== a.stagePoints) return b.stagePoints - a.stagePoints;
-          return (b.totalPoints ?? 0) - (a.totalPoints ?? 0);
+          if (b.stagePoints !== a.stagePoints) {
+            return b.stagePoints - a.stagePoints;
+          }
+
+          return (a.teamName ?? "").localeCompare(b.teamName ?? "");
         });
 
         let currentRank = 1;
@@ -682,11 +764,10 @@ export default function RankingPage() {
         const ranked = sorted.map((entry, index) => {
           if (index > 0) {
             const prev = sorted[index - 1];
-            const same =
-              entry.stagePoints === prev.stagePoints &&
-              (entry.totalPoints ?? 0) === (prev.totalPoints ?? 0);
 
-            if (!same) currentRank = index + 1;
+            if (entry.stagePoints !== prev.stagePoints) {
+              currentRank = index + 1;
+            }
           }
 
           return {
@@ -696,21 +777,22 @@ export default function RankingPage() {
         });
 
         setStageSnapshotEntries(ranked);
+        setStageLeaderboardSource("live");
       } catch (error) {
         console.error(error);
         setStageSnapshotEntries([]);
+        setStageLeaderboardSource("none");
       } finally {
         setLoadingStageSnapshot(false);
       }
     };
 
-    loadStageSnapshot();
+    loadStageLeaderboard();
   }, [
     leaderboardMode,
     selectedStageId,
     entries,
-    previousStageId,
-    snapshotsByStageId,
+    finishedGames,
     snapshotTotalsByUserId,
   ]);
 
@@ -1371,10 +1453,12 @@ export default function RankingPage() {
                     {leaderboardMode === "stage" && (
                       <p className="mt-2 text-xs font-semibold text-white/85">
                         {loadingStageSnapshot
-                          ? "A carregar snapshot..."
-                          : stageSnapshotEntries.length > 0
+                          ? "A carregar leaderboard..."
+                          : stageLeaderboardSource === "snapshot"
                           ? "Snapshot histórico guardado"
-                          : "Sem snapshot guardado para esta etapa"}
+                          : stageLeaderboardSource === "live"
+                          ? "Leaderboard live da jornada/fase"
+                          : "Sem jogos concluídos nesta etapa"}
                       </p>
                     )}
                   </div>
@@ -1936,7 +2020,7 @@ export default function RankingPage() {
                     {rankingSearch.trim()
                       ? "Não foram encontradas equipas com essa pesquisa."
                       : leaderboardMode === "stage"
-                      ? "Ainda não existe snapshot para esta jornada/fase."
+                      ? "Ainda não há jogos concluídos para esta jornada/fase."
                       : "Ainda não existem equipas registadas."}
                   </div>
                 )}
