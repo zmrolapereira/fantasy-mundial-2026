@@ -2,9 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { User } from "firebase/auth";
-import { collection, getDocs, query, where } from "firebase/firestore";
 import { listenToAuth } from "@/lib/auth";
-import { db } from "@/lib/firebase";
 import { teams } from "@/data/teams";
 import { games as baseGames, type Game } from "@/data/games";
 import {
@@ -300,40 +298,6 @@ function getOverallLeaderboardColumnLabel(tab: OverallLeaderboardTab) {
   if (tab === "exact") return "Exatos";
   return "Pts";
 }
-function buildPredictionHistory(predictions: PredictionWithGame[]) {
-  const order = [
-    "Jornada 1",
-    "Jornada 2",
-    "Jornada 3",
-    "16 avos",
-    "Oitavos",
-    "Quartos",
-    "Meias-finais",
-    "Final e 3º lugar",
-  ];
-
-  const grouped: Record<string, number> = {};
-
-  predictions.forEach((prediction) => {
-    if (!prediction.game || prediction.game.status !== "FT") return;
-
-    const label = getStageLabel(prediction.game);
-    grouped[label] = (grouped[label] || 0) + prediction.points;
-  });
-
-  return Object.entries(grouped)
-    .map(([label, points]) => ({ label, points }))
-    .sort((a, b) => {
-      const aIndex = order.indexOf(a.label);
-      const bIndex = order.indexOf(b.label);
-
-      if (aIndex === -1 && bIndex === -1) return a.label.localeCompare(b.label);
-      if (aIndex === -1) return 1;
-      if (bIndex === -1) return -1;
-      return aIndex - bIndex;
-    });
-}
-
 function buildTotalHistoryFromSnapshots({
   orderedStageIds,
   snapshotsByStageId,
@@ -382,6 +346,41 @@ function buildTotalHistoryFromSnapshots({
       };
     })
     .filter(Boolean) as HistoryRow[];
+}
+
+function getSnapshotEntryForUser(
+  snapshot: LeaderboardSnapshot | undefined,
+  userId: string
+) {
+  return snapshot?.entries?.find((entry) => entry.userId === userId) ?? null;
+}
+
+function getPreviousCumulativeTotalForStage(params: {
+  selectedStageId: string;
+  orderedStageIds: string[];
+  snapshotsByStageId: Map<string, LeaderboardSnapshot>;
+  userId: string;
+}) {
+  const { selectedStageId, orderedStageIds, snapshotsByStageId, userId } = params;
+  const selectedIndex = orderedStageIds.indexOf(selectedStageId);
+  if (selectedIndex <= 0) return 0;
+
+  let fallbackStageSum = 0;
+
+  for (let index = 0; index < selectedIndex; index += 1) {
+    const snapshot = snapshotsByStageId.get(orderedStageIds[index]);
+    const row = getSnapshotEntryForUser(snapshot, userId);
+    if (!row) continue;
+
+    const cumulativeTotal = Number(row.totalPointsAtThatMoment);
+    if (Number.isFinite(cumulativeTotal)) {
+      fallbackStageSum = cumulativeTotal;
+    } else {
+      fallbackStageSum += Number(row.stagePoints ?? 0);
+    }
+  }
+
+  return fallbackStageSum;
 }
 
 export default function RankingPage() {
@@ -704,7 +703,9 @@ export default function RankingPage() {
         }
 
         // Se ainda não existe snapshot desta jornada/fase, mostramos a leaderboard LIVE.
-        // Isto só lê as predictions dos jogos já terminados dessa etapa, não lê o torneio inteiro.
+        // Para incluir marcadores, assistentes e seleção sem leituras extra, usamos:
+        // pontos totais atuais da equipa - total acumulado no snapshot anterior.
+        // Assim a Jornada 2 live já inclui tudo o que entrou depois do snapshot da Jornada 1.
         const selectedStageFinishedGames = finishedGames.filter(
           (game) => getStageId(getStageLabel(game)) === selectedStageId
         );
@@ -715,45 +716,22 @@ export default function RankingPage() {
           return;
         }
 
-        const pointsByUserId = new Map<string, number>();
-
-        const predictionSnapshots = await Promise.all(
-          selectedStageFinishedGames.map((game) =>
-            getDocs(
-              query(
-                collection(db, "predictions"),
-                where("gameId", "==", Number(game.id))
-              )
-            ).then((snap) => ({ game, snap }))
-          )
-        );
-
-        predictionSnapshots.forEach(({ game, snap }) => {
-          snap.docs.forEach((docSnap) => {
-            const data = docSnap.data() as MatchPrediction;
-
-            const prediction = {
-              ...data,
-              gameId: Number(data.gameId),
-              predictedHomeScore: Number(data.predictedHomeScore),
-              predictedAwayScore: Number(data.predictedAwayScore),
-            } as MatchPrediction;
-
-            const points = getPredictionPoints(prediction, game);
-
-            pointsByUserId.set(
-              prediction.userId,
-              (pointsByUserId.get(prediction.userId) ?? 0) + points
-            );
+        const mapped: StageRankedEntry[] = entries.map((entry) => {
+          const currentTotal = getLiveTotal(entry);
+          const previousCumulativeTotal = getPreviousCumulativeTotalForStage({
+            selectedStageId,
+            orderedStageIds,
+            snapshotsByStageId,
+            userId: entry.userId,
           });
-        });
 
-        const mapped: StageRankedEntry[] = entries.map((entry) => ({
-          ...entry,
-          totalPoints: getLiveTotal(entry),
-          rank: 0,
-          stagePoints: pointsByUserId.get(entry.userId) ?? 0,
-        }));
+          return {
+            ...entry,
+            totalPoints: currentTotal,
+            rank: 0,
+            stagePoints: Math.max(0, currentTotal - previousCumulativeTotal),
+          };
+        });
 
         const sorted = mapped.sort((a, b) => {
           if (b.stagePoints !== a.stagePoints) {
@@ -797,6 +775,8 @@ export default function RankingPage() {
     selectedStageId,
     entries,
     finishedGames,
+    orderedStageIds,
+    snapshotsByStageId,
     snapshotTotalsByUserId,
   ]);
 
@@ -905,27 +885,49 @@ export default function RankingPage() {
       stageOptions,
     });
 
-    const livePredictionHistory = buildPredictionHistory(
-      finishedPredictionsWithGameData
-    );
-
-    // Regra importante:
-    // - Jornadas/fases com snapshot usam o snapshot final dessa etapa.
-    // - Jornadas/fases sem snapshot ainda aparecem live, mas em linha própria.
-    // - Nunca somamos pontos de uma jornada nova à jornada anterior.
     const rowsByStageId = new Map<string, HistoryRow>();
 
     snapshotHistory.forEach((row) => {
       rowsByStageId.set(getStageId(row.label), row);
     });
 
-    livePredictionHistory.forEach((row) => {
-      const stageId = getStageId(row.label);
+    // Histórico geral live:
+    // - Jornadas/fases já fechadas usam snapshot.
+    // - A jornada/fase atual sem snapshot aparece numa linha própria.
+    // - O valor live inclui palpites + marcador + assistente + seleção, porque é
+    //   calculado pelo delta entre o total atual e o total acumulado no snapshot anterior.
+    if (leaderboardMode === "overall" && activeEntry) {
+      const currentTotal = getLiveTotal(activeEntry);
 
-      if (!rowsByStageId.has(stageId)) {
-        rowsByStageId.set(stageId, row);
+      for (const option of stageOptions) {
+        if (rowsByStageId.has(option.id)) continue;
+
+        const hasFinishedGameInStage = finishedGames.some(
+          (game) => getStageId(getStageLabel(game)) === option.id
+        );
+
+        if (!hasFinishedGameInStage) continue;
+
+        const previousCumulativeTotal = getPreviousCumulativeTotalForStage({
+          selectedStageId: option.id,
+          orderedStageIds,
+          snapshotsByStageId,
+          userId: activeEntry.userId,
+        });
+
+        const liveStagePoints = Math.max(
+          0,
+          currentTotal - previousCumulativeTotal
+        );
+
+        rowsByStageId.set(option.id, {
+          label: option.label,
+          points: liveStagePoints,
+        });
+
+        break;
       }
-    });
+    }
 
     return Array.from(rowsByStageId.values()).sort(
       (a, b) => getStageOrder(a.label) - getStageOrder(b.label)
@@ -935,7 +937,14 @@ export default function RankingPage() {
     snapshotsByStageId,
     selectedUserId,
     stageOptions,
-    finishedPredictionsWithGameData,
+    finishedGames,
+    leaderboardMode,
+    activeEntry?.userId,
+    activeEntry?.totalPoints,
+    activeEntry?.predictionPoints,
+    activeEntry?.topScorerPoints,
+    activeEntry?.topAssistPoints,
+    activeEntry?.selectedTeamPoints,
   ]);
 
   const selectedHistoryTotal = useMemo(() => {
