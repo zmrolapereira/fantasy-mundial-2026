@@ -3,16 +3,16 @@ import {
   getAllFantasyEntries,
   getPredictionsForUser,
   updateFantasyEntryPoints,
-} from "@/lib/fantasy-entry";
-import { getAllPlayerTournamentStats } from "@/lib/player-stats";
-import { calculateFantasyEntryPoints } from "@/lib/fantasy-scoring";
-import { getGamesWithResults } from "@/lib/game-results";
+} from "./fantasy-entry";
+import { getAllPlayerTournamentStats } from "./player-stats";
+import { calculateFantasyEntryPoints } from "./fantasy-scoring";
+import { getGamesWithResults } from "./game-results";
 
 export async function recalculateAllFantasyPoints() {
   const entries = await getAllFantasyEntries();
   const playerStats = await getAllPlayerTournamentStats();
 
-  // Aqui juntamos o calendário fixo do games.ts com os resultados guardados na Firebase.
+  // Junta o calendário fixo do games.ts com os resultados guardados na Firebase.
   const games = await getGamesWithResults(baseGames);
 
   for (const entry of entries) {
@@ -31,6 +31,7 @@ export async function recalculateAllFantasyPoints() {
       topScorerPoints: result.topScorerPoints,
       topAssistPoints: result.topAssistPoints,
       selectedTeamPoints: result.selectedTeamPoints,
+      exactResultsCount: result.exactResultsCount,
     });
   }
 }

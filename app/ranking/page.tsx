@@ -290,7 +290,7 @@ function getOverallLeaderboardTitle(tab: OverallLeaderboardTab) {
 
 function getOverallLeaderboardDescription(tab: OverallLeaderboardTab) {
   if (tab === "exact") {
-    return "Leaderboard alternativa ordenada por quem acertou em mais resultados exatos.";
+    return "Leaderboard alternativa ordenada por quem acertou em mais resultados exatos. A classificação geral continua independente.";
   }
 
   return "Vê a classificação geral, o pote total e os prémios finais da fantasy.";
@@ -519,12 +519,16 @@ export default function RankingPage() {
     return totals;
   }, [orderedStageIds, snapshotsByStageId]);
 
+  const getExactResultsForEntry = (entry?: FantasyEntry | null) => {
+    return getExactResultsFromEntry(entry);
+  };
+
   const leaderboard: RankedEntry[] = useMemo(() => {
     const sorted = [...entries].sort((a, b) => {
       if (overallLeaderboardTab === "exact") {
         // Leaderboard de exatos: ordena APENAS por resultados exatos.
         // Sem desempates por pontos, palpites ou nome para não interferir com a geral.
-        return getExactResultsFromEntry(b) - getExactResultsFromEntry(a);
+        return getExactResultsForEntry(b) - getExactResultsForEntry(a);
       }
 
       // Leaderboard geral mantém exatamente a lógica normal por pontos totais.
@@ -544,7 +548,7 @@ export default function RankingPage() {
 
         const sameRank =
           overallLeaderboardTab === "exact"
-            ? getExactResultsFromEntry(entry) === getExactResultsFromEntry(prev)
+            ? getExactResultsForEntry(entry) === getExactResultsForEntry(prev)
             : entryTotal === getLiveTotal(prev);
 
         if (!sameRank) currentRank = index + 1;
@@ -871,7 +875,7 @@ export default function RankingPage() {
 
   const exactResultsCount = useMemo(() => {
     if (leaderboardMode === "overall") {
-      return getExactResultsFromEntry(activeEntry);
+      return getExactResultsForEntry(activeEntry);
     }
 
     return finishedPredictionsWithGameData.filter(
@@ -901,57 +905,37 @@ export default function RankingPage() {
       stageOptions,
     });
 
-    const baseHistory =
-      snapshotHistory.length > 0
-        ? snapshotHistory
-        : buildPredictionHistory(finishedPredictionsWithGameData);
-
-    if (baseHistory.length === 0) {
-      return baseHistory;
-    }
-
-    // Garante que o histórico bate certo com a pontuação total visível.
-    // Isto corrige snapshots antigos em que a jornada guardou só pontos de palpites.
-    if (leaderboardMode !== "overall" || !activeEntry) {
-      return baseHistory;
-    }
-
-    const visibleTotal =
-      Number(activeEntry.predictionPoints ?? 0) +
-      Number(activeEntry.topScorerPoints ?? 0) +
-      Number(activeEntry.topAssistPoints ?? 0) +
-      Number(activeEntry.selectedTeamPoints ?? 0);
-
-    const historyTotal = baseHistory.reduce(
-      (sum, row) => sum + Number(row.points || 0),
-      0
+    const livePredictionHistory = buildPredictionHistory(
+      finishedPredictionsWithGameData
     );
 
-    const missingPoints = visibleTotal - historyTotal;
+    // Regra importante:
+    // - Jornadas/fases com snapshot usam o snapshot final dessa etapa.
+    // - Jornadas/fases sem snapshot ainda aparecem live, mas em linha própria.
+    // - Nunca somamos pontos de uma jornada nova à jornada anterior.
+    const rowsByStageId = new Map<string, HistoryRow>();
 
-    if (!Number.isFinite(missingPoints) || missingPoints === 0) {
-      return baseHistory;
-    }
-
-    return baseHistory.map((row, index) => {
-      if (index !== baseHistory.length - 1) return row;
-
-      return {
-        ...row,
-        points: Number(row.points || 0) + missingPoints,
-      };
+    snapshotHistory.forEach((row) => {
+      rowsByStageId.set(getStageId(row.label), row);
     });
+
+    livePredictionHistory.forEach((row) => {
+      const stageId = getStageId(row.label);
+
+      if (!rowsByStageId.has(stageId)) {
+        rowsByStageId.set(stageId, row);
+      }
+    });
+
+    return Array.from(rowsByStageId.values()).sort(
+      (a, b) => getStageOrder(a.label) - getStageOrder(b.label)
+    );
   }, [
     orderedStageIds,
     snapshotsByStageId,
     selectedUserId,
     stageOptions,
     finishedPredictionsWithGameData,
-    leaderboardMode,
-    activeEntry?.predictionPoints,
-    activeEntry?.topScorerPoints,
-    activeEntry?.topAssistPoints,
-    activeEntry?.selectedTeamPoints,
   ]);
 
   const selectedHistoryTotal = useMemo(() => {
@@ -1112,7 +1096,7 @@ export default function RankingPage() {
     const exactCount =
       leaderboardMode === "overall"
         ? overallLeaderboardTab === "exact"
-          ? getExactResultsFromEntry(activeEntry)
+          ? getExactResultsForEntry(activeEntry)
           : exactResultsCount
         : stageExactResultsCount;
 
@@ -1299,8 +1283,7 @@ export default function RankingPage() {
                   </div>
 
                   {typeof row.predictionPoints === "number" &&
-                    row.selectedTeamBonus &&
-                    row.selectedTeamBonus > 0 && (
+                    Number(row.selectedTeamBonus ?? 0) > 0 && (
                       <p className="mt-1 truncate text-[8px] font-semibold text-gray-400">
                         {row.predictionPoints} palpites + {row.selectedTeamBonus} seleção
                       </p>
@@ -1900,11 +1883,19 @@ export default function RankingPage() {
                       : (entry as StageRankedEntry).stagePoints ?? 0;
 
                   return (
-                    <button
+                    <div
                       key={entry.userId}
                       id={`ranking-row-${entry.userId}`}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => handleSelectUser(entry.userId)}
-                      className={`w-full text-left transition ${
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          handleSelectUser(entry.userId);
+                        }
+                      }}
+                      className={`w-full cursor-pointer text-left transition ${
                         isSelected
                           ? "bg-violet-50"
                           : isMine
@@ -2011,7 +2002,7 @@ export default function RankingPage() {
 
                         {expandedMobileUserId === entry.userId && renderMobileSelectedStats()}
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
 
@@ -2120,11 +2111,11 @@ export default function RankingPage() {
 
                           <p className="text-lg font-black text-violet-700">
                             {overallLeaderboardTab === "exact"
-                              ? getExactResultsFromEntry(activeEntry)
+                              ? getExactResultsForEntry(activeEntry)
                               : exactResultsCount}{" "}
                             <span className="text-xs font-black">
                               {(overallLeaderboardTab === "exact"
-                                ? getExactResultsFromEntry(activeEntry)
+                                ? getExactResultsForEntry(activeEntry)
                                 : exactResultsCount) === 1
                                 ? "exato"
                                 : "exatos"}

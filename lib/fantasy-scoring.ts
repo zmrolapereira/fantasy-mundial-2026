@@ -47,7 +47,6 @@ function getPenaltyWinner(game: Game) {
 function getWinner(game: Game) {
   if (!isFinished(game)) return null;
 
-  // Para saber quem passa, usamos penaltyWinner se o jogo acabou empatado.
   if (game.homeScore === game.awayScore) {
     return getPenaltyWinner(game);
   }
@@ -55,32 +54,37 @@ function getWinner(game: Game) {
   return game.homeScore! > game.awayScore! ? game.homeTeam : game.awayTeam;
 }
 
-function getPredictionPoints(prediction: MatchPrediction, game: Game) {
-  if (!isFinished(game)) return 0;
+function getPredictionCounter(prediction: MatchPrediction, game: Game) {
+  if (!isFinished(game)) {
+    return { points: 0, exact: 0 };
+  }
 
-  const realHome = game.homeScore!;
-  const realAway = game.awayScore!;
-
+  const realHome = Number(game.homeScore);
+  const realAway = Number(game.awayScore);
   const predictedHome = Number(prediction.predictedHomeScore);
   const predictedAway = Number(prediction.predictedAwayScore);
+
+  if (
+    !Number.isFinite(realHome) ||
+    !Number.isFinite(realAway) ||
+    !Number.isFinite(predictedHome) ||
+    !Number.isFinite(predictedAway)
+  ) {
+    return { points: 0, exact: 0 };
+  }
 
   const predictedOutcome = getOutcome(predictedHome, predictedAway);
   const realOutcome = getOutcome(realHome, realAway);
 
-  // Resultado exato.
-  // Exemplo: apostou 1-1 e ficou 1-1 = 3 pontos.
   if (predictedHome === realHome && predictedAway === realAway) {
-    return 3;
+    return { points: 3, exact: 1 };
   }
 
-  // Resultado certo.
-  // IMPORTANTE: penáltis NÃO transformam empate em vitória para os palpites.
-  // Se ficou 1-1 e Portugal ganhou nos penáltis, o palpite correto é empate.
   if (predictedOutcome === realOutcome) {
-    return 1;
+    return { points: 1, exact: 0 };
   }
 
-  return 0;
+  return { points: 0, exact: 0 };
 }
 
 function getTopScorerPoints(
@@ -118,15 +122,11 @@ function getSelectedTeamMatchPoints(teamName: string, games: Game[]) {
 
     const isDraw = game.homeScore === game.awayScore;
 
-    // Empate no resultado do jogo = +0.5
-    // Mesmo que depois ganhe nos penáltis.
     if (isDraw) {
       points += 0.5;
       continue;
     }
 
-    // Vitória no resultado do jogo = +1
-    // Aqui NÃO entram penáltis.
     const teamWonInScore =
       (sameTeam(game.homeTeam, teamName) && game.homeScore! > game.awayScore!) ||
       (sameTeam(game.awayTeam, teamName) && game.awayScore! > game.homeScore!);
@@ -155,11 +155,7 @@ function teamWonAnyGameInStage(
     .some((game) => sameTeam(getWinner(game) ?? "", teamName));
 }
 
-function teamAppearsInStage(
-  teamName: string,
-  games: Game[],
-  stage: string
-) {
+function teamAppearsInStage(teamName: string, games: Game[], stage: string) {
   return games
     .filter((game) => gameIsStage(game, stage))
     .some(
@@ -238,12 +234,16 @@ export function calculateFantasyEntryPoints(params: {
   const { entry, predictions, games, playerStats } = params;
 
   let predictionPoints = 0;
+  let exactResultsCount = 0;
 
   for (const prediction of predictions) {
     const game = games.find((g) => Number(g.id) === Number(prediction.gameId));
     if (!game) continue;
 
-    predictionPoints += getPredictionPoints(prediction, game);
+    const counter = getPredictionCounter(prediction, game);
+
+    predictionPoints += counter.points;
+    exactResultsCount += counter.exact;
   }
 
   const topScorerPoints = getTopScorerPoints(entry, playerStats);
@@ -266,5 +266,6 @@ export function calculateFantasyEntryPoints(params: {
     topScorerPoints,
     topAssistPoints,
     selectedTeamPoints,
+    exactResultsCount,
   };
 }

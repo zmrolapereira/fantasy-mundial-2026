@@ -37,6 +37,8 @@ export type FantasyEntry = {
   topAssistPoints?: number;
   selectedTeamPoints?: number;
 
+  exactResultsCount?: number;
+
   createdAt?: unknown;
   updatedAt?: unknown;
 };
@@ -66,11 +68,12 @@ export const saveFantasyEntry = async (entry: FantasyEntry) => {
     entryRef,
     {
       ...entry,
-      totalPoints: entry.totalPoints ?? 0,
-      predictionPoints: entry.predictionPoints ?? 0,
-      topScorerPoints: entry.topScorerPoints ?? 0,
-      topAssistPoints: entry.topAssistPoints ?? 0,
-      selectedTeamPoints: entry.selectedTeamPoints ?? 0,
+      totalPoints: Number(entry.totalPoints ?? 0),
+      predictionPoints: Number(entry.predictionPoints ?? 0),
+      topScorerPoints: Number(entry.topScorerPoints ?? 0),
+      topAssistPoints: Number(entry.topAssistPoints ?? 0),
+      selectedTeamPoints: Number(entry.selectedTeamPoints ?? 0),
+      exactResultsCount: Number(entry.exactResultsCount ?? 0),
       createdAt: existingDoc.exists()
         ? existingDoc.data().createdAt
         : serverTimestamp(),
@@ -95,6 +98,7 @@ export const getFantasyEntryByUserId = async (userId: string) => {
     topScorerPoints: Number(data.topScorerPoints ?? 0),
     topAssistPoints: Number(data.topAssistPoints ?? 0),
     selectedTeamPoints: Number(data.selectedTeamPoints ?? 0),
+    exactResultsCount: Number(data.exactResultsCount ?? 0),
   } as FantasyEntry;
 };
 
@@ -158,6 +162,7 @@ export const subscribeToFantasyEntries = (
         topScorerPoints: Number(data.topScorerPoints ?? 0),
         topAssistPoints: Number(data.topAssistPoints ?? 0),
         selectedTeamPoints: Number(data.selectedTeamPoints ?? 0),
+        exactResultsCount: Number(data.exactResultsCount ?? 0),
       };
     });
 
@@ -191,6 +196,7 @@ export const updateFantasyEntryPoints = async (
     topScorerPoints: number;
     topAssistPoints: number;
     selectedTeamPoints: number;
+    exactResultsCount?: number;
   }
 ) => {
   const entryRef = doc(db, "fantasyEntries", userId);
@@ -201,6 +207,7 @@ export const updateFantasyEntryPoints = async (
     topScorerPoints: Number(points.topScorerPoints ?? 0),
     topAssistPoints: Number(points.topAssistPoints ?? 0),
     selectedTeamPoints: Number(points.selectedTeamPoints ?? 0),
+    exactResultsCount: Number(points.exactResultsCount ?? 0),
     updatedAt: serverTimestamp(),
   });
 };
@@ -218,6 +225,7 @@ export const getAllFantasyEntries = async () => {
       topScorerPoints: Number(data.topScorerPoints ?? 0),
       topAssistPoints: Number(data.topAssistPoints ?? 0),
       selectedTeamPoints: Number(data.selectedTeamPoints ?? 0),
+      exactResultsCount: Number(data.exactResultsCount ?? 0),
     };
   });
 };
