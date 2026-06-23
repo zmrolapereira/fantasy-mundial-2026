@@ -22,7 +22,6 @@ type PublicVoter =
       score?: string;
       predictedHomeScore?: number | string;
       predictedAwayScore?: number | string;
-      selectedTeamPoints?: number | string;
     };
 
 type TopResult = {
@@ -63,10 +62,6 @@ type CountItem = {
   team?: string;
   count: number;
   pct: number;
-  goals?: number;
-  assists?: number;
-  points?: number;
-  voters?: PublicVoter[];
 };
 
 type PickDashboard = {
@@ -188,16 +183,33 @@ function getVoterScore(voter: PublicVoter) {
   return "";
 }
 
-function getVoterSelectedTeamPoints(voter: PublicVoter) {
-  if (typeof voter === "string") return null;
+function parsePredictedScore(score?: string) {
+  const clean = String(score || "").trim();
+  const match = clean.match(/^(\d+)\s*-\s*(\d+)$/);
 
-  const value = voter.selectedTeamPoints;
+  if (!match) {
+    return {
+      home: -1,
+      away: -1,
+    };
+  }
 
-  if (value === undefined || value === null || value === "") return null;
+  return {
+    home: Number(match[1]),
+    away: Number(match[2]),
+  };
+}
 
-  const numberValue = Number(value);
+function sortVotersByPredictedScore(voters: PublicVoter[]) {
+  return [...voters].sort((a, b) => {
+    const scoreA = parsePredictedScore(getVoterScore(a));
+    const scoreB = parsePredictedScore(getVoterScore(b));
 
-  return Number.isFinite(numberValue) ? numberValue : null;
+    if (scoreB.home !== scoreA.home) return scoreB.home - scoreA.home;
+    if (scoreB.away !== scoreA.away) return scoreB.away - scoreA.away;
+
+    return getVoterName(a).localeCompare(getVoterName(b), "pt-PT");
+  });
 }
 
 function getVoterKey(voter: PublicVoter) {
@@ -205,7 +217,7 @@ function getVoterKey(voter: PublicVoter) {
 
   return String(
     voter.userId ||
-      `${voter.teamName || voter.name || ""}-${voter.managerName || ""}`,
+      `${voter.teamName || voter.name || ""}-${voter.managerName || ""}`
   )
     .trim()
     .toLowerCase();
@@ -258,7 +270,7 @@ function buildPersonTrends(games: TrendGame[]): PersonTrendRow[] {
     voter: PublicVoter,
     game: TrendGame,
     outcomeLabel: string,
-    outcomeType: OutcomeType,
+    outcomeType: OutcomeType
   ) => {
     const key = getVoterKey(voter);
     const name = getVoterName(voter);
@@ -288,15 +300,15 @@ function buildPersonTrends(games: TrendGame[]): PersonTrendRow[] {
 
   games.forEach((game) => {
     getVotersList(game.homeVoters).forEach((voter) =>
-      addVoter(voter, game, `Vitória ${game.homeTeam}`, "home"),
+      addVoter(voter, game, `Vitória ${game.homeTeam}`, "home")
     );
 
     getVotersList(game.drawVoters).forEach((voter) =>
-      addVoter(voter, game, "Empate", "draw"),
+      addVoter(voter, game, "Empate", "draw")
     );
 
     getVotersList(game.awayVoters).forEach((voter) =>
-      addVoter(voter, game, `Vitória ${game.awayTeam}`, "away"),
+      addVoter(voter, game, `Vitória ${game.awayTeam}`, "away")
     );
   });
 
@@ -315,7 +327,6 @@ export default function TendenciasPage() {
 
   const [activeTab, setActiveTab] = useState<PageTab>("picks");
   const [gameTrendView, setGameTrendView] = useState<GameTrendView>("byGame");
-  const [selectedPersonKey, setSelectedPersonKey] = useState("");
   const [personSearch, setPersonSearch] = useState("");
 
   const [loadingTrends, setLoadingTrends] = useState(true);
@@ -326,9 +337,7 @@ export default function TendenciasPage() {
   const [loadError, setLoadError] = useState("");
 
   const [loadingPicks, setLoadingPicks] = useState(true);
-  const [pickDashboard, setPickDashboard] = useState<PickDashboard | null>(
-    null,
-  );
+  const [pickDashboard, setPickDashboard] = useState<PickDashboard | null>(null);
   const [pickError, setPickError] = useState("");
 
   const [openGameKey, setOpenGameKey] = useState<string>("");
@@ -370,7 +379,7 @@ export default function TendenciasPage() {
       console.error(error);
       setLoadError(
         error?.message ||
-          "Erro ao carregar tendências. Verifica se publicPredictionTrends existe.",
+          "Erro ao carregar tendências. Verifica se publicPredictionTrends existe."
       );
     } finally {
       setLoadingTrends(false);
@@ -394,7 +403,7 @@ export default function TendenciasPage() {
       console.error(error);
       setPickError(
         error?.message ||
-          "Erro ao carregar dashboard dos picks. Verifica se publicPickDashboard/main existe.",
+          "Erro ao carregar dashboard dos picks. Verifica se publicPickDashboard/main existe."
       );
     } finally {
       setLoadingPicks(false);
@@ -432,7 +441,7 @@ export default function TendenciasPage() {
     }
 
     const stillVisible = visibleRounds.some(
-      (round) => round.id === selectedRoundId,
+      (round) => round.id === selectedRoundId
     );
 
     if (!selectedRoundId || !stillVisible) {
@@ -448,7 +457,7 @@ export default function TendenciasPage() {
     if (!selectedRound) return [];
 
     return [...(selectedRound.games || [])].sort(
-      (a, b) => Number(a.gameId) - Number(b.gameId),
+      (a, b) => Number(a.gameId) - Number(b.gameId)
     );
   }, [selectedRound]);
 
@@ -456,38 +465,23 @@ export default function TendenciasPage() {
     return buildPersonTrends(selectedGames);
   }, [selectedGames]);
 
-  const personFilterOptions = useMemo(() => {
-    return [...personTrends].sort((a, b) => {
-      const nameDiff = a.name.localeCompare(b.name, "pt-PT");
-      if (nameDiff !== 0) return nameDiff;
+  const filteredPersonTrends = useMemo(() => {
+    const search = personSearch.trim().toLowerCase();
 
-      return a.managerName.localeCompare(b.managerName, "pt-PT");
+    if (!search) return personTrends;
+
+    return personTrends.filter((person) => {
+      const teamName = person.name.toLowerCase();
+      const managerName = person.managerName.toLowerCase();
+
+      return teamName.includes(search) || managerName.includes(search);
     });
-  }, [personTrends]);
-
-  const selectedPersonTrend = useMemo(() => {
-    if (!selectedPersonKey) return null;
-
-    return (
-      personTrends.find((person) => person.key === selectedPersonKey) ?? null
-    );
-  }, [personTrends, selectedPersonKey]);
-
-  useEffect(() => {
-    if (gameTrendView !== "byPerson") return;
-
-    if (
-      selectedPersonKey &&
-      !personTrends.some((person) => person.key === selectedPersonKey)
-    ) {
-      setSelectedPersonKey("");
-    }
-  }, [gameTrendView, personTrends, selectedPersonKey]);
+  }, [personTrends, personSearch]);
 
   const roundTotalPredictions = useMemo(() => {
     return selectedGames.reduce(
       (sum, game) => sum + Number(game.totalPredictions || 0),
-      0,
+      0
     );
   }, [selectedGames]);
 
@@ -507,7 +501,7 @@ export default function TendenciasPage() {
             ? game.topResults
                 .map(
                   (result, index) =>
-                    `${index + 1}) ${result.score} — ${result.count} voto(s) (${result.pct}%)`,
+                    `${index + 1}) ${result.score} — ${result.count} voto(s) (${result.pct}%)`
                 )
                 .join(" | ")
             : "Sem dados suficientes";
@@ -670,24 +664,18 @@ export default function TendenciasPage() {
                     title="Marcadores"
                     emoji="⚽"
                     items={pickDashboard.topScorers || []}
-                    statKey="goals"
-                    statLabel="golos"
                   />
 
                   <RankingCard
                     title="Assistentes"
                     emoji="🎯"
                     items={pickDashboard.topAssisters || []}
-                    statKey="assists"
-                    statLabel="assistências"
                   />
 
                   <RankingCard
                     title="Campeões"
                     emoji="🏆"
                     items={pickDashboard.champions || []}
-                    statKey="points"
-                    statLabel="pts seleção"
                   />
                 </div>
               </>
@@ -715,9 +703,7 @@ export default function TendenciasPage() {
                     className="mt-2 h-11 w-full rounded-2xl border border-gray-200 bg-white px-3 text-sm font-bold text-gray-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
                   >
                     {visibleRounds.length === 0 ? (
-                      <option value="">
-                        Ainda não há jornadas disponíveis
-                      </option>
+                      <option value="">Ainda não há jornadas disponíveis</option>
                     ) : (
                       visibleRounds.map((round) => (
                         <option key={round.id} value={round.id}>
@@ -741,38 +727,24 @@ export default function TendenciasPage() {
                 <div className="inline-flex rounded-2xl bg-gray-100 p-1 ring-1 ring-gray-200">
                   <ViewToggle
                     active={gameTrendView === "byGame"}
-                    onClick={() => {
-                      setGameTrendView("byGame");
-                      setSelectedPersonKey("");
-                    }}
+                    onClick={() => setGameTrendView("byGame")}
                     label="Por jogo"
                   />
 
                   <ViewToggle
                     active={gameTrendView === "byPerson"}
-                    onClick={() => {
-                      setGameTrendView("byPerson");
-                      setSelectedPersonKey("");
-                    }}
+                    onClick={() => setGameTrendView("byPerson")}
                     label="Por pessoa"
                   />
                 </div>
 
                 {gameTrendView === "byPerson" && (
-                  <select
-                    value={selectedPersonKey}
-                    onChange={(e) => setSelectedPersonKey(e.target.value)}
+                  <input
+                    value={personSearch}
+                    onChange={(e) => setPersonSearch(e.target.value)}
+                    placeholder="Pesquisar por pessoa ou equipa..."
                     className="h-11 w-full rounded-2xl border border-gray-200 bg-white px-3 text-sm font-bold text-gray-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100 lg:max-w-md"
-                  >
-                    <option value="">Escolhe uma pessoa</option>
-                    {personFilterOptions.map((person) => (
-                      <option key={person.key} value={person.key}>
-                        {person.managerName
-                          ? `${person.name} — ${person.managerName}`
-                          : person.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 )}
               </div>
 
@@ -785,7 +757,7 @@ export default function TendenciasPage() {
               ) : visibleRounds.length === 0 && nextRound ? (
                 <InfoBox
                   text={`Ainda não há tendências disponíveis. A primeira a desbloquear é ${nextRound.round}, em ${formatUnlockDate(
-                    nextRound.availableAt,
+                    nextRound.availableAt
                   )}.`}
                 />
               ) : null}
@@ -806,16 +778,17 @@ export default function TendenciasPage() {
                           key={gameKey}
                           game={game}
                           isOpen={isOpen}
-                          onToggle={() => setOpenGameKey(isOpen ? "" : gameKey)}
+                          onToggle={() =>
+                            setOpenGameKey(isOpen ? "" : gameKey)
+                          }
                         />
                       );
                     })}
                   </div>
                 ) : (
                   <PersonTrendsView
-                    people={selectedPersonTrend ? [selectedPersonTrend] : []}
+                    people={filteredPersonTrends}
                     totalPeople={personTrends.length}
-                    hasSelectedPerson={Boolean(selectedPersonKey)}
                   />
                 )}
               </section>
@@ -897,12 +870,15 @@ function TrendGameCard({
             </p>
 
             <p className="text-xs font-black text-gray-900">
-              Favorito:{" "}
-              <span className="text-violet-700">{favorite.label}</span>
+              Favorito: <span className="text-violet-700">{favorite.label}</span>
             </p>
           </div>
 
-          <SegmentedBar homePct={homePct} drawPct={drawPct} awayPct={awayPct} />
+          <SegmentedBar
+            homePct={homePct}
+            drawPct={drawPct}
+            awayPct={awayPct}
+          />
 
           <div className="mt-3 grid gap-2 md:grid-cols-3">
             <OutcomePill
@@ -1001,11 +977,9 @@ function TrendGameCard({
 function PersonTrendsView({
   people,
   totalPeople,
-  hasSelectedPerson,
 }: {
   people: PersonTrendRow[];
   totalPeople: number;
-  hasSelectedPerson: boolean;
 }) {
   if (totalPeople === 0) {
     return (
@@ -1013,14 +987,8 @@ function PersonTrendsView({
     );
   }
 
-  if (!hasSelectedPerson) {
-    return (
-      <InfoBox text="Escolhe uma pessoa no filtro para veres os resultados dela." />
-    );
-  }
-
   if (people.length === 0) {
-    return <InfoBox text="Não foram encontrados resultados para essa pessoa." />;
+    return <InfoBox text="Não foram encontradas pessoas com esse filtro." />;
   }
 
   return (
@@ -1170,11 +1138,7 @@ function OutcomePill({
           style={{ backgroundColor: color }}
         />
         {flag && (
-          <img
-            src={flag}
-            alt={label}
-            className="h-4 w-6 rounded object-cover"
-          />
+          <img src={flag} alt={label} className="h-4 w-6 rounded object-cover" />
         )}
         <p className="min-w-0 truncate text-xs font-black text-gray-700">
           {label}
@@ -1200,6 +1164,8 @@ function VoterGroup({
   voters: PublicVoter[];
   accent: string;
 }) {
+  const sortedVoters = sortVotersByPredictedScore(voters);
+
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-3">
       <div className="mb-3 flex items-center justify-between gap-3">
@@ -1216,13 +1182,13 @@ function VoterGroup({
         </div>
       </div>
 
-      {voters.length === 0 ? (
+      {sortedVoters.length === 0 ? (
         <p className="rounded-xl bg-gray-50 p-3 text-xs font-bold text-gray-400">
           Sem apostas nesta opção.
         </p>
       ) : (
         <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
-          {voters.map((voter, index) => {
+          {sortedVoters.map((voter, index) => {
             const name = getVoterName(voter);
             const managerName = getVoterManager(voter);
             const score = getVoterScore(voter);
@@ -1320,16 +1286,11 @@ function RankingCard({
   title,
   emoji,
   items,
-  statKey,
-  statLabel,
 }: {
   title: string;
   emoji: string;
   items: CountItem[];
-  statKey?: "goals" | "assists" | "points";
-  statLabel?: string;
 }) {
-  const [openItemKey, setOpenItemKey] = useState("");
   const visibleItems = (items || []).slice(0, 15);
 
   return (
@@ -1354,130 +1315,47 @@ function RankingCard({
         </p>
       ) : (
         <div className="space-y-2">
-          {visibleItems.map((item, index) => {
-            const itemKey = `${item.name}-${item.team || ""}`;
-            const isOpen = openItemKey === itemKey;
-            const voters = item.voters || [];
-            const statValue = statKey ? Number(item[statKey] || 0) : null;
+          {visibleItems.map((item, index) => (
+            <div
+              key={`${item.name}-${item.team || ""}`}
+              className="rounded-2xl bg-gray-50 p-3 ring-1 ring-gray-100"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black text-violet-600">
+                    #{index + 1}
+                  </p>
 
-            return (
-              <article
-                key={itemKey}
-                className="rounded-2xl bg-gray-50 p-3 ring-1 ring-gray-100"
-              >
-                <button
-                  type="button"
-                  onClick={() => setOpenItemKey(isOpen ? "" : itemKey)}
-                  className="w-full text-left"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-black text-violet-600">
-                        #{index + 1}
-                      </p>
+                  <h3 className="mt-0.5 truncate text-sm font-black text-gray-950">
+                    {item.name}
+                  </h3>
 
-                      <h3 className="mt-0.5 truncate text-sm font-black text-gray-950">
-                        {item.name}
-                      </h3>
-
-                      {item.team && (
-                        <p className="mt-0.5 truncate text-xs font-bold text-gray-500">
-                          {item.team}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex shrink-0 flex-col items-end gap-1.5">
-                      <div className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-black text-violet-700">
-                        {item.pct}%
-                      </div>
-
-                      {statLabel && (
-                        <div className="rounded-full bg-gray-900 px-2.5 py-1 text-[10px] font-black text-white">
-                          {statValue} {statLabel}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-2 flex items-center gap-3">
-                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
-                      <div
-                        className="h-full rounded-full bg-violet-600"
-                        style={{ width: `${safePct(item.pct)}%` }}
-                      />
-                    </div>
-
-                    <p className="min-w-[58px] text-right text-xs font-black text-gray-600">
-                      {item.count}
+                  {item.team && (
+                    <p className="mt-0.5 truncate text-xs font-bold text-gray-500">
+                      {item.team}
                     </p>
-                  </div>
+                  )}
+                </div>
 
-                  <div className="mt-2 flex items-center justify-between gap-2">
-                    <p className="text-[10px] font-bold text-gray-400">
-                      Carrega para ver quem escolheu
-                    </p>
+                <div className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-black text-violet-700">
+                  {item.pct}%
+                </div>
+              </div>
 
-                    <span className="text-sm font-black text-gray-400">
-                      {isOpen ? "−" : "+"}
-                    </span>
-                  </div>
-                </button>
+              <div className="mt-2 flex items-center gap-3">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
+                  <div
+                    className="h-full rounded-full bg-violet-600"
+                    style={{ width: `${safePct(item.pct)}%` }}
+                  />
+                </div>
 
-                {isOpen && (
-                  <div className="mt-3 rounded-2xl border border-violet-100 bg-white p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-violet-700">
-                        Pessoas que escolheram
-                      </p>
-
-                      <span className="rounded-full bg-violet-50 px-2 py-1 text-[10px] font-black text-violet-700">
-                        {voters.length}{" "}
-                        {voters.length === 1 ? "pessoa" : "pessoas"}
-                      </span>
-                    </div>
-
-                    {voters.length === 0 ? (
-                      <p className="mt-3 text-xs font-semibold leading-5 text-gray-500">
-                        Ainda não há lista de pessoas neste agregado. Vai a
-                        /admin/gerar-dashboard-picks e volta a gerar.
-                      </p>
-                    ) : (
-                      <div className="mt-3 max-h-[220px] space-y-1.5 overflow-y-auto pr-1">
-                        {voters.map((voter, voterIndex) => (
-                          <div
-                            key={`${itemKey}-${getVoterName(voter)}-${voterIndex}`}
-                            className="flex items-center justify-between gap-3 rounded-xl bg-gray-50 px-3 py-2 ring-1 ring-gray-100"
-                          >
-                            <div className="min-w-0">
-                              <p className="truncate text-xs font-black text-gray-900">
-                                {getVoterName(voter)}
-                              </p>
-
-                              {getVoterManager(voter) && (
-                                <p className="truncate text-[10px] font-semibold text-gray-400">
-                                  {getVoterManager(voter)}
-                                </p>
-                              )}
-                            </div>
-
-                            {statLabel && (
-                              <span className="shrink-0 rounded-full bg-gray-900 px-2 py-1 text-[10px] font-black text-white">
-                                {statKey === "points"
-                                  ? getVoterSelectedTeamPoints(voter) ?? statValue
-                                  : statValue}{" "}
-                                {statLabel}
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </article>
-            );
-          })}
+                <p className="min-w-[58px] text-right text-xs font-black text-gray-600">
+                  {item.count}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </section>
