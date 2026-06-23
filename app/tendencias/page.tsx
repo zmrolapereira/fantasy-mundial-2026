@@ -328,6 +328,7 @@ export default function TendenciasPage() {
   const [activeTab, setActiveTab] = useState<PageTab>("picks");
   const [gameTrendView, setGameTrendView] = useState<GameTrendView>("byGame");
   const [personSearch, setPersonSearch] = useState("");
+  const [selectedPersonKey, setSelectedPersonKey] = useState("");
 
   const [loadingTrends, setLoadingTrends] = useState(true);
   const [roundDocs, setRoundDocs] = useState<TrendRoundDoc[]>([]);
@@ -698,6 +699,7 @@ export default function TendenciasPage() {
                       setSelectedRoundId(e.target.value);
                       setOpenGameKey("");
                       setPersonSearch("");
+                      setSelectedPersonKey("");
                     }}
                     disabled={visibleRounds.length === 0}
                     className="mt-2 h-11 w-full rounded-2xl border border-gray-200 bg-white px-3 text-sm font-bold text-gray-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
@@ -733,7 +735,10 @@ export default function TendenciasPage() {
 
                   <ViewToggle
                     active={gameTrendView === "byPerson"}
-                    onClick={() => setGameTrendView("byPerson")}
+                    onClick={() => {
+                      setGameTrendView("byPerson");
+                      setSelectedPersonKey("");
+                    }}
                     label="Por pessoa"
                   />
                 </div>
@@ -741,7 +746,10 @@ export default function TendenciasPage() {
                 {gameTrendView === "byPerson" && (
                   <input
                     value={personSearch}
-                    onChange={(e) => setPersonSearch(e.target.value)}
+                    onChange={(e) => {
+                      setPersonSearch(e.target.value);
+                      setSelectedPersonKey("");
+                    }}
                     placeholder="Pesquisar por pessoa ou equipa..."
                     className="h-11 w-full rounded-2xl border border-gray-200 bg-white px-3 text-sm font-bold text-gray-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100 lg:max-w-md"
                   />
@@ -789,6 +797,8 @@ export default function TendenciasPage() {
                   <PersonTrendsView
                     people={filteredPersonTrends}
                     totalPeople={personTrends.length}
+                    selectedPersonKey={selectedPersonKey}
+                    onSelectPerson={setSelectedPersonKey}
                   />
                 )}
               </section>
@@ -977,10 +987,17 @@ function TrendGameCard({
 function PersonTrendsView({
   people,
   totalPeople,
+  selectedPersonKey,
+  onSelectPerson,
 }: {
   people: PersonTrendRow[];
   totalPeople: number;
+  selectedPersonKey: string;
+  onSelectPerson: (key: string) => void;
 }) {
+  const selectedPerson =
+    people.find((person) => person.key === selectedPersonKey) ?? null;
+
   if (totalPeople === 0) {
     return (
       <InfoBox text="Ainda não há listas por pessoa publicadas nos agregados. Vai a /admin/gerar-tendencias e volta a gerar as tendências." />
@@ -992,68 +1009,140 @@ function PersonTrendsView({
   }
 
   return (
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-      {people.map((person) => (
-        <article
-          key={person.key}
-          className="rounded-[22px] border border-gray-200 bg-white p-4 shadow-lg"
-        >
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#2f2140] text-xs font-black text-white">
-              {getInitials(person.name)}
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <h3 className="truncate text-sm font-black text-gray-950">
-                {person.name}
-              </h3>
-              {person.managerName && (
-                <p className="truncate text-xs font-bold text-gray-500">
-                  {person.managerName}
-                </p>
-              )}
-            </div>
-
-            <span className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100">
-              {person.predictions.length}
-            </span>
+    <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+      <section className="rounded-[26px] border border-gray-200 bg-white p-4 shadow-lg">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-600">
+              Equipas
+            </p>
+            <h2 className="mt-1 text-xl font-black text-gray-950">
+              Escolhe uma equipa
+            </h2>
           </div>
 
-          <div className="mt-3 space-y-2">
-            {person.predictions.map((prediction, index) => {
-              const meta = getOutcomeMeta(prediction.outcomeType);
+          <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100">
+            {people.length}/{totalPeople}
+          </span>
+        </div>
 
-              return (
-                <div
-                  key={`${person.key}-${prediction.gameId}-${index}`}
-                  className="rounded-2xl bg-gray-50 p-3 ring-1 ring-gray-100"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="min-w-0 truncate text-xs font-black text-gray-900">
-                      {prediction.homeTeam} vs {prediction.awayTeam}
+        <div className="mt-4 max-h-[520px] space-y-2 overflow-y-auto pr-1">
+          {people.map((person) => {
+            const isSelected = selectedPersonKey === person.key;
+
+            return (
+              <button
+                key={person.key}
+                type="button"
+                onClick={() => onSelectPerson(person.key)}
+                className={`w-full rounded-2xl border px-3 py-3 text-left transition ${
+                  isSelected
+                    ? "border-violet-300 bg-violet-50 ring-2 ring-violet-100"
+                    : "border-gray-200 bg-gray-50 hover:border-violet-200 hover:bg-white"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[#2f2140] text-xs font-black text-white">
+                    {getInitials(person.name)}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-black text-gray-950">
+                      {person.name}
                     </p>
-
-                    <ScoreBadge score={prediction.predictedScore} />
+                    {person.managerName && (
+                      <p className="truncate text-xs font-bold text-gray-500">
+                        {person.managerName}
+                      </p>
+                    )}
                   </div>
 
-                  <div className="mt-2 flex items-center gap-2">
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: meta.dot }}
-                    />
-                    <span
-                      className="rounded-full px-2 py-0.5 text-[10px] font-black"
-                      style={{ backgroundColor: meta.bg, color: meta.text }}
-                    >
-                      {prediction.outcomeLabel}
-                    </span>
-                  </div>
+                  <span className="rounded-full bg-white px-2.5 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100">
+                    {person.predictions.length}
+                  </span>
                 </div>
-              );
-            })}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="rounded-[26px] border border-gray-200 bg-white p-4 shadow-lg">
+        {!selectedPerson ? (
+          <div className="flex min-h-[260px] flex-col items-center justify-center rounded-3xl border border-dashed border-gray-200 bg-gray-50 px-5 py-8 text-center">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-violet-600">
+              Tendências por pessoa
+            </p>
+            <h3 className="mt-2 text-2xl font-black text-gray-950">
+              Seleciona uma equipa da lista
+            </h3>
+            <p className="mt-2 max-w-sm text-sm font-semibold leading-6 text-gray-500">
+              Ao abrir esta aba, não mostramos nenhuma equipa automaticamente.
+              Usa a lista ou a pesquisa para escolher quem queres ver.
+            </p>
           </div>
-        </article>
-      ))}
+        ) : (
+          <article>
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#2f2140] text-sm font-black text-white">
+                {getInitials(selectedPerson.name)}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-600">
+                  Apostas da equipa
+                </p>
+                <h3 className="mt-1 truncate text-xl font-black text-gray-950">
+                  {selectedPerson.name}
+                </h3>
+                {selectedPerson.managerName && (
+                  <p className="truncate text-sm font-bold text-gray-500">
+                    {selectedPerson.managerName}
+                  </p>
+                )}
+              </div>
+
+              <span className="rounded-full bg-violet-50 px-3 py-1.5 text-xs font-black text-violet-700 ring-1 ring-violet-100">
+                {selectedPerson.predictions.length} apostas
+              </span>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {selectedPerson.predictions.map((prediction, index) => {
+                const meta = getOutcomeMeta(prediction.outcomeType);
+
+                return (
+                  <div
+                    key={`${selectedPerson.key}-${prediction.gameId}-${index}`}
+                    className="rounded-2xl bg-gray-50 p-3 ring-1 ring-gray-100"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="min-w-0 truncate text-xs font-black text-gray-900">
+                        {prediction.homeTeam} vs {prediction.awayTeam}
+                      </p>
+
+                      <ScoreBadge score={prediction.predictedScore} />
+                    </div>
+
+                    <div className="mt-2 flex items-center gap-2">
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{ backgroundColor: meta.dot }}
+                      />
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[10px] font-black"
+                        style={{ backgroundColor: meta.bg, color: meta.text }}
+                      >
+                        {prediction.outcomeLabel}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </article>
+        )}
+      </section>
     </div>
   );
 }

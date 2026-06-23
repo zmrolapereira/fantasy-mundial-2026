@@ -20,6 +20,7 @@ import {
   subscribeMiniGameAccessRequest,
   subscribeMiniGameConfig,
   subscribeMiniGameEntry,
+  subscribeMiniGameEntries,
 } from "@/lib/mini-game";
 
 type BracketRound = {
@@ -28,6 +29,10 @@ type BracketRound = {
   subtitle: string;
   sourceTeams: string[];
   targetStage: keyof MiniGamePicks;
+};
+
+type RankedMiniGameEntry = MiniGameEntry & {
+  rank?: number;
 };
 
 const MINI_GAME_DEADLINE = new Date("2026-06-28T13:00:00+01:00");
@@ -97,7 +102,9 @@ function countFilled(values?: string[]) {
   return (values ?? []).filter(Boolean).length;
 }
 
-function getDownstreamStages(stage: keyof MiniGamePicks): (keyof MiniGamePicks)[] {
+function getDownstreamStages(
+  stage: keyof MiniGamePicks,
+): (keyof MiniGamePicks)[] {
   if (stage === "oitavos") return ["quartos", "meias", "final", "campeao"];
   if (stage === "quartos") return ["meias", "final", "campeao"];
   if (stage === "meias") return ["final", "campeao"];
@@ -134,7 +141,7 @@ function PaymentNotice() {
         por <span className="font-black">Revolut ou MB WAY</span> para:
       </p>
       <p className="mt-2 rounded-2xl bg-white px-4 py-3 text-2xl font-black tracking-tight text-gray-950">
-        918 888 416
+        913 856 472
       </p>
       <p className="mt-2 text-xs font-semibold leading-5 text-amber-800">
         Coloca no descritivo o nome da tua equipa para ser mais fácil confirmar.
@@ -163,8 +170,10 @@ function DeadlineNotice({
         Deadline das previsões
       </p>
       <p className="mt-2 text-sm font-bold leading-6">
-        Tens até <span className="font-black">{formatDeadline(MINI_GAME_DEADLINE)}</span>{" "}
-        para submeter a tua bracket. Depois dessa hora, as previsões ficam fechadas automaticamente.
+        Tens até{" "}
+        <span className="font-black">{formatDeadline(MINI_GAME_DEADLINE)}</span>{" "}
+        para submeter a tua bracket. Depois dessa hora, as previsões ficam
+        fechadas automaticamente.
       </p>
       <p className="mt-2 rounded-2xl bg-white px-4 py-3 text-2xl font-black tracking-tight text-gray-950">
         {countdown}
@@ -173,11 +182,7 @@ function DeadlineNotice({
   );
 }
 
-function AccessStatusCard({
-  request,
-}: {
-  request: MiniGameAccessRequest;
-}) {
+function AccessStatusCard({ request }: { request: MiniGameAccessRequest }) {
   const statusCopy = {
     pending: {
       title: "Pedido enviado",
@@ -278,7 +283,7 @@ function BracketColumn({
   onSelectWinner: (
     targetStage: keyof MiniGamePicks,
     matchIndex: number,
-    teamName: string
+    teamName: string,
   ) => void;
 }) {
   const pairs = pairTeams(round.sourceTeams);
@@ -347,12 +352,234 @@ function BracketColumn({
   );
 }
 
+function SmallTeamChip({ teamName }: { teamName: string }) {
+  const flag = getFlagByCountry(teamName);
+
+  return (
+    <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-black text-gray-700 shadow-sm">
+      {flag ? (
+        <img
+          src={flag}
+          alt={teamName}
+          className="h-3.5 w-5 rounded object-cover"
+        />
+      ) : (
+        <span className="h-3.5 w-5 rounded bg-gray-200" />
+      )}
+      <span className="truncate">{teamName}</span>
+    </span>
+  );
+}
+
+function MiniGameLeaderboard({
+  entries,
+  selectedEntry,
+  onSelectEntry,
+  canShowPicks,
+}: {
+  entries: RankedMiniGameEntry[];
+  selectedEntry?: RankedMiniGameEntry | null;
+  onSelectEntry: (entry: RankedMiniGameEntry) => void;
+  canShowPicks: boolean;
+}) {
+  const leader = entries[0];
+
+  return (
+    <section className="mt-5 grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+      <div className="overflow-hidden rounded-[30px] border border-gray-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-gray-100 bg-gradient-to-r from-slate-950 via-indigo-700 to-violet-700 p-5 text-white sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/70">
+              Leaderboard pública
+            </p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight">
+              Classificação do mini jogo
+            </h2>
+            <p className="mt-2 text-sm font-semibold leading-6 text-white/75">
+              Ranking separado da fantasy. Clica numa equipa para ver a bracket
+              submetida.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 sm:min-w-[230px]">
+            <div className="rounded-2xl bg-white/15 px-4 py-3 backdrop-blur">
+              <p className="text-[9px] font-black uppercase tracking-wide text-white/60">
+                Entradas
+              </p>
+              <p className="mt-1 text-2xl font-black">{entries.length}</p>
+            </div>
+            <div className="rounded-2xl bg-white/15 px-4 py-3 backdrop-blur">
+              <p className="text-[9px] font-black uppercase tracking-wide text-white/60">
+                Líder
+              </p>
+              <p className="mt-1 truncate text-sm font-black">
+                {leader?.teamName || "—"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="divide-y divide-gray-100">
+          {entries.length === 0 ? (
+            <div className="p-7 text-center">
+              <p className="text-sm font-bold text-gray-500">
+                Ainda não há brackets submetidas.
+              </p>
+            </div>
+          ) : (
+            entries.map((entry) => {
+              const selected = selectedEntry?.userId === entry.userId;
+
+              return (
+                <button
+                  key={entry.userId}
+                  type="button"
+                  onClick={() => onSelectEntry(entry)}
+                  className={`grid w-full grid-cols-[46px_1fr_70px] items-center gap-3 px-4 py-3 text-left transition hover:bg-violet-50 ${
+                    selected ? "bg-violet-50" : "bg-white"
+                  }`}
+                >
+                  <div
+                    className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-black ${
+                      entry.rank === 1
+                        ? "bg-yellow-300 text-slate-950"
+                        : entry.rank === 2
+                          ? "bg-slate-200 text-slate-950"
+                          : entry.rank === 3
+                            ? "bg-amber-500 text-white"
+                            : "bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    {entry.rank ?? "—"}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-gray-950">
+                      {entry.teamName || "Sem equipa"}
+                    </p>
+                    <p className="mt-0.5 truncate text-xs font-semibold text-gray-500">
+                      {entry.managerName || "—"}
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-[9px] font-black uppercase tracking-wide text-gray-400">
+                      Pontos
+                    </p>
+                    <p className="text-2xl font-black text-violet-700">
+                      {entry.totalPoints ?? 0}
+                    </p>
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-[30px] border border-gray-200 bg-white p-5 shadow-sm xl:sticky xl:top-24 xl:self-start">
+        {!selectedEntry ? (
+          <div className="rounded-3xl border border-dashed border-gray-200 bg-gray-50 p-7 text-center">
+            <p className="text-sm font-bold text-gray-500">
+              Seleciona uma equipa na leaderboard para ver a bracket.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="rounded-[24px] bg-gradient-to-r from-slate-950 via-indigo-700 to-violet-700 p-5 text-white">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/65">
+                Bracket selecionada
+              </p>
+              <h3 className="mt-2 text-2xl font-black">
+                {selectedEntry.teamName || "Sem equipa"}
+              </h3>
+              <p className="mt-1 text-sm font-semibold text-white/75">
+                {selectedEntry.managerName || "—"}
+              </p>
+              <div className="mt-4 flex items-center justify-between rounded-2xl bg-white/15 px-4 py-3 backdrop-blur">
+                <span className="text-xs font-black uppercase tracking-wide text-white/65">
+                  Total
+                </span>
+                <span className="text-2xl font-black">
+                  {selectedEntry.totalPoints ?? 0} pts
+                </span>
+              </div>
+            </div>
+
+            {!canShowPicks ? (
+              <div className="mt-4 rounded-3xl border border-amber-200 bg-amber-50 p-5 text-amber-900">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">
+                  Picks ocultas
+                </p>
+                <p className="mt-2 text-sm font-bold leading-6">
+                  As brackets ficam visíveis quando a deadline terminar ou
+                  quando o admin fechar as picks, para ninguém copiar apostas
+                  antes do fecho.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {MINI_GAME_STAGE_ORDER.map((stage) => {
+                  const selectedTeams = selectedEntry.picks?.[stage] ?? [];
+                  const points = selectedEntry.stagePoints?.[stage] ?? 0;
+                  const meta = MINI_GAME_STAGE_META[stage];
+
+                  return (
+                    <div
+                      key={stage}
+                      className="rounded-3xl border border-gray-200 bg-gray-50 p-4"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-violet-600">
+                            {meta.label}
+                          </p>
+                          <p className="mt-1 text-xs font-semibold text-gray-500">
+                            {selectedTeams.length}/{meta.max} escolhas
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100">
+                          {points} pts
+                        </span>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {selectedTeams.length === 0 ? (
+                          <span className="text-xs font-semibold text-gray-400">
+                            Sem escolhas guardadas.
+                          </span>
+                        ) : (
+                          selectedTeams.map((teamName, index) => (
+                            <SmallTeamChip
+                              key={`${stage}-${teamName}-${index}`}
+                              teamName={teamName}
+                            />
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function MiniGamePage() {
   const [user, setUser] = useState<User | null>(null);
   const [config, setConfig] = useState<MiniGameConfig | null>(null);
   const [accessRequest, setAccessRequest] =
     useState<MiniGameAccessRequest | null>(null);
   const [entry, setEntry] = useState<MiniGameEntry | null>(null);
+  const [leaderboardEntries, setLeaderboardEntries] = useState<
+    RankedMiniGameEntry[]
+  >([]);
+  const [selectedLeaderboardUserId, setSelectedLeaderboardUserId] =
+    useState("");
 
   const [teamName, setTeamName] = useState("");
   const [managerName, setManagerName] = useState("");
@@ -380,6 +607,14 @@ export default function MiniGamePage() {
   }, []);
 
   useEffect(() => {
+    const unsubscribe = subscribeMiniGameEntries((entries) => {
+      setLeaderboardEntries(entries as RankedMiniGameEntry[]);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
     if (!user?.uid) {
       setAccessRequest(null);
       setEntry(null);
@@ -388,7 +623,7 @@ export default function MiniGamePage() {
 
     const unsubscribeAccess = subscribeMiniGameAccessRequest(
       user.uid,
-      setAccessRequest
+      setAccessRequest,
     );
     const unsubscribeEntry = subscribeMiniGameEntry(user.uid, setEntry);
 
@@ -417,6 +652,18 @@ export default function MiniGamePage() {
   const locked = Boolean(config?.isLocked) || deadlinePassed;
   const canEdit = approved && Boolean(config?.isOpen) && !locked;
   const canRequestAccess = Boolean(config?.isOpen) && !deadlinePassed;
+
+  const selectedLeaderboardEntry = useMemo(() => {
+    if (leaderboardEntries.length === 0) return null;
+
+    return (
+      leaderboardEntries.find(
+        (item) => item.userId === selectedLeaderboardUserId,
+      ) ?? leaderboardEntries[0]
+    );
+  }, [leaderboardEntries, selectedLeaderboardUserId]);
+
+  const canShowPublicPicks = deadlinePassed || Boolean(config?.isLocked);
 
   const bracketRounds: BracketRound[] = useMemo(() => {
     return [
@@ -461,7 +708,7 @@ export default function MiniGamePage() {
   const selectedTotal = useMemo(() => {
     return MINI_GAME_STAGE_ORDER.reduce(
       (sum, stage) => sum + countFilled(picks[stage]),
-      0
+      0,
     );
   }, [picks]);
 
@@ -472,7 +719,9 @@ export default function MiniGamePage() {
     }
 
     if (deadlinePassed) {
-      setMessage("A deadline do mini jogo já terminou. Já não é possível pedir acesso.");
+      setMessage(
+        "A deadline do mini jogo já terminou. Já não é possível pedir acesso.",
+      );
       return;
     }
 
@@ -499,7 +748,7 @@ export default function MiniGamePage() {
       });
 
       setMessage(
-        "Pedido enviado. Agora envia 5€ por Revolut ou MB WAY para 918 888 416."
+        "Pedido enviado. Agora envia 5€ por Revolut ou MB WAY para 913 856 472.",
       );
     } catch (error) {
       console.error(error);
@@ -512,7 +761,7 @@ export default function MiniGamePage() {
   const handleSelectWinner = (
     targetStage: keyof MiniGamePicks,
     matchIndex: number,
-    selectedTeam: string
+    selectedTeam: string,
   ) => {
     if (!selectedTeam) return;
 
@@ -563,7 +812,7 @@ export default function MiniGamePage() {
       setMessage(
         error instanceof Error
           ? error.message
-          : "Não foi possível guardar a bracket."
+          : "Não foi possível guardar a bracket.",
       );
     } finally {
       setSaving(false);
@@ -606,10 +855,10 @@ export default function MiniGamePage() {
                 {deadlinePassed
                   ? "Deadline terminou"
                   : locked
-                  ? "Fechado"
-                  : config?.isOpen
-                  ? "Aberto"
-                  : "Por abrir"}
+                    ? "Fechado"
+                    : config?.isOpen
+                      ? "Aberto"
+                      : "Por abrir"}
               </p>
               <p className="mt-2 text-sm font-semibold text-white/75">
                 {config?.qualifiedTeams.length ?? 0} seleções carregadas
@@ -622,8 +871,20 @@ export default function MiniGamePage() {
         </div>
 
         <div className="mt-5">
-          <DeadlineNotice deadlinePassed={deadlinePassed} countdown={countdown} />
+          <DeadlineNotice
+            deadlinePassed={deadlinePassed}
+            countdown={countdown}
+          />
         </div>
+
+        <MiniGameLeaderboard
+          entries={leaderboardEntries}
+          selectedEntry={selectedLeaderboardEntry}
+          onSelectEntry={(selectedEntry) =>
+            setSelectedLeaderboardUserId(selectedEntry.userId)
+          }
+          canShowPicks={canShowPublicPicks}
+        />
 
         {!user && (
           <div className="mt-5 rounded-3xl border border-gray-200 bg-white p-6 text-center shadow-sm">
@@ -678,8 +939,8 @@ export default function MiniGamePage() {
                 {deadlinePassed
                   ? "Deadline terminada"
                   : saving
-                  ? "A enviar..."
-                  : `Pedir acesso • ${MINI_GAME_PRICE}€`}
+                    ? "A enviar..."
+                    : `Pedir acesso • ${MINI_GAME_PRICE}€`}
               </button>
             </div>
 
@@ -737,10 +998,10 @@ export default function MiniGamePage() {
                   {locked
                     ? "Bracket fechada"
                     : saving
-                    ? "A guardar..."
-                    : entry
-                    ? "Atualizar bracket"
-                    : "Guardar bracket"}
+                      ? "A guardar..."
+                      : entry
+                        ? "Atualizar bracket"
+                        : "Guardar bracket"}
                 </button>
               </div>
             </div>
