@@ -19,6 +19,7 @@ const baseLinks = [
   { href: "/faq", label: "FAQ" },
   { href: "/ranking", label: "Ranking" },
   { href: "/tendencias", label: "Tendências" },
+  { href: "/minijogo", label: "Mini jogo" },
 ];
 
 export default function SiteHeader() {
@@ -35,7 +36,11 @@ export default function SiteHeader() {
 
   const links = useMemo(() => {
     return isAdmin
-      ? [...baseLinks, { href: "/admin", label: "Admin" }]
+      ? [
+          ...baseLinks,
+          { href: "/admin", label: "Admin" },
+          { href: "/admin/minijogo", label: "Admin Mini jogo" },
+        ]
       : baseLinks;
   }, [isAdmin]);
 
@@ -70,7 +75,7 @@ export default function SiteHeader() {
           <nav className="hidden items-center gap-5 text-sm font-medium md:flex">
             {links.map((link) => {
               const active = isActiveLink(link.href);
-              const isAdminLink = link.href === "/admin";
+              const isAdminLink = link.href.startsWith("/admin");
 
               return (
                 <Link
@@ -97,7 +102,7 @@ export default function SiteHeader() {
           <nav className="grid grid-cols-2 gap-2 pb-4 md:hidden">
             {links.map((link) => {
               const active = isActiveLink(link.href);
-              const isAdminLink = link.href === "/admin";
+              const isAdminLink = link.href.startsWith("/admin");
 
               return (
                 <Link
