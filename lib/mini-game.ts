@@ -8,6 +8,7 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -443,24 +444,46 @@ export async function saveMiniGameEntry(params: {
   );
 }
 
-export async function recalculateMiniGameEntries() {
-  const config = await getMiniGameConfig();
+export async function recalculateMiniGameEntries(
+  configOverride?: MiniGameConfig
+) {
+  const config = configOverride ?? (await getMiniGameConfig());
   const snap = await getDocs(collection(db, "miniGameEntries"));
 
-  await Promise.all(
-    snap.docs.map(async (docSnap) => {
-      const data = docSnap.data() as MiniGameEntry;
-      const picks = normalizePicks(data.picks);
-      const { totalPoints, stagePoints } = calculateMiniGamePoints(
-        picks,
-        config
-      );
+  const updates = snap.docs.map((docSnap) => {
+    const data = docSnap.data() as MiniGameEntry;
+    const picks = normalizePicks(data.picks);
 
-      await updateDoc(doc(db, "miniGameEntries", docSnap.id), {
-        totalPoints,
-        stagePoints,
+    const { totalPoints, stagePoints } = calculateMiniGamePoints(
+      picks,
+      config
+    );
+
+    return {
+      ref: doc(db, "miniGameEntries", docSnap.id),
+      totalPoints,
+      stagePoints,
+    };
+  });
+
+  // Firestore permite no máximo 500 writes por batch.
+  // Usamos 450 para ficar com margem.
+  const chunkSize = 450;
+
+  for (let index = 0; index < updates.length; index += chunkSize) {
+    const batch = writeBatch(db);
+    const chunk = updates.slice(index, index + chunkSize);
+
+    chunk.forEach((update) => {
+      batch.update(update.ref, {
+        totalPoints: update.totalPoints,
+        stagePoints: update.stagePoints,
         updatedAt: serverTimestamp(),
       });
-    })
-  );
+    });
+
+    await batch.commit();
+  }
+
+  return updates.length;
 }

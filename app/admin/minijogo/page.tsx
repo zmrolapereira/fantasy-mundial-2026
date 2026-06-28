@@ -106,20 +106,27 @@ export default function AdminMiniGamePage() {
     };
   }, [requests, entries]);
 
+  const getConfigFromForm = (): MiniGameConfig => {
+    return {
+      ...config,
+      qualifiedTeams: parseLines(qualifiedTeamsText),
+      actualOitavos: parseLines(actualTexts.actualOitavos),
+      actualQuartos: parseLines(actualTexts.actualQuartos),
+      actualMeias: parseLines(actualTexts.actualMeias),
+      actualFinal: parseLines(actualTexts.actualFinal),
+      actualCampeao: parseLines(actualTexts.actualCampeao),
+    };
+  };
+
   const handleSaveConfig = async () => {
     try {
       setSaving(true);
       setMessage("");
 
-      await saveMiniGameConfig({
-        ...config,
-        qualifiedTeams: parseLines(qualifiedTeamsText),
-        actualOitavos: parseLines(actualTexts.actualOitavos),
-        actualQuartos: parseLines(actualTexts.actualQuartos),
-        actualMeias: parseLines(actualTexts.actualMeias),
-        actualFinal: parseLines(actualTexts.actualFinal),
-        actualCampeao: parseLines(actualTexts.actualCampeao),
-      });
+      const nextConfig = getConfigFromForm();
+
+      await saveMiniGameConfig(nextConfig);
+      setConfig(nextConfig);
 
       setMessage("Configuração guardada.");
     } catch (error) {
@@ -135,13 +142,23 @@ export default function AdminMiniGamePage() {
       setSaving(true);
       setMessage("");
 
-      await handleSaveConfig();
-      await recalculateMiniGameEntries();
+      const nextConfig = getConfigFromForm();
 
-      setMessage("Resultados guardados e leaderboard recalculada.");
+      await saveMiniGameConfig(nextConfig);
+      setConfig(nextConfig);
+
+      const updatedEntries = await recalculateMiniGameEntries(nextConfig);
+
+      setMessage(
+        `Resultados guardados e leaderboard recalculada em ${updatedEntries} ${
+          updatedEntries === 1 ? "entrada" : "entradas"
+        }.`
+      );
     } catch (error) {
       console.error(error);
-      setMessage("Erro ao recalcular mini jogo.");
+      setMessage(
+        "Erro ao recalcular mini jogo. Confirma se as regras do Firestore permitem ao admin atualizar miniGameEntries."
+      );
     } finally {
       setSaving(false);
     }

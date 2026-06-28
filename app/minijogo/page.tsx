@@ -236,25 +236,34 @@ function TeamButton({
   teamName,
   selected,
   disabled,
+  result = null,
   onClick,
 }: {
   teamName: string;
   selected: boolean;
   disabled: boolean;
+  result?: boolean | null;
   onClick: () => void;
 }) {
   const flag = getFlagByCountry(teamName);
+
+  const resultClasses =
+    selected && result === true
+      ? "border-emerald-500 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-100"
+      : selected && result === false
+        ? "border-rose-500 bg-rose-50 text-rose-900 ring-2 ring-rose-100"
+        : selected
+          ? "border-violet-500 bg-violet-50 text-violet-900 ring-2 ring-violet-100"
+          : "border-gray-200 bg-white text-gray-700 hover:border-violet-200 hover:bg-violet-50/40";
 
   return (
     <button
       type="button"
       disabled={disabled || !teamName}
       onClick={onClick}
-      className={`flex min-h-[44px] w-full items-center gap-2 rounded-2xl border px-3 py-2 text-left transition ${
-        selected
-          ? "border-violet-500 bg-violet-50 text-violet-900 ring-2 ring-violet-100"
-          : "border-gray-200 bg-white text-gray-700 hover:border-violet-200 hover:bg-violet-50/40"
-      } ${disabled || !teamName ? "cursor-not-allowed opacity-60" : ""}`}
+      className={`flex min-h-[44px] w-full items-center gap-2 rounded-2xl border px-3 py-2 text-left transition ${resultClasses} ${
+        disabled || !teamName ? "cursor-not-allowed opacity-60" : ""
+      }`}
     >
       {flag ? (
         <img
@@ -266,9 +275,21 @@ function TeamButton({
         <div className="h-5 w-7 shrink-0 rounded bg-gray-200" />
       )}
 
-      <span className="truncate text-xs font-black">
+      <span className="min-w-0 flex-1 truncate text-xs font-black">
         {teamName || "Por definir"}
       </span>
+
+      {selected && result === true && (
+        <span className="shrink-0 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-black text-white">
+          +1
+        </span>
+      )}
+
+      {selected && result === false && (
+        <span className="shrink-0 rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-black text-white">
+          0
+        </span>
+      )}
     </button>
   );
 }
@@ -277,11 +298,13 @@ function BracketColumn({
   round,
   picks,
   locked,
+  config,
   onSelectWinner,
 }: {
   round: BracketRound;
   picks: MiniGamePicks;
   locked: boolean;
+  config?: MiniGameConfig | null;
   onSelectWinner: (
     targetStage: keyof MiniGamePicks,
     matchIndex: number,
@@ -327,6 +350,11 @@ function BracketColumn({
                   teamName={home}
                   selected={selected === home}
                   disabled={locked}
+                  result={
+                    selected === home
+                      ? isCorrectMiniGamePick(home, config, round.targetStage)
+                      : null
+                  }
                   onClick={() =>
                     onSelectWinner(round.targetStage, matchIndex, home)
                   }
@@ -335,6 +363,11 @@ function BracketColumn({
                   teamName={away}
                   selected={selected === away}
                   disabled={locked}
+                  result={
+                    selected === away
+                      ? isCorrectMiniGamePick(away, config, round.targetStage)
+                      : null
+                  }
                   onClick={() =>
                     onSelectWinner(round.targetStage, matchIndex, away)
                   }
@@ -354,11 +387,64 @@ function BracketColumn({
   );
 }
 
-function SmallTeamChip({ teamName }: { teamName: string }) {
+function getActualTeamsForStage(
+  config: MiniGameConfig | null | undefined,
+  stage: keyof MiniGamePicks
+) {
+  if (!config) return [];
+
+  if (stage === "oitavos") return config.actualOitavos ?? [];
+  if (stage === "quartos") return config.actualQuartos ?? [];
+  if (stage === "meias") return config.actualMeias ?? [];
+  if (stage === "final") return config.actualFinal ?? [];
+  if (stage === "campeao") return config.actualCampeao ?? [];
+
+  return [];
+}
+
+function normalizeTeamName(value?: string) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function isCorrectMiniGamePick(
+  teamName: string,
+  config: MiniGameConfig | null | undefined,
+  stage: keyof MiniGamePicks
+) {
+  const actualTeams = getActualTeamsForStage(config, stage);
+
+  if (actualTeams.length === 0) {
+    return null;
+  }
+
+  const actualSet = new Set(actualTeams.map(normalizeTeamName));
+  return actualSet.has(normalizeTeamName(teamName));
+}
+
+function SmallTeamChip({
+  teamName,
+  result = null,
+}: {
+  teamName: string;
+  result?: boolean | null;
+}) {
   const flag = getFlagByCountry(teamName);
 
+  const resultClass =
+    result === true
+      ? "border-emerald-300 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100"
+      : result === false
+        ? "border-rose-300 bg-rose-50 text-rose-800 ring-1 ring-rose-100"
+        : "border-gray-200 bg-white text-gray-700";
+
   return (
-    <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-black text-gray-700 shadow-sm">
+    <span
+      className={`inline-flex min-w-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black shadow-sm ${resultClass}`}
+    >
       {flag ? (
         <img
           src={flag}
@@ -369,6 +455,16 @@ function SmallTeamChip({ teamName }: { teamName: string }) {
         <span className="h-3.5 w-5 rounded bg-gray-200" />
       )}
       <span className="truncate">{teamName}</span>
+      {result === true && (
+        <span className="rounded-full bg-emerald-600 px-1.5 py-0.5 text-[9px] font-black text-white">
+          +1
+        </span>
+      )}
+      {result === false && (
+        <span className="rounded-full bg-rose-600 px-1.5 py-0.5 text-[9px] font-black text-white">
+          0
+        </span>
+      )}
     </span>
   );
 }
@@ -378,11 +474,13 @@ function MiniGameLeaderboard({
   selectedEntry,
   onSelectEntry,
   canShowPicks,
+  config,
 }: {
   entries: RankedMiniGameEntry[];
   selectedEntry?: RankedMiniGameEntry | null;
   onSelectEntry: (entry: RankedMiniGameEntry) => void;
   canShowPicks: boolean;
+  config?: MiniGameConfig | null;
 }) {
   const leader = entries[0];
 
@@ -540,9 +638,16 @@ function MiniGameLeaderboard({
                             {selectedTeams.length}/{meta.max} escolhas
                           </p>
                         </div>
-                        <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100">
-                          {points} pts
-                        </span>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100">
+                            {points} pts
+                          </span>
+                          {getActualTeamsForStage(config, stage).length > 0 && (
+                            <span className="text-[9px] font-black uppercase tracking-wide text-gray-400">
+                              verdes = +1
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="mt-3 flex flex-wrap gap-1.5">
@@ -551,12 +656,21 @@ function MiniGameLeaderboard({
                             Sem escolhas guardadas.
                           </span>
                         ) : (
-                          selectedTeams.map((teamName, index) => (
-                            <SmallTeamChip
-                              key={`${stage}-${teamName}-${index}`}
-                              teamName={teamName}
-                            />
-                          ))
+                          selectedTeams.map((teamName, index) => {
+                            const result = isCorrectMiniGamePick(
+                              teamName,
+                              config,
+                              stage
+                            );
+
+                            return (
+                              <SmallTeamChip
+                                key={`${stage}-${teamName}-${index}`}
+                                teamName={teamName}
+                                result={result}
+                              />
+                            );
+                          })
                         )}
                       </div>
                     </div>
@@ -929,6 +1043,7 @@ export default function MiniGamePage() {
               setSelectedLeaderboardUserId(selectedEntry.userId)
             }
             canShowPicks={canShowPublicPicks}
+            config={config}
           />
         )}
 
@@ -1063,6 +1178,7 @@ export default function MiniGamePage() {
                     round={round}
                     picks={picks}
                     locked={!canEdit}
+                    config={config}
                     onSelectWinner={handleSelectWinner}
                   />
                 ))}
