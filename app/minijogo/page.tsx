@@ -35,7 +35,9 @@ type RankedMiniGameEntry = MiniGameEntry & {
   rank?: number;
 };
 
-const MINI_GAME_DEADLINE = new Date("2026-06-28T13:00:00+01:00");
+type MiniGameTab = "bracket" | "publicPicks";
+
+const MINI_GAME_DEADLINE = new Date("2026-06-28T20:00:00+01:00");
 
 function formatDeadline(date: Date) {
   return date.toLocaleString("pt-PT", {
@@ -141,7 +143,7 @@ function PaymentNotice() {
         por <span className="font-black">Revolut ou MB WAY</span> para:
       </p>
       <p className="mt-2 rounded-2xl bg-white px-4 py-3 text-2xl font-black tracking-tight text-gray-950">
-        913 856 472
+        918 888 416
       </p>
       <p className="mt-2 text-xs font-semibold leading-5 text-amber-800">
         Coloca no descritivo o nome da tua equipa para ser mais fácil confirmar.
@@ -580,6 +582,7 @@ export default function MiniGamePage() {
   >([]);
   const [selectedLeaderboardUserId, setSelectedLeaderboardUserId] =
     useState("");
+  const [activeTab, setActiveTab] = useState<MiniGameTab>("bracket");
 
   const [teamName, setTeamName] = useState("");
   const [managerName, setManagerName] = useState("");
@@ -748,7 +751,7 @@ export default function MiniGamePage() {
       });
 
       setMessage(
-        "Pedido enviado. Agora envia 5€ por Revolut ou MB WAY para 913 856 472.",
+        "Pedido enviado. Agora envia 5€ por Revolut ou MB WAY para 918 888 416.",
       );
     } catch (error) {
       console.error(error);
@@ -877,14 +880,60 @@ export default function MiniGamePage() {
           />
         </div>
 
-        <MiniGameLeaderboard
-          entries={leaderboardEntries}
-          selectedEntry={selectedLeaderboardEntry}
-          onSelectEntry={(selectedEntry) =>
-            setSelectedLeaderboardUserId(selectedEntry.userId)
-          }
-          canShowPicks={canShowPublicPicks}
-        />
+        <div className="mt-5 rounded-[26px] border border-gray-200 bg-white p-2 shadow-sm">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab("bracket")}
+              className={`rounded-2xl px-4 py-3 text-left transition ${
+                activeTab === "bracket"
+                  ? "bg-gray-950 text-white shadow"
+                  : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] opacity-70">
+                Jogar
+              </p>
+              <p className="mt-1 text-sm font-black">A minha bracket</p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("publicPicks")}
+              className={`rounded-2xl px-4 py-3 text-left transition ${
+                activeTab === "publicPicks"
+                  ? "bg-violet-600 text-white shadow"
+                  : "bg-violet-50 text-violet-800 hover:bg-violet-100"
+              }`}
+            >
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] opacity-70">
+                Depois da deadline
+              </p>
+              <p className="mt-1 text-sm font-black">Apostas dos outros</p>
+            </button>
+          </div>
+
+          {!canShowPublicPicks && activeTab === "publicPicks" && (
+            <div className="mt-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-5 text-amber-800">
+              As apostas dos outros só ficam visíveis depois da deadline das 20h
+              ou quando o admin fechar as picks.
+            </div>
+          )}
+        </div>
+
+        {activeTab === "publicPicks" && (
+          <MiniGameLeaderboard
+            entries={leaderboardEntries}
+            selectedEntry={selectedLeaderboardEntry}
+            onSelectEntry={(selectedEntry) =>
+              setSelectedLeaderboardUserId(selectedEntry.userId)
+            }
+            canShowPicks={canShowPublicPicks}
+          />
+        )}
+
+        {activeTab === "bracket" && (
+          <>
 
         {!user && (
           <div className="mt-5 rounded-3xl border border-gray-200 bg-white p-6 text-center shadow-sm">
@@ -1020,6 +1069,9 @@ export default function MiniGamePage() {
               </div>
             </div>
           </div>
+        )}
+
+          </>
         )}
       </section>
     </main>
