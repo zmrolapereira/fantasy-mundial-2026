@@ -1264,11 +1264,11 @@ export const games: Game[] = [
   {
     id: 96,
     date: "2026-07-07",
-    time: "22:00",
+    time: "21:00",
     round: "Oitavos",
     phase: "Oitavos",
     homeTeam: "Suíça",
-    awayTeam: "Vencedor Jogo 16",
+    awayTeam: "Colômbia",
     homeScore: null,
     awayScore: null,
     status: "Por jogar",
