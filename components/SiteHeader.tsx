@@ -18,6 +18,7 @@ const baseLinks = [
   { href: "/rules", label: "Info" },
   { href: "/faq", label: "FAQ" },
   { href: "/ranking", label: "Ranking" },
+  { href: "/evolucao", label: "Evolução" },
   { href: "/tendencias", label: "Tendências" },
   { href: "/minijogo", label: "Mini jogo" },
 ];
